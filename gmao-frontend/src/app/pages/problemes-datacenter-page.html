@@ -1,0 +1,277 @@
+<section class="problems-page">
+  <div class="content-card">
+    <div class="page-toolbar">
+      <div class="page-heading"><h1>Problèmes Data Center</h1></div>
+      <div class="view-actions">
+      <button
+        type="button"
+        class="view-button"
+        [class.active]="journalOpen"
+        [attr.aria-pressed]="journalOpen"
+        (click)="toggleJournal()"
+      >
+        <i class="bi bi-journal-text"></i>
+        Journal de problème
+      </button>
+
+      <button type="button" class="primary-button" (click)="openProblemSheet()">
+        <i class="bi bi-plus-lg"></i>
+        Renseigner le problème
+      </button>
+      @if (canExportPdf) { <button type="button" class="export-pdf-button" (click)="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> Exporter en PDF</button> }
+
+    </div>
+    </div>
+
+    @if (journalOpen) {
+      <div class="filters">
+        <label class="filter-field">
+          <span>Site</span>
+          <select [(ngModel)]="selectedSite" (ngModelChange)="resetPage()">
+            <option value="">Tous les sites</option>
+            @for (site of sites; track site) {
+              <option [value]="site">{{ site }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="filter-field">
+          <span>Statut</span>
+          <select [(ngModel)]="selectedStatus" (ngModelChange)="resetPage()">
+            <option value="">Tous les statuts</option>
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ status }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="filter-field">
+          <span>Priorité</span>
+          <select [(ngModel)]="selectedPriority" (ngModelChange)="resetPage()">
+            <option value="">Toutes les priorités</option>
+            @for (priority of priorities; track priority) {
+              <option [value]="priority">{{ priority }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="filter-field search-field">
+          <span>Recherche</span>
+          <div class="search-control">
+            <i class="bi bi-search"></i>
+            <input
+              type="search"
+              placeholder="Rechercher un problème..."
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="resetPage()"
+            />
+            @if (searchTerm) {
+              <button type="button" aria-label="Effacer la recherche" (click)="clearSearch()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        </label>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Site</th>
+              <th scope="col">Date</th>
+              <th scope="col">Équipement</th>
+              <th scope="col">Constat</th>
+              <th scope="col">Statut</th>
+              <th scope="col">Priorité</th>
+              <th scope="col">Responsable</th>
+              <th scope="col">Échéance</th>
+              <th scope="col">Besoin d'un spare</th>
+              <th scope="col">Prochaine étape</th>
+              @if (canModify) { <th scope="col">Action</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (problem of visibleProblemRows; track $index) {
+              <tr [class.empty-row]="!problem">
+                <td>{{ problem?.site }}</td>
+                <td>{{ problem?.date }}</td>
+                <td>{{ problem?.equipement }}</td>
+                <td>{{ problem?.constat }}</td>
+                <td>
+                  @if (problem) {
+                    <span
+                      class="status-badge"
+                      [class.status-open]="problem.statut === 'Open'"
+                      [class.status-ongoing]="problem.statut === 'Ongoing'"
+                      [class.status-closed]="problem.statut === 'Closed'"
+                    >
+                      {{ problem.statut }}
+                    </span>
+                  }
+                </td>
+                <td>
+                  @if (problem) {
+                    <span
+                      class="priority-badge"
+                      [class.priority-p1]="problem.priorite === 'P1'"
+                      [class.priority-p2]="problem.priorite === 'P2'"
+                      [class.priority-p3]="problem.priorite === 'P3'"
+                    >
+                      {{ problem.priorite }}
+                    </span>
+                  }
+                </td>
+                <td>{{ problem?.responsable }}</td>
+                <td>{{ problem?.echeance }}</td>
+                <td>{{ problem ? (problem.besoinSpare ? 'Oui' : 'Non') : '' }}</td>
+                <td>{{ problem?.prochaineEtape }}</td>
+                @if (canModify) {
+                  <td class="action-cell">
+                    @if (problem) {
+                      <button
+                      type="button"
+                      class="status-action ongoing-action"
+                      [disabled]="problem.statut !== 'Open'"
+                      (click)="changeStatus(problem, 'Ongoing')"
+                    >
+                      Ongoing
+                    </button>
+                    <button
+                      type="button"
+                      class="status-action closed-action"
+                      [disabled]="problem.statut === 'Closed'"
+                      (click)="changeStatus(problem, 'Closed')"
+                    >
+                      Closed
+                    </button>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" aria-label="Pagination du journal de problème">
+        <button
+          type="button"
+          class="page-button"
+          aria-label="Page précédente"
+          [disabled]="currentPage === 1"
+          (click)="previousPage()"
+        >
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <span>Page {{ currentPage }} / {{ pageCount }}</span>
+        <button
+          type="button"
+          class="page-button"
+          aria-label="Page suivante"
+          [disabled]="currentPage === pageCount"
+          (click)="nextPage()"
+        >
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    }
+  </div>
+</section>
+
+@if (problemSheetOpen) {
+  <div class="sheet-backdrop" (click)="closeProblemSheet()"></div>
+  <aside class="problem-sheet" aria-label="Renseigner un problème">
+    <header>
+      <div>
+        
+        <h2>Renseigner le problème</h2>
+      </div>
+      <button type="button" class="close-button" aria-label="Fermer" (click)="closeProblemSheet()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    <form (ngSubmit)="saveProblem()">
+      <label>
+        <span>Site</span>
+        <select name="site" [(ngModel)]="newProblem.site" required>
+          <option value="" disabled>Sélectionner un site</option>
+          @for (site of sites; track site) {
+            <option [value]="site">{{ site }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Date</span>
+        <input name="date" type="date" [(ngModel)]="newProblem.date" required />
+      </label>
+
+      <label>
+        <span>Équipement</span>
+        <select name="equipement" [(ngModel)]="newProblem.equipement" required>
+          <option value="" disabled>S&eacute;lectionner un &eacute;quipement</option>
+          @for (equipment of availableEquipments; track equipment.site + '-' + equipment.code) {
+            <option [value]="equipment.code">{{ equipment.code }} &mdash; {{ equipment.nom }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Statut</span>
+        <input name="statut" type="text" [value]="newProblem.statut" readonly />
+      </label>
+
+      <label>
+        <span>Priorité</span>
+        <select name="priorite" [(ngModel)]="newProblem.priorite" required>
+          <option value="" disabled>Sélectionner une priorité</option>
+          @for (priority of priorities; track priority) {
+            <option [value]="priority">{{ priority }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Responsable</span>
+        <input name="responsable" type="text" [(ngModel)]="newProblem.responsable" />
+      </label>
+
+      <label>
+        <span>Échéance</span>
+        <input name="echeance" type="date" [(ngModel)]="newProblem.echeance" />
+      </label>
+
+      <label>
+        <span>Besoin d'un spare</span>
+        <select name="besoinSpare" [(ngModel)]="newProblem.besoinSpare">
+          <option [ngValue]="false">Non</option>
+          <option [ngValue]="true">Oui</option>
+        </select>
+      </label>
+
+      <label class="full-width">
+        <span>Constat</span>
+        <textarea name="constat" rows="4" [(ngModel)]="newProblem.constat" required></textarea>
+      </label>
+
+      <label class="full-width">
+        <span>Prochaine étape</span>
+        <textarea
+          name="prochaineEtape"
+          rows="4"
+          [(ngModel)]="newProblem.prochaineEtape"
+        ></textarea>
+      </label>
+
+      <div class="sheet-actions full-width">
+        <button type="button" class="secondary-button" (click)="closeProblemSheet()">Annuler</button>
+        <button type="submit" class="primary-button">
+          <i class="bi bi-check-lg"></i>
+          Enregistrer le problème
+        </button>
+      </div>
+    </form>
+  </aside>
+}

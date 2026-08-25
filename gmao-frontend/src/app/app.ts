@@ -1,0 +1,47 @@
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AccessControlService } from './auth/access-control.service';
+import { AuthService } from './auth/auth.service';
+import { PORTAL_ENTRY_KEY } from './auth/portal-entry.guard';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  templateUrl: './app.html',
+  styleUrls: ['./app.scss']
+})
+export class AppComponent {
+  private readonly router = inject(Router);
+  readonly access = inject(AccessControlService);
+  private readonly auth = inject(AuthService);
+
+  maintenanceOpen = true;
+  loggingOut = false;
+  sidebarHidden = false;
+
+  get isPublicRoute(): boolean {
+    const path = this.router.url.split(/[?#]/, 1)[0];
+    return path === '/' || path === '/connexion';
+  }
+
+  get isAccueil(): boolean {
+    return this.router.url.startsWith('/accueil');
+  }
+
+  toggleSidebar(): void {
+    this.sidebarHidden = !this.sidebarHidden;
+  }
+
+  async logout(): Promise<void> {
+    if (this.loggingOut) return;
+    this.loggingOut = true;
+    try {
+      await this.auth.signOut();
+      sessionStorage.removeItem(PORTAL_ENTRY_KEY);
+      await this.router.navigateByUrl('/');
+    } finally {
+      this.loggingOut = false;
+    }
+  }
+}

@@ -1,0 +1,65 @@
+<section class="fuel-ge-page">
+  <div class="content-card">
+    <div class="page-toolbar">
+      <div class="page-heading">
+        <h1>Fuel-GE</h1>
+        <p>Suivi mensuel du carburant, des groupes électrogènes et de la disponibilité du réseau.</p>
+      </div>
+      <div class="view-actions">
+        <button type="button" class="view-button" [class.inactive]="!journalOpen" [attr.aria-pressed]="journalOpen" (click)="toggleJournal()"><i class="bi bi-journal-text"></i> Journal mensuel</button>
+        <button type="button" class="primary-button" (click)="openSheet()"><i class="bi bi-plus-lg"></i> Renseigner le journal</button>
+        @if (canExportPdf) { <button type="button" class="export-pdf-button" (click)="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> Exporter en PDF</button> }
+      </div>
+    </div>
+
+
+    @if (journalOpen) {
+      <div class="filters">
+        <label class="filter-field"><span>Site</span><select [(ngModel)]="selectedSite" (ngModelChange)="resetPage()"><option value="">Tous les sites</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
+        <label class="filter-field"><span>Mois et année</span><input type="month" [(ngModel)]="selectedPeriod" (ngModelChange)="resetPage()" /></label>
+        <label class="filter-field search-field"><span>Recherche</span><input type="search" placeholder="Rechercher un site ou un mois…" [(ngModel)]="searchTerm" (ngModelChange)="resetPage()" /></label>
+      </div>
+
+      <div class="table-wrapper"><table>
+        <thead><tr><th>Site</th><th>Mois et année</th><th>Stock initial (L)</th><th>Consommé (L)</th><th>Stock final (L)</th><th>Heures GE</th><th>L/h</th><th>SNEL kWh</th><th>Disponibilité Grid</th>@if (canModify) { <th>Action</th> }</tr></thead>
+        <tbody>
+          @for (row of visibleRows; track row.id || row.site + row.periode) {
+            <tr>
+              <td>{{ row.site }}</td><td>{{ row.periode }}</td><td>{{ row.stockInitial === null ? 'Non renseigné' : (row.stockInitial | number:'1.0-3':'fr') }}</td><td>{{ row.sortie | number:'1.0-3':'fr' }}</td><td>{{ row.stockFinal === null ? 'Non renseigné' : (row.stockFinal | number:'1.0-3':'fr') }}</td><td>{{ row.heuresGe | number:'1.0-2':'fr' }}</td>
+              <td>{{ row.litresHeure === null ? 'Non calculable' : (row.litresHeure | number:'1.0-3':'fr') }}</td>
+              <td>{{ row.snelKwh === null ? 'Non applicable' : (row.snelKwh | number:'1.0-2':'fr') }}</td><td>{{ row.disponibiliteGrid | number:'1.0-2':'fr' }} %</td>
+              @if (canModify) { <td class="action-cell"><button type="button" class="row-action" (click)="editEntry(row)">Modifier</button></td> }
+            </tr>
+          } @empty { <tr><td [attr.colspan]="canModify ? 10 : 9" class="empty-message">Aucune donnée Fuel GE ne correspond aux filtres.</td></tr> }
+        </tbody>
+      </table></div>
+
+      <div class="pagination" aria-label="Pagination du journal mensuel"><button type="button" class="page-button" aria-label="Page précédente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="bi bi-chevron-right"></i></button></div>
+    }
+  </div>
+</section>
+
+@if (sheetOpen) {
+  <div class="sheet-backdrop" (click)="closeSheet()"></div>
+  <aside class="fuel-sheet" aria-label="Renseigner le journal mensuel">
+    <header><div><h2>{{ sheetTitle }}</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
+    <form (ngSubmit)="saveEntry()">
+      <label><span>Site</span><select name="site" [(ngModel)]="newEntry.site" (ngModelChange)="changeSite()" required><option value="" disabled>Sélectionner un site</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
+      <label><span>Mois et année</span><input name="periode" type="month" [(ngModel)]="newEntry.periode" required /></label>
+      <label><span>Stock initial du site (L)</span><input name="stockInitial" type="number" min="0" step="0.001" [(ngModel)]="newEntry.stockInitial" required /></label>
+      <label><span>Consommation (L)</span><input name="sortie" type="number" min="0" step="0.001" [(ngModel)]="newEntry.sortie" required /></label>
+      <label><span>Stock final du site (L)</span><input name="stockFinal" type="number" min="0" step="0.001" [(ngModel)]="newEntry.stockFinal" required /></label>
+      <label><span>Heures GE</span><input name="heuresGe" type="number" min="0" step="0.01" [(ngModel)]="newEntry.heuresGe" required /></label>
+      @if (isNoGridSite(newEntry.site)) {
+        <div class="no-grid-message full-width"><i class="bi bi-info-circle"></i><span>Ce site ne dispose pas de la SNEL : kWh non applicable et disponibilité Grid fixée à 0 %.</span></div>
+      } @else {
+        <label class="full-width"><span>SNEL kWh</span><input name="snelKwh" type="number" min="0" step="0.01" [(ngModel)]="newEntry.snelKwh" required /></label>
+      }
+      <div class="calculated-values full-width">
+        <span>Consommation<strong>{{ calculatedLitresPerHour === null ? 'Non calculable' : (calculatedLitresPerHour | number:'1.0-3':'fr') + ' L/h' }}</strong></span>
+        <span>Disponibilité Grid<strong>{{ calculatedGridAvailability | number:'1.0-2':'fr' }} %</strong></span>
+      </div>
+      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre à jour' }}</button></div>
+    </form>
+  </aside>
+}

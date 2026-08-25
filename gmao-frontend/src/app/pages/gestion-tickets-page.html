@@ -1,0 +1,251 @@
+<section class="tickets-page">
+  <div class="content-card">
+    <div class="page-toolbar">
+      <div class="page-heading"><h1>Gestion des tickets</h1></div>
+      <div class="view-actions" aria-label="Choix de la vue">
+      <button
+        type="button"
+        class="view-button"
+        [class.active]="activeView === 'tickets'"
+        [attr.aria-pressed]="activeView === 'tickets'"
+        (click)="toggleView('tickets')"
+      >
+        <i class="bi bi-ticket-detailed"></i>
+        File de tickets
+      </button>
+
+      <button
+        type="button"
+        class="view-button"
+        [class.active]="activeView === 'sites'"
+        [attr.aria-pressed]="activeView === 'sites'"
+        (click)="toggleView('sites')"
+      >
+        <i class="bi bi-bar-chart"></i>
+        Répartition par site
+      </button>
+      @if (canExportPdf && activeView) {
+        <button type="button" class="export-pdf-button" (click)="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> Exporter en PDF</button>
+      }
+    </div>
+    </div>
+
+    @if (activeView === 'tickets') {
+      <div class="filters">
+        <label class="filter-field">
+          <span>Site</span>
+          <select [(ngModel)]="selectedSite" (ngModelChange)="resetTicketPage()">
+            <option value="">Tous les sites</option>
+            @for (site of sites; track site) {
+              <option [value]="site">{{ site }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="filter-field">
+          <span>Nature</span>
+          <select [(ngModel)]="selectedNature" (ngModelChange)="resetTicketPage()">
+            <option value="">Toutes les natures</option>
+            @for (nature of natures; track nature) {
+              <option [value]="nature">{{ nature }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="filter-field search-field">
+          <span>Recherche</span>
+          <div class="search-control">
+            <i class="bi bi-search"></i>
+            <input
+              type="search"
+              placeholder="Rechercher un ticket..."
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="resetTicketPage()"
+            />
+            @if (searchTerm) {
+              <button type="button" aria-label="Effacer la recherche" (click)="clearSearch()">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        </label>
+
+        <button type="button" class="primary-button" (click)="openTicketSheet()">
+          <i class="bi bi-plus-lg"></i>
+          Renseigner le ticket
+        </button>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="tickets-table">
+          <thead>
+            <tr>
+              <th scope="col">Numéro du ticket</th>
+              <th scope="col">Site</th>
+              <th scope="col">Nature</th>
+              <th scope="col">Équipement</th>
+              <th scope="col">Date</th>
+              <th scope="col">Porteur / agent</th>
+              <th scope="col">Entreprise</th>
+              <th scope="col">Motif</th>
+              <th scope="col">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ticket of visibleTicketRows; track $index) {
+              <tr [class.empty-row]="!ticket">
+                <td>{{ ticket?.numero }}</td>
+                <td>{{ ticket?.site }}</td>
+                <td>{{ ticket?.nature }}</td>
+                <td>{{ ticket?.equipement }}</td>
+                <td>{{ ticket?.date }}</td>
+                <td>{{ ticket?.porteur }}</td>
+                <td>{{ ticket?.entreprise }}</td>
+                <td>{{ ticket?.motif }}</td>
+                <td>{{ ticket?.description }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" aria-label="Pagination de la file de tickets">
+        <button
+          type="button"
+          class="page-button"
+          aria-label="Page précédente"
+          [disabled]="ticketPage === 1"
+          (click)="previousPage('tickets')"
+        >
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <span>Page {{ ticketPage }} / {{ ticketPageCount }}</span>
+        <button
+          type="button"
+          class="page-button"
+          aria-label="Page suivante"
+          [disabled]="ticketPage === ticketPageCount"
+          (click)="nextPage('tickets')"
+        >
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    }
+
+    @if (activeView === 'sites') {
+      <div class="table-wrapper">
+        <table class="sites-table">
+          <thead>
+            <tr>
+              <th scope="col">Site</th>
+              <th scope="col">Nombres</th>
+              <th scope="col">PM</th>
+              <th scope="col">WO</th>
+              <th scope="col">Curative</th>
+              <th scope="col">Visit</th>
+              <th scope="col">Incident</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of visibleSiteRows; track $index) {
+              <tr [class.empty-row]="!row">
+                <td>{{ row?.site }}</td>
+                <td>{{ row?.nombres }}</td>
+                <td>{{ row?.pm }}</td>
+                <td>{{ row?.wo }}</td>
+                <td>{{ row?.curative }}</td>
+                <td>{{ row?.visit }}</td>
+                <td>{{ row?.incident }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+}
+  </div>
+</section>
+
+@if (ticketSheetOpen) {
+  <div class="sheet-backdrop" (click)="closeTicketSheet()"></div>
+  <aside class="ticket-sheet" aria-label="Renseigner un ticket">
+    <header>
+      <div>
+        
+        <h2>Renseigner le ticket</h2>
+      </div>
+      <button type="button" class="close-button" aria-label="Fermer" (click)="closeTicketSheet()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    <form (ngSubmit)="saveTicket()">
+      <label>
+        <span>Numéro du ticket</span>
+        <input name="numero" type="text" [(ngModel)]="newTicket.numero" required />
+      </label>
+
+      <label>
+        <span>Site</span>
+        <select name="site" [(ngModel)]="newTicket.site" required>
+          <option value="" disabled>Sélectionner un site</option>
+          @for (site of sites; track site) {
+            <option [value]="site">{{ site }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Nature</span>
+        <select name="nature" [(ngModel)]="newTicket.nature" required>
+          <option value="" disabled>Sélectionner une nature</option>
+          @for (nature of natures; track nature) {
+            <option [value]="nature">{{ nature }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Équipement</span>
+        <select name="equipement" [(ngModel)]="newTicket.equipement" required>
+          <option value="" disabled>S&eacute;lectionner un &eacute;quipement</option>
+          @for (equipment of availableEquipments; track equipment.site + '-' + equipment.code) {
+            <option [value]="equipment.code">{{ equipment.code }} &mdash; {{ equipment.nom }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span>Date</span>
+        <input name="date" type="date" [(ngModel)]="newTicket.date" required />
+      </label>
+
+      <label>
+        <span>Porteur / agent</span>
+        <input name="porteur" type="text" [(ngModel)]="newTicket.porteur" />
+      </label>
+
+      <label>
+        <span>Entreprise</span>
+        <input name="entreprise" type="text" [(ngModel)]="newTicket.entreprise" />
+      </label>
+
+      <label>
+        <span>Motif</span>
+        <input name="motif" type="text" [(ngModel)]="newTicket.motif" />
+      </label>
+
+      <label class="full-width">
+        <span>Description</span>
+        <textarea name="description" rows="4" [(ngModel)]="newTicket.description"></textarea>
+      </label>
+
+      <div class="sheet-actions full-width">
+        <button type="button" class="secondary-button" (click)="closeTicketSheet()">Annuler</button>
+        <button type="submit" class="primary-button">
+          <i class="bi bi-check-lg"></i>
+          Enregistrer le ticket
+        </button>
+      </div>
+    </form>
+  </aside>
+}

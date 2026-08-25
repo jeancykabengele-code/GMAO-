@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: gmao-ordc-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./gmao/Dockerfile
+    dockerContext: ./gmao
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_SECURE_SSL_REDIRECT
+        value: "true"
+      - key: DJANGO_SECURE_HSTS_SECONDS
+        value: "3600"
+      - key: SUPABASE_DB_HOST
+        value: aws-0-eu-central-1.pooler.supabase.com
+      - key: SUPABASE_DB_PORT
+        value: "5432"
+      - key: SUPABASE_DB_NAME
+        value: postgres
+      - key: SUPABASE_DB_USERNAME
+        value: postgres.rgujwidwlqesukqwgnib
+      - key: SUPABASE_DB_PASSWORD
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false

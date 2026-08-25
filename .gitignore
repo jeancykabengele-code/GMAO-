@@ -1,0 +1,28 @@
+# Frontend
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+**/.vercel/
+**/npm-debug.log*
+
+# Backend
+**/.venv/
+**/.runtime/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/db.sqlite3
+
+# Environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+gmao-frontend/src/environments/environment.production.ts
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

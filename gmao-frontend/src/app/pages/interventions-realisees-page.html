@@ -1,0 +1,53 @@
+<section class="interventions-page">
+  <div class="content-card">
+    <div class="page-toolbar">
+      <div class="page-heading"><h1>Interventions r&eacute;alis&eacute;es</h1><p>Journal des travaux effectu&eacute;s sur les &eacute;quipements des diff&eacute;rents sites.</p></div>
+      <div class="view-actions">
+        <button type="button" class="view-button" [class.inactive]="!tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()"><i class="bi bi-tools"></i> Journal des interventions</button>
+        <button type="button" class="primary-button" (click)="openSheet()"><i class="bi bi-plus-lg"></i> Renseigner une intervention</button>
+        @if (canExportPdf) { <button type="button" class="export-pdf-button" (click)="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> Exporter en PDF</button> }
+      </div>
+    </div>
+
+    @if (tableOpen) {
+      <div class="filters">
+        <label class="filter-field"><span>Site</span><select [(ngModel)]="selectedSite" (ngModelChange)="resetPage()"><option value="">Tous les sites</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
+        <label class="filter-field"><span>Type</span><select [(ngModel)]="selectedType" (ngModelChange)="resetPage()"><option value="">Tous les types</option>@for (type of interventionTypes; track type) { <option [value]="type">{{ type }}</option> }</select></label>
+        <label class="filter-field"><span>Mois et ann&eacute;e</span><input type="month" [(ngModel)]="selectedPeriod" (ngModelChange)="resetPage()" /></label>
+      </div>
+
+      <div class="table-wrapper"><table>
+        <thead><tr><th>Num&eacute;ro du ticket</th><th>Date</th><th>Site</th><th>&Eacute;quipement</th><th>Type</th><th>Travail r&eacute;alis&eacute;</th><th>Agent</th><th>Dur&eacute;e</th><th>Statut</th></tr></thead>
+        <tbody>@for (row of visibleRows; track $index) { <tr>
+          <td>{{ row?.ticketNumber }}</td><td>{{ row?.date }}</td><td>{{ row?.site }}</td><td>{{ row?.equipement }}</td><td>{{ row?.type }}</td><td>{{ row?.travailRealise }}</td><td>{{ row?.agent }}</td><td>{{ row ? row.dureeHeures + ' h' : '' }}</td>
+          <td>@if (row) { {{ statusLabel(row.statut) }} }</td>
+        </tr> }</tbody>
+      </table></div>
+      <div class="pagination" aria-label="Pagination des interventions"><button type="button" class="page-button" aria-label="Page precedente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="bi bi-chevron-right"></i></button></div>
+    }
+  </div>
+</section>
+
+@if (sheetOpen) {
+  <div class="sheet-backdrop" (click)="closeSheet()"></div>
+  <aside class="intervention-sheet" aria-label="Renseigner une intervention">
+    <header><div><h2>Renseigner une intervention</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
+    <form (ngSubmit)="saveIntervention()">
+      <label><span>Num&eacute;ro du ticket</span><input name="ticketNumber" type="text" [(ngModel)]="newIntervention.ticketNumber" required /></label>
+      <label><span>Date</span><input name="date" type="date" [(ngModel)]="newIntervention.date" required /></label>
+      <label><span>Site</span><select name="site" [(ngModel)]="newIntervention.site" (ngModelChange)="changeInterventionSite()" required><option value="" disabled>S&eacute;lectionner un site</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
+      <label><span>&Eacute;quipement</span><select name="equipement" [(ngModel)]="newIntervention.equipement" required>
+          <option value="" disabled>S&eacute;lectionner un &eacute;quipement</option>
+          @for (equipment of availableEquipments; track equipment.site + '-' + equipment.code) {
+            <option [value]="equipment.code">{{ equipment.code }} &mdash; {{ equipment.nom }}</option>
+          }
+        </select></label>
+      <label><span>Type</span><select name="type" [(ngModel)]="newIntervention.type" required>@for (type of interventionTypes; track type) { <option [value]="type">{{ type }}</option> }</select></label>
+      <label><span>Agent</span><input name="agent" type="text" [(ngModel)]="newIntervention.agent" required /></label>
+      <label><span>Dur&eacute;e (heures)</span><input name="dureeHeures" type="number" min="0.25" step="0.25" [(ngModel)]="newIntervention.dureeHeures" required /></label>
+      <label><span>Statut</span><select name="statut" [(ngModel)]="newIntervention.statut" required>@for (status of statuses; track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select></label>
+      <label class="full-width"><span>Travail r&eacute;alis&eacute;</span><textarea name="travailRealise" rows="4" [(ngModel)]="newIntervention.travailRealise" required></textarea></label>
+      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> Enregistrer</button></div>
+    </form>
+  </aside>
+}

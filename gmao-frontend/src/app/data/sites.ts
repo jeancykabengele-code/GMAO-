@@ -1,0 +1,15 @@
+export const ORANGE_RDC_SITES = [
+  'Bukavu',
+  'Fikin',
+  'Goma',
+  'Katanga',
+  'Kikwit',
+  'Kisangani',
+  'Matadi',
+  'Mbandaka',
+  'Mbuji mayi',
+  'MTC',
+  'New MTC',
+  'Pigeon',
+  'Utex',
+] as const;

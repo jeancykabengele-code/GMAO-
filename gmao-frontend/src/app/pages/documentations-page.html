@@ -1,0 +1,28 @@
+<section class="documentation-page">
+  <div class="content-card">
+    <div class="page-toolbar">
+      <div class="page-heading">
+        <h1>Documentations</h1>
+        <p>Téléchargement sécurisé des données opérationnelles au format PDF.</p>
+      </div>
+    </div>
+
+    @if (canExportPdf) {
+    <div class="report-grid">
+      @for (report of reports; track report.fileName) {
+        <article class="report-card">
+          <div class="report-icon"><i class="bi bi-table"></i></div>
+          <div class="report-copy">
+            <h2>{{ report.title }}</h2>
+            <p>{{ report.description }}</p>
+          </div>
+          <button type="button" class="export-pdf-button" (click)="exportReport(report)">
+            <i class="bi bi-file-earmark-pdf"></i>
+            Télécharger le PDF
+          </button>
+        </article>
+      }
+    </div>
+    }
+  </div>
+</section>

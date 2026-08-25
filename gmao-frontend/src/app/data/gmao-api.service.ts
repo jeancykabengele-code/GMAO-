@@ -1,0 +1,58 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { SupabaseClientService } from '../auth/supabase-client.service';
+
+export type GmaoResource =
+  | 'equipements'
+  | 'tickets'
+  | 'groupes-electrogenes'
+  | 'fuel-ge'
+  | 'fuel-summary'
+  | 'pue'
+  | 'problemes-datacenter'
+  | 'interventions'
+  | 'pieces-rechange';
+
+export type PersistedRow = Record<string, unknown> & { id?: string; site?: string };
+
+@Injectable({ providedIn: 'root' })
+export class GmaoApiService {
+  private readonly http = inject(HttpClient);
+  private readonly supabase = inject(SupabaseClientService);
+
+  async list(resource: GmaoResource): Promise<PersistedRow[]> {
+    return firstValueFrom(this.http.get<PersistedRow[]>(this.url(resource), {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  async create(resource: GmaoResource, row: PersistedRow): Promise<PersistedRow> {
+    return firstValueFrom(this.http.post<PersistedRow>(this.url(resource), row, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  async update(resource: GmaoResource, id: string, row: PersistedRow): Promise<PersistedRow> {
+    return firstValueFrom(this.http.put<PersistedRow>(`${this.url(resource)}/${id}`, row, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  async remove(resource: GmaoResource, id: string): Promise<void> {
+    await firstValueFrom(this.http.delete(`${this.url(resource)}/${id}`, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  private url(resource: GmaoResource): string {
+    return `${environment.apiUrl}/api/records/${resource}`;
+  }
+
+  private async authHeaders(): Promise<Record<string, string>> {
+    const { data } = await this.supabase.client.auth.getSession();
+    if (!data.session?.access_token) throw new Error('Session Supabase absente.');
+    return { Authorization: `Bearer ${data.session.access_token}` };
+  }
+}

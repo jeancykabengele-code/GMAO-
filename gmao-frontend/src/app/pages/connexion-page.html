@@ -1,0 +1,49 @@
+<section class="login-page" aria-label="Portail de connexion GMAO ORDC">
+  <div class="form-panel">
+    <div class="form-card">
+      <div class="form-heading">
+        <span class="heading-icon"><i class="bi bi-shield-lock-fill"></i></span>
+        <div>
+          <h1>Portail GMAO</h1>
+          <p>Connexion requise pour accéder à votre périmètre.</p>
+        </div>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
+        <label for="email">Adresse e-mail</label>
+        <div class="field" [class.invalid]="loginForm.controls.email.touched && loginForm.controls.email.invalid">
+          <i class="bi bi-envelope"></i>
+          <input id="email" type="email" formControlName="email" autocomplete="email" placeholder="prenom.nom@ordc.cd">
+        </div>
+        @if (loginForm.controls.email.touched && loginForm.controls.email.invalid) {
+          <p class="field-error">Saisissez une adresse e-mail valide.</p>
+        }
+
+        <label for="password">Mot de passe</label>
+        <div class="field" [class.invalid]="loginForm.controls.password.touched && loginForm.controls.password.invalid">
+          <i class="bi bi-lock"></i>
+          <input id="password" [type]="passwordVisible ? 'text' : 'password'" formControlName="password" autocomplete="current-password" placeholder="Votre mot de passe">
+          <button type="button" class="visibility" (click)="passwordVisible = !passwordVisible" [attr.aria-label]="passwordVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
+            <i class="bi" [class.bi-eye]="!passwordVisible" [class.bi-eye-slash]="passwordVisible"></i>
+          </button>
+        </div>
+        @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
+          <p class="field-error">Le mot de passe est requis.</p>
+        }
+
+        <div class="form-options">
+          <label class="remember"><input type="checkbox" formControlName="rememberMe"><span>Rester connecté</span></label>
+        </div>
+
+        <button class="submit-button" type="submit" [disabled]="loading">
+          <span>{{ loading ? 'Connexion en cours…' : 'Se connecter' }}</span>
+          <i class="bi" [class.bi-arrow-right]="!loading" [class.bi-arrow-repeat]="loading" [class.spinning]="loading"></i>
+        </button>
+
+        @if (loginError) {
+          <p class="login-message" role="alert"><i class="bi bi-exclamation-circle"></i>{{ loginError }}</p>
+        }
+      </form>
+    </div>
+  </div>
+</section>
