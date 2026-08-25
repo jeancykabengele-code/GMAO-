@@ -28,4 +28,4 @@ services:
       - key: SUPABASE_DB_PASSWORD
         sync: false
       - key: FRONTEND_ORIGINS
-        sync: false
+        value: https://gmao-ordc.vercel.app
