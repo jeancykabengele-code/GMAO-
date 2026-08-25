@@ -36,7 +36,7 @@ export class TableauDeBordPageComponent {
 
   get filteredEquipmentRows(): EquipmentData[] {
     return (this.dataStore.equipmentRows as EquipmentData[]).filter((row) =>
-      this.matchesSite(row.site) && this.matchesDate(row.dateMiseEnService),
+      this.matchesSite(row.site),
     );
   }
 

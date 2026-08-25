@@ -78,7 +78,7 @@ describe('TableauDeBordPageComponent', () => {
     expect(component.usesConsolidatedStockFallback).toBe(true);
     expect(component.fuelStockLegend).toBe('Stock final consolidé');
   });
-  it('applies site and date filters consistently to every KPI', () => {
+  it('keeps the current equipment inventory while filtering activity KPIs by date', () => {
     const store = new GmaoDataStore();
     store.equipmentRows = [
       { site: 'Goma', dateMiseEnService: '2026-08-05', etat: 'En service' },
@@ -133,7 +133,7 @@ describe('TableauDeBordPageComponent', () => {
 
     component.dateFrom = '2030-01-01';
     component.dateTo = '2030-12-31';
-    expect(component.equipmentTotal).toBe(0);
+    expect(component.equipmentTotal).toBe(2);
     expect(component.ticketTotal).toBe(0);
     expect(component.generatorTotal).toBe(0);
     expect(component.problemTotal).toBe(0);
