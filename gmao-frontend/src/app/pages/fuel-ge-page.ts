@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Optional } from '@angular/core';
+import { ChangeDetectorRef, Component, Optional } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
@@ -45,6 +45,7 @@ export class FuelGePageComponent {
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
     @Optional() route: ActivatedRoute | null = null,
     @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+    @Optional() private readonly cdr: ChangeDetectorRef | null = null,
   ) {
     if (route && notificationFocus) notificationFocus.bind(route, {
       rows: () => this.filteredRows,
@@ -171,6 +172,7 @@ export class FuelGePageComponent {
     this.currentPage = 1;
     this.journalOpen = true;
     this.closeSheet();
+    this.cdr?.markForCheck();
   }
 
   editEntry(row: MonthlyJournalRow): void {

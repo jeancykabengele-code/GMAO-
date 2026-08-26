@@ -1,4 +1,4 @@
-import { Component, Optional } from '@angular/core';
+import { ChangeDetectorRef, Component, Optional } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
@@ -52,6 +52,7 @@ export class GestionTicketsPageComponent {
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
     @Optional() route: ActivatedRoute | null = null,
     @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+    @Optional() private readonly cdr: ChangeDetectorRef | null = null,
   ) {
     if (route && notificationFocus) notificationFocus.bind(route, {
       rows: () => this.filteredTicketRows,
@@ -202,6 +203,7 @@ export class GestionTicketsPageComponent {
     this.ticketPage = 1;
     this.ticketSheetOpen = false;
     this.newTicket = this.createEmptyTicket();
+    this.cdr?.markForCheck();
   }
 
   previousPage(view: TicketView): void {

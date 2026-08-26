@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, Optional } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, Optional } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -44,6 +44,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
     @Optional() route: ActivatedRoute | null = null,
     @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+    @Optional() private readonly cdr: ChangeDetectorRef | null = null,
   ) {
     if (route && notificationFocus) notificationFocus.bind(route, {
       rows: () => this.filteredRows,
@@ -240,6 +241,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
       this.saveError = error instanceof Error ? error.message : 'La mise à jour du compteur a échoué.';
     } finally {
       this.saving = false;
+      this.cdr?.markForCheck();
     }
   }
 

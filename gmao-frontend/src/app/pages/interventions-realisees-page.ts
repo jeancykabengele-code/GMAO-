@@ -1,4 +1,4 @@
-import { Component, Optional } from '@angular/core';
+import { ChangeDetectorRef, Component, Optional } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
@@ -35,6 +35,7 @@ export class InterventionsRealiseesPageComponent {
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
     @Optional() route: ActivatedRoute | null = null,
     @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+    @Optional() private readonly cdr: ChangeDetectorRef | null = null,
   ) {
     if (route && notificationFocus) notificationFocus.bind(route, {
       rows: () => this.filteredRows,
@@ -154,6 +155,7 @@ export class InterventionsRealiseesPageComponent {
     this.tableOpen = true;
     this.closeSheet();
     this.newIntervention = this.createEmptyIntervention();
+    this.cdr?.markForCheck();
   }
 
   statusLabel(status: InterventionStatus): string {
