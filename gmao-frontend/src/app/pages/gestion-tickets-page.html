@@ -93,7 +93,7 @@
           </thead>
           <tbody>
             @for (ticket of visibleTicketRows; track $index) {
-              <tr [class.empty-row]="!ticket">
+              <tr [class.empty-row]="!ticket" [attr.data-record-id]="ticket?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(ticket?.id)">
                 <td>{{ ticket?.numero }}</td>
                 <td>{{ ticket?.site }}</td>
                 <td>{{ ticket?.nature }}</td>

@@ -18,7 +18,7 @@
 
       <div class="table-wrapper"><table>
         <thead><tr><th>Num&eacute;ro du ticket</th><th>Date</th><th>Site</th><th>&Eacute;quipement</th><th>Type</th><th>Travail r&eacute;alis&eacute;</th><th>Agent</th><th>Dur&eacute;e</th><th>Statut</th></tr></thead>
-        <tbody>@for (row of visibleRows; track $index) { <tr>
+        <tbody>@for (row of visibleRows; track row?.id || $index) { <tr [attr.data-record-id]="row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row?.id)">
           <td>{{ row?.ticketNumber }}</td><td>{{ row?.date }}</td><td>{{ row?.site }}</td><td>{{ row?.equipement }}</td><td>{{ row?.type }}</td><td>{{ row?.travailRealise }}</td><td>{{ row?.agent }}</td><td>{{ row ? row.dureeHeures + ' h' : '' }}</td>
           <td>@if (row) { {{ statusLabel(row.statut) }} }</td>
         </tr> }</tbody>

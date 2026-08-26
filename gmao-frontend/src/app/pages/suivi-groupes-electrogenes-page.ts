@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, Optional } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseClientService } from '../auth/supabase-client.service';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type PmState = 'PmDepassee' | 'PmUrgente' | 'ASurveiller' | 'Normal';
 
@@ -40,7 +42,22 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly supabase: SupabaseClientService = new SupabaseClientService(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
-  ) {}
+    @Optional() route: ActivatedRoute | null = null,
+    @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+  ) {
+    if (route && notificationFocus) notificationFocus.bind(route, {
+      rows: () => this.filteredRows,
+      clearFilters: () => {
+        this.searchTerm = '';
+        this.selectedSite = '';
+        this.selectedPeriod = '';
+        this.selectedPmState = '';
+        this.tableVisible = true;
+      },
+      setPage: (page) => { this.currentPage = page; },
+      pageSize: this.pageSize,
+    });
+  }
 
   get generatorRows(): GeneratorRow[] {
     return this.dataStore.generatorRows as GeneratorRow[];

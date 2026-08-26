@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, Optional } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 interface PueRecord {
+  id?: string;
   site: string;
   mois: string;
   energieIt: number;
@@ -30,7 +33,20 @@ export class PuePageComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
-  ) {}
+    @Optional() route: ActivatedRoute | null = null,
+    @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+  ) {
+    if (route && notificationFocus) notificationFocus.bind(route, {
+      rows: () => this.filteredRows,
+      clearFilters: () => {
+        this.selectedSite = '';
+        this.selectedMonth = '';
+        this.tableOpen = true;
+      },
+      setPage: (page) => { this.currentPage = page; },
+      pageSize: this.rowsPerPage,
+    });
+  }
 
   get pueRows(): PueRecord[] {
     return this.dataStore.pueRows as PueRecord[];

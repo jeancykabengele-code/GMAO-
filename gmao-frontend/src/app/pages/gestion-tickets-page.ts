@@ -1,13 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, Optional } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type TicketView = 'tickets' | 'sites';
 type TicketNature = 'PM' | 'WO' | 'Incident' | 'Curative' | 'Visit';
 
 interface Ticket {
+  id?: string;
   numero: string;
   site: string;
   nature: TicketNature | '';
@@ -47,7 +50,21 @@ export class GestionTicketsPageComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
-  ) {}
+    @Optional() route: ActivatedRoute | null = null,
+    @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+  ) {
+    if (route && notificationFocus) notificationFocus.bind(route, {
+      rows: () => this.filteredTicketRows,
+      clearFilters: () => {
+        this.activeView = 'tickets';
+        this.selectedSite = '';
+        this.selectedNature = '';
+        this.searchTerm = '';
+      },
+      setPage: (page) => { this.ticketPage = page; },
+      pageSize: this.rowsPerPage,
+    });
+  }
   get availableEquipments(): Array<{ site: string; code: string; nom: string }> {
     const rows = this.dataStore.equipmentRows as Array<{ site: string; code: string; nom: string }>;
     const site = this.newTicket.site;

@@ -29,7 +29,7 @@
           <thead><tr><th>Site</th><th>Date</th><th>Num&eacute;ro du ticket</th><th>&Eacute;quipement</th><th>D&eacute;signation</th><th>Quantit&eacute;</th><th>Agent</th><th>Statut</th>@if (canModify) { <th class="action-column">Action</th> }</tr></thead>
           <tbody>
             @for (row of visibleRows; track $index) {
-              <tr>
+              <tr [attr.data-record-id]="row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row?.id)">
                 <td>{{ row?.site }}</td><td>{{ row?.date }}</td><td>{{ row?.ticketNumber }}</td><td>{{ row?.equipement }}</td><td>{{ row?.designation }}</td><td>{{ row?.quantite }}</td><td>{{ row?.agent }}</td>
                 <td>@if (row) { {{ statusLabel(row.statut) }} }</td>
                 @if (canModify) { <td class="action-cell">@if (row) { <button type="button" class="row-action" (click)="editOperation(row)">Modifier</button> }</td> }

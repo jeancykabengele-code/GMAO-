@@ -86,7 +86,12 @@ export class NotificationsService {
       void this.markAsRead(notification.id);
     }
     this.close();
-    if (notification.actionPath) await this.router.navigateByUrl(notification.actionPath);
+    if (notification.actionPath) {
+      const targetPath = notification.resourceId
+        ? `${notification.actionPath}?record=${encodeURIComponent(notification.resourceId)}`
+        : notification.actionPath;
+      await this.router.navigateByUrl(targetPath);
+    }
   }
 
   async markAllRead(): Promise<void> {

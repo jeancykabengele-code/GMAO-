@@ -24,7 +24,7 @@
         <thead><tr><th>Site</th><th>Mois et année</th><th>Stock initial (L)</th><th>Consommé (L)</th><th>Stock final (L)</th><th>Heures GE</th><th>L/h</th><th>SNEL kWh</th><th>Disponibilité Grid</th>@if (canModify) { <th>Action</th> }</tr></thead>
         <tbody>
           @for (row of visibleRows; track row.id || row.site + row.periode) {
-            <tr>
+            <tr [attr.data-record-id]="row.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row.id)">
               <td>{{ row.site }}</td><td>{{ row.periode }}</td><td>{{ row.stockInitial === null ? 'Non renseigné' : (row.stockInitial | number:'1.0-3':'fr') }}</td><td>{{ row.sortie | number:'1.0-3':'fr' }}</td><td>{{ row.stockFinal === null ? 'Non renseigné' : (row.stockFinal | number:'1.0-3':'fr') }}</td><td>{{ row.heuresGe | number:'1.0-2':'fr' }}</td>
               <td>{{ row.litresHeure === null ? 'Non calculable' : (row.litresHeure | number:'1.0-3':'fr') }}</td>
               <td>{{ row.snelKwh === null ? 'Non applicable' : (row.snelKwh | number:'1.0-2':'fr') }}</td><td>{{ row.disponibiliteGrid | number:'1.0-2':'fr' }} %</td>

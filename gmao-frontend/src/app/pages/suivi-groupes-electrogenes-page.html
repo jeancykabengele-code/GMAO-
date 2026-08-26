@@ -35,7 +35,7 @@
           <thead><tr><th>Site</th><th>Code</th><th>Groupe</th><th>RH actuel</th><th>RH depuis PM</th><th>Prochaine PM</th><th>État</th>@if (canUpdate) { <th>Action</th> }</tr></thead>
           <tbody>
             @for (row of visibleRows; track row.id || row.code) {
-              <tr>
+              <tr [attr.data-record-id]="row.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row.id)">
                 <td>{{ row.site }}</td>
                 <td>{{ row.code }}</td>
                 <td>{{ row.typeGe }}</td>

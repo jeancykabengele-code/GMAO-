@@ -56,7 +56,7 @@
           </thead>
           <tbody>
             @for (row of visibleRows; track $index) {
-              <tr [class.empty-row]="!row">
+              <tr [class.empty-row]="!row" [attr.data-record-id]="row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row?.id)">
                 <td>{{ row?.site }}</td>
                 <td>{{ row?.mois }}</td>
                 <td>{{ row?.energieIt | number:'1.0-3':'fr' }}</td>

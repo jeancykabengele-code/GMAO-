@@ -43,6 +43,6 @@ describe('NotificationsService', () => {
 
     expect(service.items()).toEqual([]);
     expect(service.open()).toBe(false);
-    expect(navigateByUrl).toHaveBeenCalledWith('/maintenance/suivi-groupes-electrogenes');
+    expect(navigateByUrl).toHaveBeenCalledWith('/maintenance/suivi-groupes-electrogenes?record=generator-1');
   });
 });

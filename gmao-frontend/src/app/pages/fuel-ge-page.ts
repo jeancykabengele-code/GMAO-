@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, Optional } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 interface MonthlyJournalRow {
   id?: string;
@@ -41,7 +43,21 @@ export class FuelGePageComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
-  ) {}
+    @Optional() route: ActivatedRoute | null = null,
+    @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+  ) {
+    if (route && notificationFocus) notificationFocus.bind(route, {
+      rows: () => this.filteredRows,
+      clearFilters: () => {
+        this.selectedSite = '';
+        this.selectedPeriod = '';
+        this.searchTerm = '';
+        this.journalOpen = true;
+      },
+      setPage: (page) => { this.currentPage = page; },
+      pageSize: this.rowsPerPage,
+    });
+  }
 
   get sites(): string[] { return this.dataStore.allowedSites; }
   get canModify(): boolean { return this.dataStore.canModifyExisting; }

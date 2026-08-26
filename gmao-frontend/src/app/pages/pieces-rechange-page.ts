@@ -1,12 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, Optional } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type SparePartStatus = 'Recue' | 'Utilisee' | 'Retournee';
 
 interface SparePartOperation {
+  id?: string;
   site: string;
   date: string;
   ticketNumber: string;
@@ -28,7 +31,21 @@ export class PiecesRechangePageComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
-  ) {}
+    @Optional() route: ActivatedRoute | null = null,
+    @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+  ) {
+    if (route && notificationFocus) notificationFocus.bind(route, {
+      rows: () => this.filteredRows,
+      clearFilters: () => {
+        this.selectedSite = '';
+        this.selectedPeriod = '';
+        this.selectedStatus = '';
+        this.tableOpen = true;
+      },
+      setPage: (page) => { this.currentPage = page; },
+      pageSize: this.rowsPerPage,
+    });
+  }
 
   get availableEquipments(): Array<{ site: string; code: string; nom: string }> {
     const rows = this.dataStore.equipmentRows as Array<{ site: string; code: string; nom: string }>;

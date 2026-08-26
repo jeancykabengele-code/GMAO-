@@ -1,14 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, Optional } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type EquipmentFamily = 'Energie' | 'Climatisation' | 'IT' | 'Securite' | 'Anti-incendie' | 'Plomberie/hydraulique' | 'Batiment' | 'Telecoms';
 type EquipmentCriticality = 'Faible' | 'Moyenne' | 'Elevee' | 'Critique';
 type EquipmentState = 'En service' | 'Hors service' | 'En panne' | 'En maintenance';
 
 interface EquipmentRow {
+  id?: string;
   site: string;
   code: string;
   nom: string;
@@ -40,7 +43,22 @@ export class EquipementsPageComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
-  ) {}
+    @Optional() route: ActivatedRoute | null = null,
+    @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
+  ) {
+    if (route && notificationFocus) notificationFocus.bind(route, {
+      rows: () => this.filteredRows,
+      clearFilters: () => {
+        this.selectedSite = '';
+        this.selectedFamily = '';
+        this.selectedCriticality = '';
+        this.selectedState = '';
+        this.tableOpen = true;
+      },
+      setPage: (page) => { this.currentPage = page; },
+      pageSize: this.rowsPerPage,
+    });
+  }
 
   get equipmentRows(): EquipmentRow[] {
     return this.dataStore.equipmentRows as EquipmentRow[];

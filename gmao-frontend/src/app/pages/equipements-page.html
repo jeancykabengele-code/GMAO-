@@ -19,7 +19,7 @@
 
       <div class="table-wrapper"><table>
         <thead><tr><th>Code</th><th>Nom</th><th>Date de mise en service</th><th>Famille</th><th>Localisation</th><th>Marque/Mod&egrave;le</th><th>&Eacute;tat</th><th>Criticit&eacute;</th>@if (canModify) { <th>Action</th> }</tr></thead>
-        <tbody>@for (row of visibleRows; track $index) { <tr>
+        <tbody>@for (row of visibleRows; track row?.id || $index) { <tr [attr.data-record-id]="row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row?.id)">
           <td>{{ row?.code }}</td><td>{{ row?.nom }}</td><td>{{ row?.dateMiseEnService }}</td><td>{{ row ? familyLabel(row.famille) : '' }}</td><td>{{ row?.localisation }}</td><td>{{ row?.marqueModele }}</td>
           <td>@if (row) { <span class="state-badge" [class.state-service]="row.etat === 'En service'" [class.state-down]="row.etat === 'Hors service' || row.etat === 'En panne'" [class.state-maintenance]="row.etat === 'En maintenance'">{{ row.etat }}</span> }</td>
           <td>@if (row) { <span class="criticality-badge" [class.criticality-low]="row.criticite === 'Faible'" [class.criticality-medium]="row.criticite === 'Moyenne'" [class.criticality-high]="row.criticite === 'Elevee'" [class.criticality-critical]="row.criticite === 'Critique'">{{ criticalityLabel(row.criticite) }}</span> }</td>
