@@ -70,7 +70,7 @@ export class NotificationsService {
         `${environment.apiUrl}/api/notifications`,
         { headers: await this.authHeaders() },
       ));
-      this.items.set(response.items);
+      this.items.set(response.items.filter((notification) => !notification.readAt));
       this.unreadCount.set(response.unreadCount);
     } catch {
       // Le prochain cycle de polling réessaiera sans interrompre la navigation.
@@ -80,20 +80,10 @@ export class NotificationsService {
   }
 
   async openNotification(notification: GmaoNotification): Promise<void> {
+    this.items.update((items) => items.filter((item) => item.id !== notification.id));
     if (!notification.readAt) {
-      this.items.update((items) => items.map((item) => item.id === notification.id
-        ? { ...item, readAt: new Date().toISOString() }
-        : item));
       this.unreadCount.update((count) => Math.max(0, count - 1));
-      try {
-        await firstValueFrom(this.http.patch<GmaoNotification>(
-          `${environment.apiUrl}/api/notifications/${notification.id}/read`,
-          {},
-          { headers: await this.authHeaders() },
-        ));
-      } catch {
-        void this.refresh();
-      }
+      void this.markAsRead(notification.id);
     }
     this.close();
     if (notification.actionPath) await this.router.navigateByUrl(notification.actionPath);
@@ -101,8 +91,7 @@ export class NotificationsService {
 
   async markAllRead(): Promise<void> {
     if (!this.unreadCount()) return;
-    const readAt = new Date().toISOString();
-    this.items.update((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? readAt })));
+    this.items.set([]);
     this.unreadCount.set(0);
     try {
       await firstValueFrom(this.http.patch(
@@ -132,6 +121,18 @@ export class NotificationsService {
     if (this.pollingTimer === null) return;
     window.clearInterval(this.pollingTimer);
     this.pollingTimer = null;
+  }
+
+  private async markAsRead(notificationId: string): Promise<void> {
+    try {
+      await firstValueFrom(this.http.patch<GmaoNotification>(
+        `${environment.apiUrl}/api/notifications/${notificationId}/read`,
+        {},
+        { headers: await this.authHeaders() },
+      ));
+    } catch {
+      void this.refresh();
+    }
   }
 
   private async authHeaders(): Promise<Record<string, string>> {
