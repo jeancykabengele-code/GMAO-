@@ -4,8 +4,20 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 
 > Guide pratique : [déploiement GitHub, Vercel et Render](DEPLOIEMENT.md).
 
+## Accès au projet
+
+| Environnement | Adresse |
+|---|---|
+| Application de production | [https://gmao-ordc.vercel.app](https://gmao-ordc.vercel.app) |
+| API de production | [https://gmao-ordc-api.onrender.com](https://gmao-ordc-api.onrender.com) |
+| Santé de l’API | [https://gmao-ordc-api.onrender.com/health](https://gmao-ordc-api.onrender.com/health) |
+| Dépôt GitHub | [Projet_Reporting_DC](https://github.com/jeancykabengele-code/Projet_Reporting_DC) |
+
+> Le backend utilise actuellement une instance Render gratuite. Après une période d’inactivité, la première requête peut prendre environ 50 secondes ou davantage pendant le redémarrage du service.
+
 ## Sommaire
 
+- [Accès au projet](#accès-au-projet)
 - [Fonctionnalités](#fonctionnalités)
 - [Architecture](#architecture)
 - [Technologies](#technologies)
@@ -19,6 +31,7 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 - [Tests et compilation](#tests-et-compilation)
 - [Déploiement](#déploiement)
 - [Dépannage](#dépannage)
+- [Évolutions prévues](#évolutions-prévues)
 - [Sécurité](#sécurité)
 
 ## Fonctionnalités
@@ -81,6 +94,25 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 - Ajout du titre, de la date d’export, d’un en-tête figé et d’une mise en forme lisible.
 - Fonction réservée au Manager GMAO et au Chargé des opérations.
 
+### Formulaires de renseignement
+
+- L’enregistrement est transmis à l’API Django.
+- Après une réponse réussie, la feuille de saisie se ferme automatiquement et la liste locale est actualisée.
+- Si l’enregistrement échoue, la feuille reste ouverte afin de préserver les informations saisies.
+- Cette fermeture fiable est appliquée aux équipements, tickets, groupes électrogènes, Fuel-GE, PUE, problèmes Data Center, interventions et pièces de rechange.
+
+### Navigation depuis une notification
+
+- Un clic marque immédiatement la notification comme lue et la retire de la barre latérale.
+- La feuille métier concernée est ouverte avec l’identifiant de la fiche.
+- Les filtres incompatibles sont réinitialisés.
+- La pagination sélectionne automatiquement la page contenant l’enregistrement.
+- Le tableau défile jusqu’à la ligne concernée et la met temporairement en évidence.
+
+### Limite actuelle des imports
+
+La fonctionnalité utilisateur actuelle couvre les exports Excel XLSX. Aucun import massif PDF ou CSV n’est exposé dans l’interface. L’import massif XLSX avec validation reste une évolution prévue.
+
 ## Architecture
 
 ```mermaid
@@ -94,7 +126,7 @@ flowchart LR
     D --> M[Tables métier GMAO]
 ```
 
-Le frontend gère l’interface, les filtres et la génération des PDF. Supabase Auth fournit les sessions utilisateur. Chaque appel métier envoie le jeton Supabase à Django. Le backend valide ce jeton, charge le profil actif, applique les droits du rôle et accède ensuite à PostgreSQL.
+Le frontend gère l’interface, les filtres et la génération des fichiers Excel XLSX. Supabase Auth fournit les sessions utilisateur. Chaque appel métier envoie le jeton Supabase à Django. Le backend valide ce jeton, charge le profil actif, applique les droits du rôle et accède ensuite à PostgreSQL.
 
 ## Technologies
 
@@ -342,12 +374,16 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 ### Notifications internes
 
-- Chaque fiche ajoutée par un chef de site produit une notification persistante pour le Manager et le Chef des opérations.
-- Une préalerte GE de niveau `warning` est créée à partir de 150 heures depuis la dernière PM.
-- Les passages à **À surveiller** (175 h), **PM urgente** (225 h) et **PM dépassée** (250 h) créent une alerte `warning` ou `critical`.
-- Une même étape n'est notifiée qu'une fois par groupe, destinataire et cycle de maintenance.
-- La cloche du frontend actualise la liste toutes les 30 secondes et permet la lecture individuelle ou globale.
-- Les chefs de site ne voient pas le centre de notifications global.
+- Chaque fiche ajoutée par un Chef de site produit une notification persistante pour le Manager et le Chargé des opérations.
+- Une préalerte GE de niveau warning est créée à partir de 150 heures depuis la dernière PM.
+- Les passages à **À surveiller** (175 h), **PM urgente** (225 h) et **PM dépassée** (250 h) créent une alerte warning ou critical.
+- Une même étape n’est notifiée qu’une fois par groupe, destinataire et cycle de maintenance.
+- Le badge **Notifications** affiche le nombre total d’éléments non lus.
+- Le frontend charge les notifications à la connexion, à l’ouverture du panneau, puis toutes les 30 secondes.
+- Un clic marque la notification comme lue, la retire du panneau et ouvre exactement la ligne du tableau concerné.
+- L’action **Tout lire** vide la liste des notifications non lues.
+- Les Chefs de site ne voient pas le centre de notifications global.
+- Les notifications sont persistées dans la table gmao_notifications et restent cohérentes après une reconnexion.
 
 ### Fuel-GE
 
@@ -378,6 +414,13 @@ npm run build
 ```
 
 Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
+
+État vérifié au 26 août 2026 :
+
+- 14 fichiers de tests frontend réussis ;
+- 46 tests frontend réussis ;
+- compilation Angular de production réussie ;
+- avertissements non bloquants sur les budgets de taille Angular et SCSS.
 
 ### Backend
 
@@ -417,7 +460,32 @@ Le backend est construit à partir de `gmao/Dockerfile`. Sur Render, renseigner 
 
 Pour le frontend, effectuer un build Angular et publier le contenu généré sur l’hébergeur choisi. Avant le build de production, remplacer `apiUrl` par l’URL HTTPS du backend et vérifier la configuration Supabase.
 
+### Environnements de production actuels
+
+- Frontend Vercel : https://gmao-ordc.vercel.app
+- Backend Render : https://gmao-ordc-api.onrender.com
+- Branche de déploiement : main
+- Render et Vercel suivent le dépôt GitHub et redéploient les commits publiés.
+
+Dans Vercel, la racine du projet est gmao-frontend, la commande de build est npm run vercel-build et le dossier publié est dist/gmao-frontend/browser. Le fichier gmao-frontend/vercel.json réécrit les routes Angular vers index.html.
+
+Le build Vercel exige GMAO_API_URL, SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY. La valeur de l’API de production est https://gmao-ordc-api.onrender.com.
+
 ## Dépannage
+
+### L’enregistrement réussit mais la feuille reste visible
+
+- Vérifier dans Supabase ou via l’API si la fiche a bien été créée.
+- Vérifier la console du navigateur et la réponse de la requête.
+- Le frontend Angular fonctionne sans Zone.js : les composants notifient explicitement le changement de vue après les opérations asynchrones.
+- Dans la version actuelle, le formulaire se ferme uniquement après une réponse réussie et reste ouvert en cas d’erreur.
+
+### Le premier enregistrement est très lent
+
+- Ouvrir d’abord /health.
+- Une instance Render gratuite peut être en veille et nécessiter un redémarrage à froid.
+- Tester ensuite /health/database pour distinguer le réveil Render d’un problème PostgreSQL.
+- Éviter de cliquer plusieurs fois sur **Enregistrer** pendant le réveil.
 
 ### Le frontend ne charge aucune donnée
 
@@ -452,6 +520,14 @@ Pour le frontend, effectuer un build Angular et publier le contenu généré sur
 - Vérifier que le port 5432 est accessible.
 - Relancer `start-django.ps1` si l’identifiant chiffré local doit être recréé.
 
+## Évolutions prévues
+
+- Envoi d’e-mails pour les alertes warning et critical.
+- Import massif de données au format Excel XLSX avec validation et rapport d’erreurs.
+- Réduction des avertissements de budgets Angular et SCSS.
+- Supervision plus détaillée de la latence API et des échecs d’enregistrement.
+- Historique d’audit métier plus complet.
+
 ## Sécurité
 
 - Ne jamais versionner le mot de passe PostgreSQL, une clé `service_role`, un JWT ou un fichier `.env`.
@@ -464,4 +540,4 @@ Pour le frontend, effectuer un build Angular et publier le contenu généré sur
 
 ---
 
-Ce README décrit l’état actuel du projet GMAO ORDC et doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API ou d’une nouvelle règle métier.
+Ce README décrit l’état vérifié du projet GMAO ORDC au **26 août 2026**. Il doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API, d’une variable d’environnement ou d’une règle métier.
