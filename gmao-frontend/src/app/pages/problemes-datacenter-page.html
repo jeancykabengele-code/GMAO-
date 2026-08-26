@@ -81,7 +81,7 @@
               <th scope="col">Site</th>
               <th scope="col">Date</th>
               <th scope="col">Équipement</th>
-              <th scope="col">Constat</th>
+              <th scope="col" class="constat-column">Constat</th>
               <th scope="col">Statut</th>
               <th scope="col">Priorité</th>
               <th scope="col">Responsable</th>
@@ -97,7 +97,7 @@
                 <td>{{ problem?.site }}</td>
                 <td>{{ problem?.date }}</td>
                 <td>{{ problem?.equipement }}</td>
-                <td>{{ problem?.constat }}</td>
+                <td class="constat-column">{{ problem?.constat }}</td>
                 <td>
                   @if (problem) {
                     <span

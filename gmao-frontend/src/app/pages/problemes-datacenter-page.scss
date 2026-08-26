@@ -222,6 +222,21 @@ td {
   white-space: nowrap;
 }
 
+th.constat-column,
+td.constat-column {
+  width: 360px;
+  min-width: 300px;
+  max-width: 420px;
+  height: auto;
+  overflow: visible;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  vertical-align: top;
+  white-space: normal;
+  word-break: break-word;
+}
+
 tbody tr:last-child td {
   border-bottom: 0;
 }
