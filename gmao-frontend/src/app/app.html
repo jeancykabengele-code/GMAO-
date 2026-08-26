@@ -5,6 +5,68 @@
       <span>GMAO ORDC</span>
     </a>
 
+
+    @if (access.isGlobalRole) {
+      <div class="notification-center">
+        <button
+          type="button"
+          class="notification-trigger"
+          [attr.aria-expanded]="notifications.open()"
+          aria-label="Afficher les notifications"
+          (click)="notifications.toggle()"
+        >
+          <i class="bi bi-bell"></i>
+          <span>Notifications</span>
+          @if (notifications.unreadCount() > 0) {
+            <strong class="notification-count">
+              {{ notifications.unreadCount() > 99 ? '99+' : notifications.unreadCount() }}
+            </strong>
+          }
+        </button>
+
+        @if (notifications.open()) {
+          <section class="notification-panel" aria-label="Centre de notifications">
+            <header>
+              <div>
+                <strong>Notifications</strong>
+                <small>{{ notifications.unreadCount() }} non lue(s)</small>
+              </div>
+              @if (notifications.unreadCount() > 0) {
+                <button type="button" (click)="notifications.markAllRead()">Tout lire</button>
+              }
+            </header>
+
+            <div class="notification-list">
+              @for (notification of notifications.items(); track notification.id) {
+                <button
+                  type="button"
+                  class="notification-item"
+                  [class.unread]="!notification.readAt"
+                  [class.notification-warning]="notification.severity === 'warning'"
+                  [class.notification-critical]="notification.severity === 'critical'"
+                  (click)="notifications.openNotification(notification)"
+                >
+                  <span class="notification-item-heading">
+                    <strong>{{ notification.title }}</strong>
+                    @if (!notification.readAt) { <i aria-label="Non lue"></i> }
+                  </span>
+                  <span class="notification-message">{{ notification.message }}</span>
+                  <small>
+                    @if (notification.site) { {{ notification.site }} · }
+                    {{ notifications.formatDate(notification.createdAt) }}
+                  </small>
+                </button>
+              } @empty {
+                <p class="notification-empty">
+                  {{ notifications.loading() ? 'Chargement…' : 'Aucune notification.' }}
+                </p>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    }
+
     <nav aria-label="Navigation principale">
       <a routerLink="/accueil" routerLinkActive="active"><i class="bi bi-house-door"></i><span>Accueil</span></a>
 

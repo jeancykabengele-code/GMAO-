@@ -21,6 +21,7 @@ from .models import (
     Site,
     Ticket,
 )
+from .notifications import notify_generator_alert, notify_record_created
 from .permissions import (
     GLOBAL_ROLES,
     PermissionDeniedError,
@@ -256,6 +257,9 @@ def record_collection(request, resource):
                 record.save(force_insert=True)
                 if model_class in {GeneratorRecord, FuelRecord, PueRecord}:
                     record.refresh_from_db()
+                notify_record_created(profile, resource, record)
+                if model_class is GeneratorRecord:
+                    notify_generator_alert(profile, record)
             return JsonResponse(_serialize(record), status=201)
         except (ValidationError, PermissionDeniedError) as error:
             return _error(error, 403 if isinstance(error, PermissionDeniedError) else 400)
@@ -305,6 +309,8 @@ def record_detail(request, resource, record_id):
             record.save()
             if model_class in {GeneratorRecord, FuelRecord, PueRecord}:
                 record.refresh_from_db()
+            if model_class is GeneratorRecord:
+                notify_generator_alert(profile, record)
             return JsonResponse(_serialize(record))
         if request.method == "DELETE":
             if model_class is not Equipment:

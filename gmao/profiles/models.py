@@ -172,3 +172,22 @@ class SparePartOperation(BusinessRecord):
     class Meta:
         managed = False
         db_table = "gmao_pieces_rechange"
+
+class Notification(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient_id = models.UUIDField()
+    actor_id = models.UUIDField(null=True, blank=True)
+    site = models.TextField(null=True, blank=True)
+    event_type = models.TextField()
+    resource = models.TextField()
+    resource_id = models.UUIDField(null=True, blank=True)
+    title = models.TextField()
+    message = models.TextField()
+    severity = models.TextField(default='info')
+    dedupe_key = models.TextField(null=True, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = 'gmao_notifications'

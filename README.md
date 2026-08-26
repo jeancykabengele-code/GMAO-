@@ -255,6 +255,7 @@ Les scripts SQL se trouvent dans `gmao/sql/` et doivent être appliqués dans l�
 4. `004_fuel_ge_2026.sql` : journal Fuel-GE et synthèses mensuelles.
 5. `005_pue_2026.sql` : suivi PUE.
 6. `006_fuel_site_stocks_2026.sql` : stocks de carburant par site.
+7. `007_notifications.sql` : notifications persistantes, index, RLS et publication Realtime.
 
 Le fichier `gmao-frontend/supabase/role-access-policies.sql` configure les contraintes et politiques d’accès de `user_profiles`.
 
@@ -271,6 +272,7 @@ Le fichier `gmao-frontend/supabase/role-access-policies.sql` configure les contr
 - `gmao_problemes_datacenter`
 - `gmao_interventions`
 - `gmao_pieces_rechange`
+- `gmao_notifications` : alertes et notifications personnelles du Manager et du Chef des opérations.
 
 Les modèles Django utilisent `managed = False` : Django ne crée pas ces tables. Le schéma est administré avec les scripts SQL.
 
@@ -300,6 +302,9 @@ Authorization: Bearer <access_token_supabase>
 | `GET` | `/health` | Santé du serveur |
 | `GET` | `/health/database` | Santé et temps de réponse PostgreSQL |
 | `GET` | `/api/me` | Profil connecté et permissions calculées |
+| `GET` | `/api/notifications` | Notifications personnelles du rôle global connecté |
+| `PATCH` | `/api/notifications/<uuid>/read` | Marquer une notification comme lue |
+| `PATCH` | `/api/notifications/read-all` | Marquer toutes les notifications comme lues |
 
 ### Routes métier
 
@@ -334,6 +339,15 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - État **À surveiller** à partir de 175 heures ou en cas de retard signalé.
 - État **PM urgente** à partir de 225 heures.
 - État **PM dépassée** à partir de 250 heures.
+
+### Notifications internes
+
+- Chaque fiche ajoutée par un chef de site produit une notification persistante pour le Manager et le Chef des opérations.
+- Une préalerte GE de niveau `warning` est créée à partir de 150 heures depuis la dernière PM.
+- Les passages à **À surveiller** (175 h), **PM urgente** (225 h) et **PM dépassée** (250 h) créent une alerte `warning` ou `critical`.
+- Une même étape n'est notifiée qu'une fois par groupe, destinataire et cycle de maintenance.
+- La cloche du frontend actualise la liste toutes les 30 secondes et permet la lecture individuelle ou globale.
+- Les chefs de site ne voient pas le centre de notifications global.
 
 ### Fuel-GE
 
@@ -383,6 +397,8 @@ Avant une livraison, vérifier au minimum :
 - `/health` et `/health/database`.
 
 ## Déploiement
+
+Appliquer impérativement `gmao/sql/007_notifications.sql` dans Supabase avant de déployer la version du backend qui active les notifications. Les modèles Django sont non gérés : un déploiement Render ne crée pas cette table automatiquement.
 
 Le fichier `render.yaml` décrit le service backend Render :
 

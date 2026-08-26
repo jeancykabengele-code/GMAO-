@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AccessControlService } from './auth/access-control.service';
 import { AuthService } from './auth/auth.service';
 import { PORTAL_ENTRY_KEY } from './auth/portal-entry.guard';
+import { NotificationsService } from './shared/notifications.service';
 
 @Component({
   selector: 'app-root',
@@ -14,6 +15,7 @@ import { PORTAL_ENTRY_KEY } from './auth/portal-entry.guard';
 export class AppComponent {
   private readonly router = inject(Router);
   readonly access = inject(AccessControlService);
+  readonly notifications = inject(NotificationsService);
   private readonly auth = inject(AuthService);
 
   maintenanceOpen = true;

@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { AuthService, UserProfile } from './auth/auth.service';
 import { PORTAL_ENTRY_KEY } from './auth/portal-entry.guard';
 import { AppComponent } from './app';
+import { NotificationsService } from './shared/notifications.service';
 import { routes } from './app.routes';
 
 describe('App routing shell', () => {
@@ -37,6 +38,19 @@ describe('App routing shell', () => {
             profile: profileState,
             destinationFor: () => '/tableau-de-bord',
             signOut: () => Promise.resolve(),
+          },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            items: signal([]),
+            unreadCount: signal(0),
+            open: signal(false),
+            loading: signal(false),
+            toggle: () => undefined,
+            markAllRead: () => Promise.resolve(),
+            openNotification: () => Promise.resolve(),
+            formatDate: () => '26/08/2026 10:00',
           },
         },
       ],
@@ -95,6 +109,7 @@ describe('App routing shell', () => {
     expect(router.url).toBe('/accueil');
     expect(compiled.querySelector('a[href="/tableau-de-bord"]')).toBeNull();
     expect(compiled.querySelector('a[href="/documentations"]')).toBeNull();
+    expect(compiled.querySelector('.notification-trigger')).toBeNull();
   });
   it('keeps the existing internal home and navigation for an authenticated user', async () => {
     authenticatedState.set(true);
@@ -104,6 +119,7 @@ describe('App routing shell', () => {
     expect(compiled.querySelector('app-accueil-page')).toBeTruthy();
     expect(compiled.querySelector('.sidebar')).toBeTruthy();
     expect(compiled.querySelector('.sidebar-toggle')).toBeTruthy();
+    expect(compiled.querySelector('.notification-trigger')).toBeTruthy();
     expect(compiled.textContent).toContain('Bienvenue dans votre espace de travail.');
   });
 });
