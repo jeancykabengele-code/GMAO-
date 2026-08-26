@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { PdfExportService } from '../shared/pdf-export.service';
+import { ExcelExportService } from '../shared/excel-export.service';
 
 type EquipmentFamily = 'Energie' | 'Climatisation' | 'IT' | 'Securite' | 'Anti-incendie' | 'Plomberie/hydraulique' | 'Batiment' | 'Telecoms';
 type EquipmentCriticality = 'Faible' | 'Moyenne' | 'Elevee' | 'Critique';
@@ -32,14 +32,14 @@ export class EquipementsPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
-  get canExportPdf(): boolean { return this.dataStore.canExportData; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly families: EquipmentFamily[] = ['Energie', 'Climatisation', 'IT', 'Securite', 'Anti-incendie', 'Plomberie/hydraulique', 'Batiment', 'Telecoms'];
   readonly criticalities: EquipmentCriticality[] = ['Faible', 'Moyenne', 'Elevee', 'Critique'];
   readonly states: EquipmentState[] = ['En service', 'Hors service', 'En panne', 'En maintenance'];
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
-    private readonly pdfExporter: PdfExportService = new PdfExportService(),
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
   ) {}
 
   get equipmentRows(): EquipmentRow[] {
@@ -83,9 +83,9 @@ export class EquipementsPageComponent {
     return this.editingIndex === null ? 'Renseigner un equipement' : "Modifier l'equipement";
   }
 
-  exportPdf(): void {
-    if (!this.canExportPdf) return;
-    this.pdfExporter.exportTable({
+  exportExcel(): void {
+    if (!this.canExportExcel) return;
+    this.excelExporter.exportTable({
       title: 'Registre des équipements',
       fileName: 'registre-equipements',
       rows: this.filteredRows,

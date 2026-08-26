@@ -8,7 +8,7 @@
       <div class="view-actions">
         <button type="button" class="view-button" [class.inactive]="!journalOpen" [attr.aria-pressed]="journalOpen" (click)="toggleJournal()"><i class="bi bi-journal-text"></i> Journal mensuel</button>
         <button type="button" class="primary-button" (click)="openSheet()"><i class="bi bi-plus-lg"></i> Renseigner le journal</button>
-        @if (canExportPdf) { <button type="button" class="export-pdf-button" (click)="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> Exporter en PDF</button> }
+        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
       </div>
     </div>
 

@@ -64,7 +64,7 @@ Après le premier déploiement Vercel :
 2. Définir cette URL exacte dans `FRONTEND_ORIGINS` sur Render, sans barre finale.
 3. Ajouter cette URL dans les URL autorisées de Supabase Auth.
 4. Redéployer le backend.
-5. Tester la connexion, la lecture, une création autorisée et un export PDF.
+5. Tester la connexion, la lecture, une création autorisée et un export Excel XLSX.
 
 Les URL temporaires des previews Vercel doivent aussi être autorisées si elles
 doivent communiquer avec l’API.
@@ -76,6 +76,6 @@ doivent communiquer avec l’API.
 - Les trois rôles reçoivent les bonnes permissions.
 - Un chef de site ne voit que son site.
 - Le tableau de bord et Documentations sont réservés aux rôles globaux.
-- Les exports PDF fonctionnent.
+- Les exports Excel XLSX fonctionnent.
 - Les routes `/health` et `/health/database` restent opérationnelles.
 

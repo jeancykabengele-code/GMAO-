@@ -8,7 +8,7 @@
       <div class="view-actions">
       <button type="button" class="view-button" [class.inactive]="!tableVisible" [attr.aria-pressed]="tableVisible" (click)="toggleTable()"><i class="bi bi-speedometer2"></i> Suivi des compteurs</button>
       @if (canUpdate) { <button type="button" class="primary-button" [disabled]="generatorRows.length === 0" (click)="openEntrySheet()"><i class="bi bi-plus-lg"></i> Renseigner un compteur</button> }
-      @if (canExportPdf) { <button type="button" class="export-pdf-button" (click)="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> Exporter en PDF</button> }
+      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
     </div>
     </div>
 

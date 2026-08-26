@@ -87,21 +87,21 @@ table tbody td > strong {
   font-weight: 400 !important;
 }
 
-.export-pdf-button {
+.export-excel-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 11px 16px;
-  border: 1px solid #c94b3c;
+  border: 1px solid #217346;
   border-radius: 8px;
-  color: #a9362a;
+  color: #185c37;
   background: #fff;
   font-weight: 600;
   cursor: pointer;
 }
 
-.export-pdf-button:hover {
+.export-excel-button:hover {
   color: #fff;
-  background: #c94b3c;
+  background: #217346;
 }

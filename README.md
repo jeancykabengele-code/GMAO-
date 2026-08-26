@@ -73,12 +73,12 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 - Journal des mouvements de pièces.
 - Liaison avec le ticket, l’équipement, l’agent et le statut de l’opération.
 
-### Documentation et exports PDF
+### Documentation et exports Excel XLSX
 
-- Téléchargement de huit registres complets au format PDF depuis la page **Documentations**.
+- Téléchargement de huit registres complets au format Excel XLSX depuis la page **Documentations**.
 - Export des données filtrées depuis chaque feuille métier.
-- Mise en page automatique en portrait ou paysage selon la largeur du tableau.
-- Ajout du titre, de la date d’export et des numéros de page.
+- Classeur XLSX structuré avec une feuille nommée, des cellules typées et des colonnes ajustées.
+- Ajout du titre, de la date d’export, d’un en-tête figé et d’une mise en forme lisible.
 - Fonction réservée au Manager GMAO et au Chargé des opérations.
 
 ## Architecture
@@ -104,7 +104,7 @@ Le frontend gère l’interface, les filtres et la génération des PDF. Supabas
 | Authentification | Supabase Auth |
 | Backend | Python 3.14, Django 6 |
 | Base de données | PostgreSQL Supabase, SQLite comme repli local |
-| PDF | jsPDF et jsPDF-AutoTable |
+| Excel XLSX | write-excel-file |
 | Tests frontend | Vitest |
 | Serveur de production | Gunicorn |
 | Conteneur et hébergement | Docker, Render |
@@ -121,7 +121,7 @@ Les rôles reconnus sont `manager`, `charge_operations` et `chef_site`.
 | Accéder à Documentations | Oui | Oui | Non |
 | Créer une fiche | Oui | Oui | Oui, sur son site |
 | Modifier une fiche existante | Oui | Oui | Non, sauf suivi GE autorisé |
-| Exporter les données en PDF | Oui | Oui | Non |
+| Exporter les données en Excel XLSX | Oui | Oui | Non |
 | Supprimer un équipement | Oui | Oui | Non |
 | Supprimer une autre fiche métier | Non | Non | Non |
 
@@ -140,7 +140,7 @@ GMAO-Web/
 │   │   ├── components/             # Barre latérale
 │   │   ├── data/                   # API, store et liste des sites
 │   │   ├── pages/                  # Pages métier
-│   │   └── shared/                 # Service d’export PDF
+│   │   └── shared/                 # Service d’export Excel XLSX
 │   ├── src/environments/           # URL API et configuration Supabase
 │   ├── supabase/                   # Politiques d’accès des profils
 │   ├── angular.json
@@ -379,7 +379,7 @@ Avant une livraison, vérifier au minimum :
 - les filtres du tableau de bord ;
 - la création et la modification des fiches ;
 - l’isolation du chef de site ;
-- les exports PDF ;
+- les exports Excel XLSX ;
 - `/health` et `/health/database`.
 
 ## Déploiement

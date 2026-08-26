@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { PdfExportService } from '../shared/pdf-export.service';
+import { ExcelExportService } from '../shared/excel-export.service';
 
 type TicketView = 'tickets' | 'sites';
 type TicketNature = 'PM' | 'WO' | 'Incident' | 'Curative' | 'Visit';
@@ -41,12 +41,12 @@ export class GestionTicketsPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
-  get canExportPdf(): boolean { return this.dataStore.canExportData; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly natures: TicketNature[] = ['PM', 'WO', 'Incident', 'Curative', 'Visit'];
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
-    private readonly pdfExporter: PdfExportService = new PdfExportService(),
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
   ) {}
   get availableEquipments(): Array<{ site: string; code: string; nom: string }> {
     const rows = this.dataStore.equipmentRows as Array<{ site: string; code: string; nom: string }>;
@@ -118,10 +118,10 @@ export class GestionTicketsPageComponent {
     return this.siteSummaryRows;
   }
 
-  exportPdf(): void {
-    if (!this.canExportPdf || !this.activeView) return;
+  exportExcel(): void {
+    if (!this.canExportExcel || !this.activeView) return;
     if (this.activeView === 'sites') {
-      this.pdfExporter.exportTable({
+      this.excelExporter.exportTable({
         title: 'Répartition des tickets par site',
         fileName: 'tickets-par-site',
         rows: this.siteSummaryRows,
@@ -137,7 +137,7 @@ export class GestionTicketsPageComponent {
       });
       return;
     }
-    this.pdfExporter.exportTable({
+    this.excelExporter.exportTable({
       title: 'File de tickets',
       fileName: 'gestion-des-tickets',
       rows: this.filteredTicketRows,

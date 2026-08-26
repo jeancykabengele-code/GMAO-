@@ -24,8 +24,8 @@
         <i class="bi bi-bar-chart"></i>
         Répartition par site
       </button>
-      @if (canExportPdf && activeView) {
-        <button type="button" class="export-pdf-button" (click)="exportPdf()"><i class="bi bi-file-earmark-pdf"></i> Exporter en PDF</button>
+      @if (canExportExcel && activeView) {
+        <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button>
       }
     </div>
     </div>

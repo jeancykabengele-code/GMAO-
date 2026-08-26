@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { PdfExportService } from '../shared/pdf-export.service';
+import { ExcelExportService } from '../shared/excel-export.service';
 
 type InterventionType = 'PM' | 'Corrective' | 'Cleanning' | 'Controle' | 'Autre';
 type InterventionStatus = 'Cloturee' | 'En cours';
@@ -29,7 +29,7 @@ interface InterventionRow {
 export class InterventionsRealiseesPageComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
-    private readonly pdfExporter: PdfExportService = new PdfExportService(),
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
   ) {}
 
   get availableEquipments(): Array<{ site: string; code: string; nom: string }> {
@@ -52,7 +52,7 @@ export class InterventionsRealiseesPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
-  get canExportPdf(): boolean { return this.dataStore.canExportData; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly interventionTypes: InterventionType[] = ['PM', 'Corrective', 'Cleanning', 'Controle', 'Autre'];
   readonly statuses: InterventionStatus[] = ['Cloturee', 'En cours'];
 
@@ -83,9 +83,9 @@ export class InterventionsRealiseesPageComponent {
     return rows;
   }
 
-  exportPdf(): void {
-    if (!this.canExportPdf) return;
-    this.pdfExporter.exportTable({
+  exportExcel(): void {
+    if (!this.canExportExcel) return;
+    this.excelExporter.exportTable({
       title: 'Journal des interventions réalisées',
       fileName: 'interventions-realisees',
       rows: this.filteredRows,

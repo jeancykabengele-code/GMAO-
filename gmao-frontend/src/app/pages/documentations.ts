@@ -1,15 +1,15 @@
 import { Component } from '@angular/core';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { PdfExportService, PdfTableColumn } from '../shared/pdf-export.service';
+import { ExcelExportService, ExcelTableColumn } from '../shared/excel-export.service';
 
 type ReportRow = Record<string, unknown>;
 
-interface PdfReport {
+interface ExcelReport {
   title: string;
   description: string;
   fileName: string;
   rows: () => ReportRow[];
-  columns: PdfTableColumn<ReportRow>[];
+  columns: ExcelTableColumn<ReportRow>[];
 }
 
 @Component({
@@ -21,12 +21,12 @@ interface PdfReport {
 export class DocumentationsComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
-    private readonly pdfExporter: PdfExportService = new PdfExportService(),
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
   ) {}
 
-  get canExportPdf(): boolean { return this.dataStore.canExportData; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
 
-  get reports(): PdfReport[] {
+  get reports(): ExcelReport[] {
     return [
       this.report('Équipements', 'Registre complet des actifs techniques.', 'registre-equipements', () => this.dataStore.equipmentRows, [
         this.column('Site', 'site'), this.column('Code', 'code'), this.column('Nom', 'nom'),
@@ -73,9 +73,9 @@ export class DocumentationsComponent {
     ];
   }
 
-  exportReport(report: PdfReport): void {
-    if (!this.canExportPdf) return;
-    void this.pdfExporter.exportTable({
+  exportReport(report: ExcelReport): void {
+    if (!this.canExportExcel) return;
+    void this.excelExporter.exportTable({
       title: report.title,
       fileName: report.fileName,
       rows: report.rows(),
@@ -88,12 +88,12 @@ export class DocumentationsComponent {
     description: string,
     fileName: string,
     rows: () => unknown[],
-    columns: PdfTableColumn<ReportRow>[],
-  ): PdfReport {
+    columns: ExcelTableColumn<ReportRow>[],
+  ): ExcelReport {
     return { title, description, fileName, rows: () => rows() as ReportRow[], columns };
   }
 
-  private column(header: string, key: string): PdfTableColumn<ReportRow> {
+  private column(header: string, key: string): ExcelTableColumn<ReportRow> {
     return { header, value: (row) => row[key] };
   }
 }

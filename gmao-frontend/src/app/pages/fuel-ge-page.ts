@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { PdfExportService } from '../shared/pdf-export.service';
+import { ExcelExportService } from '../shared/excel-export.service';
 
 interface MonthlyJournalRow {
   id?: string;
@@ -40,12 +40,12 @@ export class FuelGePageComponent {
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
-    private readonly pdfExporter: PdfExportService = new PdfExportService(),
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
   ) {}
 
   get sites(): string[] { return this.dataStore.allowedSites; }
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
-  get canExportPdf(): boolean { return this.dataStore.canExportData; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
   get journalRows(): MonthlyJournalRow[] { return this.dataStore.fuelRows as MonthlyJournalRow[]; }
   set journalRows(value: MonthlyJournalRow[]) { this.dataStore.fuelRows = value; }
   get summaryRows(): MonthlyFuelSummary[] {
@@ -96,9 +96,9 @@ export class FuelGePageComponent {
     return this.editingIndex === null ? 'Renseigner le journal mensuel' : 'Modifier la ligne du journal';
   }
 
-  exportPdf(): void {
-    if (!this.canExportPdf) return;
-    this.pdfExporter.exportTable({
+  exportExcel(): void {
+    if (!this.canExportExcel) return;
+    this.excelExporter.exportTable({
       title: 'Journal mensuel Fuel-GE',
       fileName: 'journal-fuel-ge',
       rows: this.filteredRows,

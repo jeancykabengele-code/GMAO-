@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { PdfExportService } from '../shared/pdf-export.service';
+import { ExcelExportService } from '../shared/excel-export.service';
 
 type SparePartStatus = 'Recue' | 'Utilisee' | 'Retournee';
 
@@ -27,7 +27,7 @@ interface SparePartOperation {
 export class PiecesRechangePageComponent {
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
-    private readonly pdfExporter: PdfExportService = new PdfExportService(),
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
   ) {}
 
   get availableEquipments(): Array<{ site: string; code: string; nom: string }> {
@@ -50,7 +50,7 @@ export class PiecesRechangePageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
-  get canExportPdf(): boolean { return this.dataStore.canExportData; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly statuses: SparePartStatus[] = ['Recue', 'Utilisee', 'Retournee'];
 
   tableOpen = true;
@@ -85,9 +85,9 @@ export class PiecesRechangePageComponent {
     return this.editingIndex === null ? "Renseigner l'operation" : "Modifier l'operation";
   }
 
-  exportPdf(): void {
-    if (!this.canExportPdf) return;
-    this.pdfExporter.exportTable({
+  exportExcel(): void {
+    if (!this.canExportExcel) return;
+    this.excelExporter.exportTable({
       title: 'Journal des pièces de rechange',
       fileName: 'pieces-de-rechange',
       rows: this.filteredRows,

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { SupabaseClientService } from '../auth/supabase-client.service';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { PdfExportService } from '../shared/pdf-export.service';
+import { ExcelExportService } from '../shared/excel-export.service';
 
 type PmState = 'PmDepassee' | 'PmUrgente' | 'ASurveiller' | 'Normal';
 
@@ -39,7 +39,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly supabase: SupabaseClientService = new SupabaseClientService(),
-    private readonly pdfExporter: PdfExportService = new PdfExportService(),
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
   ) {}
 
   get generatorRows(): GeneratorRow[] {
@@ -51,7 +51,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   }
 
   get canUpdate(): boolean { return this.dataStore.canUpdateGenerators; }
-  get canExportPdf(): boolean { return this.dataStore.canExportData; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
 
   tableVisible = true;
   filtersVisible = true;
@@ -114,9 +114,9 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     if (this.realtimeChannel) void this.supabase.client.removeChannel(this.realtimeChannel);
   }
 
-  exportPdf(): void {
-    if (!this.canExportPdf) return;
-    this.pdfExporter.exportTable({
+  exportExcel(): void {
+    if (!this.canExportExcel) return;
+    this.excelExporter.exportTable({
       title: 'Suivi des groupes électrogènes',
       fileName: 'suivi-groupes-electrogenes',
       rows: this.filteredRows,

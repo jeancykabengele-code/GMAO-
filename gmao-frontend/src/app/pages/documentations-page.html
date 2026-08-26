@@ -3,11 +3,11 @@
     <div class="page-toolbar">
       <div class="page-heading">
         <h1>Documentations</h1>
-        <p>Téléchargement sécurisé des données opérationnelles au format PDF.</p>
+        <p>Téléchargement sécurisé des données opérationnelles au format Excel XLSX.</p>
       </div>
     </div>
 
-    @if (canExportPdf) {
+    @if (canExportExcel) {
     <div class="report-grid">
       @for (report of reports; track report.fileName) {
         <article class="report-card">
@@ -16,9 +16,9 @@
             <h2>{{ report.title }}</h2>
             <p>{{ report.description }}</p>
           </div>
-          <button type="button" class="export-pdf-button" (click)="exportReport(report)">
-            <i class="bi bi-file-earmark-pdf"></i>
-            Télécharger le PDF
+          <button type="button" class="export-excel-button" (click)="exportReport(report)">
+            <i class="bi bi-file-earmark-excel"></i>
+            Télécharger le fichier Excel
           </button>
         </article>
       }
