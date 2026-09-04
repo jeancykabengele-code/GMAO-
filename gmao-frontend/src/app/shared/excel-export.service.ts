@@ -124,8 +124,14 @@ export class ExcelExportService {
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = fileName;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    try {
+      anchor.click();
+    } finally {
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    }
   }
 
   private safeSheetName(value: string): string {
