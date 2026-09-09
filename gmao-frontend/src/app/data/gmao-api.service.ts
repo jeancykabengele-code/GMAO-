@@ -17,6 +17,7 @@ export type GmaoResource =
 
 export type PersistedRow = Record<string, unknown> & { id?: string; site?: string };
 export interface SiteRecord { name: string; code: string; active: boolean; }
+export interface ProfileRecord { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; }
 
 @Injectable({ providedIn: 'root' })
 export class GmaoApiService {
@@ -47,6 +48,17 @@ export class GmaoApiService {
     }));
   }
 
+  async listProfiles(): Promise<ProfileRecord[]> {
+    return firstValueFrom(this.http.get<ProfileRecord[]>(`${environment.apiUrl}/api/profiles`, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  async assignProfileSite(id: string, site: string | null): Promise<ProfileRecord> {
+    return firstValueFrom(this.http.patch<ProfileRecord>(`${environment.apiUrl}/api/profiles/${id}`, { site }, {
+      headers: await this.authHeaders(),
+    }));
+  }
   async create(resource: GmaoResource, row: PersistedRow): Promise<PersistedRow> {
     return firstValueFrom(this.http.post<PersistedRow>(this.url(resource), row, {
       headers: await this.authHeaders(),

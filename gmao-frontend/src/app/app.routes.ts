@@ -17,6 +17,7 @@ import { PublicHomePageComponent } from './pages/public-home-page';
 import { PuePageComponent } from './pages/pue-page';
 import { SuiviGroupesElectrogenesPageComponent } from './pages/suivi-groupes-electrogenes-page';
 import { SitesAdminPageComponent } from './pages/sites-admin-page';
+import { UsersAdminPageComponent } from './pages/users-admin-page';
 import { TableauDeBordPageComponent } from './pages/tableau-de-bord-page';
 
 export const routes: Routes = [
@@ -39,6 +40,7 @@ export const routes: Routes = [
       { path: 'problemes-datacenter', component: ProblemesDatacenterPageComponent },
       { path: 'documentations', component: DocumentationsComponent, canActivate: [globalRoleGuard] },
       { path: 'administration/sites', component: SitesAdminPageComponent, canActivate: [globalRoleGuard] },
+      { path: 'administration/utilisateurs', component: UsersAdminPageComponent, canActivate: [globalRoleGuard] },
       { path: 'a-propos', component: AProposComponent },
     ],
   },

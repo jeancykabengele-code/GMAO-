@@ -101,6 +101,7 @@
       @if (access.canAccessGlobalPages) {
         <a routerLink="/documentations" routerLinkActive="active"><i class="bi bi-journal-text"></i><span>Documentations</span></a>
         <a routerLink="/administration/sites" routerLinkActive="active"><i class="bi bi-geo-alt"></i><span>Gestion des sites</span></a>
+        <a routerLink="/administration/utilisateurs" routerLinkActive="active"><i class="bi bi-person-gear"></i><span>Affecter les chefs de site</span></a>
       }
       <a routerLink="/a-propos" routerLinkActive="active"><i class="bi bi-info-circle"></i><span>À propos</span></a>
       <button type="button" class="nav-parent logout-button" [disabled]="loggingOut" (click)="logout()">

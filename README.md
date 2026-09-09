@@ -555,4 +555,4 @@ Les sites actifs sont utilisés automatiquement par les filtres, les formulaires
 
 Routes API protégées : `GET /api/sites`, `POST /api/sites` et `PATCH /api/sites/<nom>`. Seuls les rôles globaux peuvent les utiliser.
 
-La gestion de l’association d’un utilisateur à un site reste une évolution prévue ; pour l’instant, elle se fait dans `user_profiles` comme décrit dans la section de création d’utilisateur.
+La page **Affectation des chefs de site** permet aussi au Manager et au Chargé des opérations de choisir le site actif de chaque compte `chef_site`. Les rôles globaux ne sont pas modifiés par cette page.
