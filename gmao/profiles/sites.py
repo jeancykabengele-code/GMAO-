@@ -2,9 +2,9 @@ import json
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 
-from .models import Site
+from .models import (DatacenterProblem, Equipment, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_global_page_access
 from .views import require_supabase_user
 
@@ -73,6 +73,17 @@ def site_detail(request, site_name):
     except Site.DoesNotExist:
         return _error("Site introuvable.", 404)
 
+    if request.method == "DELETE":
+        related_models = (
+            Equipment, Ticket, GeneratorRecord, FuelRecord, FuelMonthlySummary,
+            PueRecord, DatacenterProblem, Intervention, SparePartOperation,
+        )
+        if any(model.objects.filter(site=site.name).exists() for model in related_models):
+            return _error("Ce site possède encore des données métier. Désactivez-le plutôt que de le supprimer.", 409)
+        if UserProfile.objects.filter(site=site.name).exists():
+            return _error("Ce site est encore associé à un utilisateur. Réaffectez-le avant de le supprimer.", 409)
+        site.delete()
+        return HttpResponse(status=204)
     if request.method not in {"PATCH", "PUT"}:
         return _error("Méthode non autorisée.", 405)
 

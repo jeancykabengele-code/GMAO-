@@ -59,6 +59,11 @@ export class GmaoApiService {
       headers: await this.authHeaders(),
     }));
   }
+  async removeSite(name: string): Promise<void> {
+    await firstValueFrom(this.http.delete(`${environment.apiUrl}/api/sites/${encodeURIComponent(name)}`, {
+      headers: await this.authHeaders(),
+    }));
+  }
   async create(resource: GmaoResource, row: PersistedRow): Promise<PersistedRow> {
     return firstValueFrom(this.http.post<PersistedRow>(this.url(resource), row, {
       headers: await this.authHeaders(),
