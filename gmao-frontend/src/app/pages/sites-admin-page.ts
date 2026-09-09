@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
 
@@ -86,6 +86,7 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
 })
 export class SitesAdminPageComponent {
   private readonly api = inject(GmaoApiService);
+  private readonly cdr = inject(ChangeDetectorRef);
   sites: SiteRecord[] = [];
   loading = true;
   saving = false;
@@ -101,7 +102,7 @@ export class SitesAdminPageComponent {
     this.loading = true;
     try { this.sites = await this.api.listSites(); }
     catch { this.error = 'Impossible de charger les sites.'; }
-    finally { this.loading = false; }
+    finally { this.loading = false; this.cdr.detectChanges(); }
   }
 
   startCreate(): void { this.message = ''; this.error = ''; this.editing = null; this.form = { name: '', code: '', active: true }; this.formOpen = true; }
@@ -121,6 +122,6 @@ export class SitesAdminPageComponent {
       this.cancel();
     } catch (reason) {
       this.error = reason instanceof Error ? reason.message : 'Enregistrement impossible.';
-    } finally { this.saving = false; }
+    } finally { this.saving = false; this.cdr.detectChanges(); }
   }
 }

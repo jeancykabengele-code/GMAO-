@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoApiService, ProfileRecord, SiteRecord } from '../data/gmao-api.service';
 
@@ -32,10 +32,11 @@ import { GmaoApiService, ProfileRecord, SiteRecord } from '../data/gmao-api.serv
 })
 export class UsersAdminPageComponent {
   private readonly api = inject(GmaoApiService);
+  private readonly cdr = inject(ChangeDetectorRef);
   profiles: ProfileRecord[] = []; sites: SiteRecord[] = []; loading = true; message = ''; error = '';
   get activeSites(): SiteRecord[] { return this.sites.filter(site => site.active); }
   constructor() { void this.load(); }
-  async load(): Promise<void> { try { [this.profiles, this.sites] = await Promise.all([this.api.listProfiles(), this.api.listSites()]); } catch { this.error = 'Impossible de charger les utilisateurs.'; } finally { this.loading = false; } }
+  async load(): Promise<void> { try { [this.profiles, this.sites] = await Promise.all([this.api.listProfiles(), this.api.listSites()]); } catch { this.error = 'Impossible de charger les utilisateurs.'; } finally { this.loading = false; this.cdr.detectChanges(); } }
   roleLabel(role: string): string { return role === 'chef_site' ? 'Chef de site' : role === 'charge_operations' ? 'Chef des opérations' : 'Manager'; }
-  async assign(profile: ProfileRecord, site: string): Promise<void> { this.message = ''; this.error = ''; try { const saved = await this.api.assignProfileSite(profile.id, site || null); Object.assign(profile, saved); this.message = `Site de ${profile.email} mis à jour.`; } catch { this.error = 'Impossible de modifier l’affectation.'; } }
+  async assign(profile: ProfileRecord, site: string): Promise<void> { this.message = ''; this.error = ''; try { const saved = await this.api.assignProfileSite(profile.id, site || null); Object.assign(profile, saved); this.message = `Site de ${profile.email} mis à jour.`; } catch { this.error = 'Impossible de modifier l’affectation.'; } finally { this.cdr.detectChanges(); } }
 }
