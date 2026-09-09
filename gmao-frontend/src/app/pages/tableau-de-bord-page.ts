@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { ORANGE_RDC_SITES } from '../data/sites';
+
 
 interface PieItem { label: string; value: number; color: string; }
 interface ChartPoint { x: number; y: number; value: number; label: string; }
@@ -27,7 +27,7 @@ interface PueData { site: string; mois: string; pue: number; }
   styleUrls: ['./tableau-de-bord-page.scss'],
 })
 export class TableauDeBordPageComponent {
-  readonly sites = ORANGE_RDC_SITES;
+  get sites(): string[] { return this.dataStore.allowedSites; }
   selectedSite = '';
   dateFrom = '';
   dateTo = '';

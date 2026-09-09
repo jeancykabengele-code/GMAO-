@@ -16,6 +16,7 @@ export type GmaoResource =
   | 'pieces-rechange';
 
 export type PersistedRow = Record<string, unknown> & { id?: string; site?: string };
+export interface SiteRecord { name: string; code: string; active: boolean; }
 
 @Injectable({ providedIn: 'root' })
 export class GmaoApiService {
@@ -24,6 +25,24 @@ export class GmaoApiService {
 
   async list(resource: GmaoResource): Promise<PersistedRow[]> {
     return firstValueFrom(this.http.get<PersistedRow[]>(this.url(resource), {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  async listSites(): Promise<SiteRecord[]> {
+    return firstValueFrom(this.http.get<SiteRecord[]>(`${environment.apiUrl}/api/sites`, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  async createSite(site: Pick<SiteRecord, 'name' | 'code'>): Promise<SiteRecord> {
+    return firstValueFrom(this.http.post<SiteRecord>(`${environment.apiUrl}/api/sites`, site, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
+  async updateSite(name: string, changes: Partial<SiteRecord>): Promise<SiteRecord> {
+    return firstValueFrom(this.http.patch<SiteRecord>(`${environment.apiUrl}/api/sites/${encodeURIComponent(name)}`, changes, {
       headers: await this.authHeaders(),
     }));
   }

@@ -541,3 +541,18 @@ Le build Vercel exige GMAO_API_URL, SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY. La
 ---
 
 Ce README décrit l’état vérifié du projet GMAO ORDC au **26 août 2026**. Il doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API, d’une variable d’environnement ou d’une règle métier.
+
+## Administration des sites
+
+La page **Gestion des sites** est réservée au Manager GMAO et au Chargé des opérations. Elle permet de gérer le référentiel sans modifier le code :
+
+- ajouter un site avec un nom et un code unique ;
+- modifier le code d’un site ;
+- désactiver ou réactiver un site ;
+- voir le statut de chaque site.
+
+Les sites actifs sont utilisés automatiquement par les filtres, les formulaires et le tableau de bord. Après l’ajout d’un site, actualiser la session pour recharger la liste des sites autorisés. La désactivation n’efface aucune donnée historique.
+
+Routes API protégées : `GET /api/sites`, `POST /api/sites` et `PATCH /api/sites/<nom>`. Seuls les rôles globaux peuvent les utiliser.
+
+La gestion de l’association d’un utilisateur à un site reste une évolution prévue ; pour l’instant, elle se fait dans `user_profiles` comme décrit dans la section de création d’utilisateur.
