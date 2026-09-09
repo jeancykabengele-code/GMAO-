@@ -67,8 +67,8 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
     .sites-page { max-width: 1100px; margin: 0 auto; }
     .page-header { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
     .eyebrow { margin: 0 0 6px; color: #ff6700; text-transform: uppercase; letter-spacing: .13em; font-weight: 700; font-size: .78rem; }
-    h1 { margin: 0; font-size: clamp(1.7rem, 3vw, 2.4rem); } h2 { margin-top: 0; font-size: 1.25rem; }
-    .intro { margin: 8px 0 0; color: #68788a; }
+    h1 { margin: 0; color: #fff; font-size: clamp(1.7rem, 3vw, 2.4rem); } h2 { margin-top: 0; font-size: 1.25rem; }
+    .intro { margin: 8px 0 0; color: rgba(255,255,255,.9); }
     button { border: 0; border-radius: 8px; padding: 11px 16px; cursor: pointer; font: inherit; }
     .primary { background: #ff6700; color: white; } .primary:disabled { opacity: .6; cursor: wait; }
     .secondary { background: #e8e8e8; color: #333; }
