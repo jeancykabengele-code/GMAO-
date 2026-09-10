@@ -9,8 +9,6 @@ import { GmaoApiService, ProfileRecord, SiteRecord } from '../data/gmao-api.serv
   imports: [CommonModule, FormsModule],
   template: `
     <section class="users-page">
-      <p class="eyebrow">Administration</p><h1>Affectation des chefs de site</h1>
-      <p class="intro">Associez chaque chef de site à un site actif. Les autres rôles restent globaux.</p>
       @if (message) { <p class="message success">{{ message }}</p> } @if (error) { <p class="message error">{{ error }}</p> }
       <div class="card">
         @if (loading) { <p class="empty">Chargement…</p> } @else {

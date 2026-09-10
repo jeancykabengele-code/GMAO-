@@ -10,11 +10,6 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
   template: `
     <section class="sites-page">
       <header class="page-header">
-        <div>
-          <p class="eyebrow">Administration</p>
-          <h1>Gestion des sites</h1>
-          <p class="intro">Ajoutez, modifiez ou désactivez les sites sans toucher au code.</p>
-        </div>
         <button type="button" class="primary" (click)="startCreate()">+ Ajouter un site</button>
       </header>
 

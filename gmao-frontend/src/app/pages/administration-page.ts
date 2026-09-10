@@ -8,11 +8,6 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   template: `
     <section class="administration-shell">
       <header class="administration-header">
-        <div>
-          <p class="eyebrow">Administration</p>
-          <h1>Administration</h1>
-          <p>Gérez les sites et les affectations des utilisateurs depuis un seul espace.</p>
-        </div>
         <nav class="administration-tabs" aria-label="Sections d’administration">
           <a routerLink="sites" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Gestion des sites</a>
           <a routerLink="utilisateurs" routerLinkActive="active">Affecter les chefs de site</a>
