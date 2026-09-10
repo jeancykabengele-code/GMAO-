@@ -5,6 +5,7 @@ import { portalEntryGuard } from './auth/portal-entry.guard';
 import { BlankPageComponent } from './pages/blank-page';
 import { DocumentationsComponent } from './pages/documentations';
 import { AccueilPageComponent } from './pages/accueil-page';
+import { AdministrationPageComponent } from './pages/administration-page';
 import { AProposComponent } from './pages/a-propos';
 import { ConnexionPageComponent } from './pages/connexion-page';
 import { EquipementsPageComponent } from './pages/equipements-page';
@@ -39,8 +40,11 @@ export const routes: Routes = [
       { path: 'pue', component: PuePageComponent },
       { path: 'problemes-datacenter', component: ProblemesDatacenterPageComponent },
       { path: 'documentations', component: DocumentationsComponent, canActivate: [globalRoleGuard] },
-      { path: 'administration/sites', component: SitesAdminPageComponent, canActivate: [globalRoleGuard] },
-      { path: 'administration/utilisateurs', component: UsersAdminPageComponent, canActivate: [globalRoleGuard] },
+      { path: 'administration', component: AdministrationPageComponent, canActivate: [globalRoleGuard], children: [
+        { path: '', redirectTo: 'sites', pathMatch: 'full' },
+        { path: 'sites', component: SitesAdminPageComponent },
+        { path: 'utilisateurs', component: UsersAdminPageComponent },
+      ] },
       { path: 'a-propos', component: AProposComponent },
     ],
   },
