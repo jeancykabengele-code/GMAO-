@@ -52,6 +52,7 @@ CAMEL_TO_SNAKE = {
     "typeGe": "type_ge",
     "moisReleve": "mois_releve",
     "dateDernierePm": "date_derniere_pm",
+    "updatedAt": "updated_at",
     "rhActuel": "rh_actuel",
     "rhDernierePm": "rh_derniere_pm",
     "rhDepuisDernierePm": "rh_depuis_derniere_pm",
