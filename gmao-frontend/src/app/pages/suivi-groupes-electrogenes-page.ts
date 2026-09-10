@@ -300,7 +300,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return row.id || row.code;
   }
 
-  private formatReadingDate(value: string | null | undefined): string {
+  formatReadingDate(value: string | null | undefined): string {
     if (!value) return 'Non renseigné';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return 'Non renseigné';

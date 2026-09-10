@@ -36,7 +36,7 @@
                 <td>{{ row.rhDepuisDernierePm | number:'1.0-2':'fr' }}</td>
                 <td>{{ row.rhProchainePm | number:'1.0-2':'fr' }}</td>
                 <td><span class="pm-state" [class.pm-overdue]="row.etat === 'PmDepassee'" [class.pm-urgent]="row.etat === 'PmUrgente'" [class.pm-watch]="row.etat === 'ASurveiller'" [class.pm-normal]="row.etat === 'Normal'">{{ pmStateLabel(row.etat) }}</span></td>
-                <td><span class="reading-status" [class.reading-stale]="(readingAgeDays(row.updatedAt) ?? 0) >= 7">{{ readingFreshnessLabel(row.updatedAt) }}</span></td>
+                <td><span class="reading-date">{{ formatReadingDate(row.updatedAt) }}</span></td>
                 @if (canUpdate) { <td><button type="button" class="edit-button" (click)="openSheet(row)"><i class="bi bi-pencil"></i> Mettre à jour</button></td> }
               </tr>
             } @empty {
