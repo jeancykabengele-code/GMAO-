@@ -65,7 +65,6 @@
       }
       <label><span>RH actuel</span><input name="rhActuel" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhActuel" required /></label>
       <label><span>RH lors de la dernière PM</span><input name="rhDernierePm" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhDernierePm" required /></label>
-      <div class="reading-info full-width"><strong>Dernier relevé enregistré</strong><span>{{ lastReadingLabel }}</span><small>{{ lastReadingAgeLabel }}. Si le groupe est arrêté, conservez le RH actuel ; après 20 h de fonctionnement, saisissez le nouveau total (ex. 220).</small></div>
       <label class="full-width"><span>Commentaires</span><textarea name="commentaires" rows="3" [(ngModel)]="newGenerator.commentaires"></textarea></label>
 
       <div class="calculated-values full-width">
