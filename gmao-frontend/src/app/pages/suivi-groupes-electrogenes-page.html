@@ -3,7 +3,6 @@
     <div class="page-toolbar">
       <div class="page-heading">
       <h1>Suivi groupes électrogènes</h1>
-      <p>Mise à jour des compteurs et calcul automatique des échéances de maintenance préventive.</p>
     </div>
       <div class="view-actions">
       <button type="button" class="view-button" [class.inactive]="!tableVisible" [attr.aria-pressed]="tableVisible" (click)="toggleTable()"><i class="bi bi-speedometer2"></i> Suivi des compteurs</button>
@@ -14,12 +13,6 @@
 
     @if (tableVisible) {
       <div class="rules-and-filters">
-        <div class="rule-strip" aria-label="Règles de classement PM">
-          <span><strong>Normal</strong>&lt; 175 h</span>
-          <span><strong>À surveiller</strong>≥ 175 h ou retard</span>
-          <span><strong>PM urgente</strong>≥ 225 h</span>
-          <span><strong>PM dépassée</strong>≥ 250 h</span>
-        </div>
 
         <section class="filters" aria-label="Filtres du suivi GE">
           <label class="filter-field search-field"><span>Recherche</span><input type="search" [(ngModel)]="searchTerm" (ngModelChange)="resetPage()" placeholder="Site, code, groupe ou commentaire" /></label>
