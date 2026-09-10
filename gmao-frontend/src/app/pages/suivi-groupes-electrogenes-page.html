@@ -32,7 +32,7 @@
       <div class="table-meta"><span>{{ filteredRows.length }} groupe(s)</span><span>20 lignes par page</span></div>
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>Site</th><th>Code</th><th>Groupe</th><th>RH actuel</th><th>RH depuis PM</th><th>Prochaine PM</th><th>État</th>@if (canUpdate) { <th>Action</th> }</tr></thead>
+          <thead><tr><th>Site</th><th>Code</th><th>Groupe</th><th>RH actuel</th><th>RH depuis PM</th><th>Prochaine PM</th><th>État</th><th>Dernier relevé</th>@if (canUpdate) { <th>Action</th> }</tr></thead>
           <tbody>
             @for (row of visibleRows; track row.id || row.code) {
               <tr [attr.data-record-id]="row.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row.id)">
@@ -43,10 +43,11 @@
                 <td>{{ row.rhDepuisDernierePm | number:'1.0-2':'fr' }}</td>
                 <td>{{ row.rhProchainePm | number:'1.0-2':'fr' }}</td>
                 <td><span class="pm-state" [class.pm-overdue]="row.etat === 'PmDepassee'" [class.pm-urgent]="row.etat === 'PmUrgente'" [class.pm-watch]="row.etat === 'ASurveiller'" [class.pm-normal]="row.etat === 'Normal'">{{ pmStateLabel(row.etat) }}</span></td>
+                <td><span class="reading-status" [class.reading-stale]="(readingAgeDays(row.updatedAt) ?? 0) >= 7">{{ readingFreshnessLabel(row.updatedAt) }}</span></td>
                 @if (canUpdate) { <td><button type="button" class="edit-button" (click)="openSheet(row)"><i class="bi bi-pencil"></i> Mettre à jour</button></td> }
               </tr>
             } @empty {
-              <tr><td [attr.colspan]="canUpdate ? 8 : 7" class="empty-message">Aucune donnée GE ne correspond aux filtres sélectionnés.</td></tr>
+              <tr><td [attr.colspan]="canUpdate ? 9 : 8" class="empty-message">Aucune donnée GE ne correspond aux filtres sélectionnés.</td></tr>
             }
           </tbody>
         </table>
@@ -71,6 +72,7 @@
       }
       <label><span>RH actuel</span><input name="rhActuel" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhActuel" required /></label>
       <label><span>RH lors de la dernière PM</span><input name="rhDernierePm" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhDernierePm" required /></label>
+      <div class="reading-info full-width"><strong>Dernier relevé enregistré</strong><span>{{ lastReadingLabel }}</span><small>{{ lastReadingAgeLabel }}. Si le groupe est arrêté, conservez le RH actuel ; après 20 h de fonctionnement, saisissez le nouveau total (ex. 220).</small></div>
       <label class="delay-field"><input name="retardSignale" type="checkbox" [(ngModel)]="newGenerator.retardSignale" /><span>Un retard est signalé sur ce groupe</span></label>
       <label class="full-width"><span>Commentaires</span><textarea name="commentaires" rows="3" [(ngModel)]="newGenerator.commentaires"></textarea></label>
 

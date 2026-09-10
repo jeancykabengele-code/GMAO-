@@ -372,6 +372,15 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - État **PM urgente** à partir de 225 heures.
 - État **PM dépassée** à partir de 250 heures.
 
+### Saisie quotidienne des compteurs GE
+
+- Le champ **RH actuel** est le compteur cumulatif lu sur l’armoire du groupe.
+- Si le groupe n’a pas fonctionné, on conserve la dernière valeur (on ne saisit pas zéro).
+- Si le groupe a fonctionné 20 heures et affichait 200 h, on saisit 220 h, jamais seulement 20 h.
+- **RH depuis dernière PM** et **RH prochaine PM** restent calculés automatiquement par l’API ; aucune saisie manuelle de ces résultats n’est nécessaire.
+- Chaque enregistrement met à jour automatiquement le champ updated_at, affiché dans la feuille comme dernier relevé.
+- La feuille indique la fraîcheur du relevé : **À jour** (< 7 jours), **À mettre à jour** (7 à 13 jours) ou **Relevé ancien** (14 jours ou plus).
+- Cette indication signale qu’une nouvelle lecture terrain est nécessaire ; elle ne modifie pas le classement PM ni le compteur cumulatif.
 ### Notifications internes
 
 - Chaque fiche ajoutée par un Chef de site produit une notification persistante pour le Manager et le Chargé des opérations.

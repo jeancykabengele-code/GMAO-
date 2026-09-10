@@ -25,6 +25,7 @@ interface GeneratorRow {
   retardSignale: boolean;
   etat: PmState;
   commentaires: string;
+  updatedAt?: string | null;
 }
 
 @Component({
@@ -219,6 +220,32 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return this.calculateState(this.previewRhDepuisPm, this.newGenerator.retardSignale);
   }
 
+  get lastReadingLabel(): string {
+    return this.formatReadingDate(this.newGenerator.updatedAt);
+  }
+
+  get lastReadingAgeLabel(): string {
+    const days = this.readingAgeDays(this.newGenerator.updatedAt);
+    if (days === null) return 'Aucun relevé enregistré';
+    if (days === 0) return 'Relevé effectué aujourd’hui';
+    return 'Dernier relevé il y a ' + days + ' jour' + (days > 1 ? 's' : '');
+  }
+
+  readingAgeDays(value: string | null | undefined): number | null {
+    if (!value) return null;
+    const timestamp = new Date(value).getTime();
+    if (Number.isNaN(timestamp)) return null;
+    return Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
+  }
+
+  readingFreshnessLabel(value: string | null | undefined): string {
+    const days = this.readingAgeDays(value);
+    if (days === null) return 'Non renseigné';
+    if (days >= 14) return 'Relevé ancien';
+    if (days >= 7) return 'À mettre à jour';
+    return 'À jour';
+  }
+
   async saveGenerator(): Promise<void> {
     if (!this.editingRow || this.saving) return;
     this.saving = true;
@@ -273,6 +300,13 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return row.id || row.code;
   }
 
+  private formatReadingDate(value: string | null | undefined): string {
+    if (!value) return 'Non renseigné';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Non renseigné';
+    return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  }
+
   private calculateState(hoursSincePm: number, delayed: boolean): PmState {
     if (hoursSincePm >= 250) return 'PmDepassee';
     if (hoursSincePm >= 225) return 'PmUrgente';
@@ -284,7 +318,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return {
       site: '', code: '', typeGe: '', moisReleve: '', dateMiseEnService: null,
       dateDernierePm: null, rhActuel: 0, rhDernierePm: 0, rhDepuisDernierePm: 0,
-      rhProchainePm: 250, retardSignale: false, etat: 'Normal', commentaires: '',
+      rhProchainePm: 250, retardSignale: false, etat: 'Normal', commentaires: '', updatedAt: null,
     };
   }
 }
