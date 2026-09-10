@@ -238,13 +238,6 @@ th {
 .pm-urgent { color: #c2410c; }
 .pm-overdue { color: #b91c1c; }
 
-.reading-date {
-  color: #166534;
-  font-size: 0.84rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 
 
 .edit-button {
@@ -359,18 +352,6 @@ th {
   color: var(--anthracite);
   font-size: 1rem;
 }
-
-.reading-info {
-  display: grid;
-  gap: 4px;
-  padding: 12px 14px;
-  border-left: 4px solid var(--orange);
-  border-radius: 8px;
-  background: #fff;
-}
-
-.reading-info span { color: var(--anthracite); font-weight: 700; }
-.reading-info small { color: var(--slate); line-height: 1.45; }
 
 .sheet-actions {
   display: flex;
