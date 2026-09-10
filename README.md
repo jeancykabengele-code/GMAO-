@@ -393,6 +393,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - L’action **Tout lire** vide la liste des notifications non lues.
 - Les Chefs de site ne voient pas le centre de notifications global.
 - Les notifications sont persistées dans la table gmao_notifications et restent cohérentes après une reconnexion.
+- Les relevés GE non actualisés depuis 7 jours génèrent une notification warning « Relevé GE à mettre à jour » ; à partir de 14 jours, une notification critical « Relevé GE ancien » est créée pour les Managers et Chargés des opérations. La vérification est effectuée automatiquement lors du rafraîchissement du centre de notifications.
 
 ### Fuel-GE
 

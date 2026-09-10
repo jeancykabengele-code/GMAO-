@@ -1,9 +1,11 @@
+from datetime import timedelta
 from decimal import Decimal
 
+from django.db import DatabaseError
 from django.http import JsonResponse
 from django.utils import timezone
 
-from .models import Notification, UserProfile
+from .models import GeneratorRecord, Notification, UserProfile
 from .permissions import GLOBAL_ROLES, PermissionDeniedError, assert_global_page_access
 from .views import require_supabase_user
 
@@ -108,6 +110,40 @@ def notify_generator_alert(actor, record):
     _save_notifications(notifications)
 
 
+def notify_stale_generator_readings():
+    """Create persistent reminders when a GE reading has not been updated."""
+    now = timezone.now()
+    try:
+        records = list(GeneratorRecord.objects.filter(updated_at__lt=now - timedelta(days=7)))
+    except (DatabaseError, AttributeError):
+        return
+    recipients = _global_recipients(None)
+    notifications = []
+    for record in records:
+        age_days = (now - record.updated_at).days
+        if age_days >= 14:
+            stage_code, title, severity = "critical", "Relevé GE ancien", "critical"
+            message = (f"Le dernier relevé du groupe {record.code} du site {record.site} "
+                       f"date de {age_days} jours. Une mise à jour est nécessaire.")
+        else:
+            stage_code, title, severity = "warning", "Relevé GE à mettre à jour", "warning"
+            message = (f"Le dernier relevé du groupe {record.code} du site {record.site} "
+                       f"date de {age_days} jours. Merci de mettre le compteur à jour.")
+        reading_key = record.updated_at.isoformat().replace("+", "_").replace(":", "_")
+        for recipient in recipients:
+            notifications.append(Notification(
+                recipient_id=recipient.id,
+                site=record.site,
+                event_type="generator_reading_stale",
+                resource="groupes-electrogenes",
+                resource_id=record.id,
+                title=title,
+                message=message,
+                severity=severity,
+                dedupe_key=f"ge-reading:{record.id}:{reading_key}:{stage_code}",
+            ))
+    _save_notifications(notifications)
+
 def _serialize(notification):
     return {
         "id": str(notification.id),
@@ -141,6 +177,7 @@ def notification_collection(request):
         limit = min(max(int(request.GET.get("limit", "40")), 1), 100)
     except ValueError:
         limit = 40
+    notify_stale_generator_readings()
     notifications = Notification.objects.filter(recipient_id=request.gmao_profile.id).order_by("-created_at")[:limit]
     unread_count = Notification.objects.filter(
         recipient_id=request.gmao_profile.id,
