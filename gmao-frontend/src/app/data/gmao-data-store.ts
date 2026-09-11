@@ -12,7 +12,6 @@ export class GmaoDataStore {
   private readonly generatorData = signal<unknown[]>([]);
   private readonly fuelData = signal<unknown[]>([]);
   private readonly fuelSummaryData = signal<unknown[]>([]);
-  private readonly fuelDeliveryData = signal<unknown[]>([]);
   private readonly problemData = signal<unknown[]>([]);
   private readonly pueData = signal<unknown[]>([]);
   private readonly interventionData = signal<unknown[]>([]);
@@ -40,7 +39,6 @@ export class GmaoDataStore {
   get fuelRows(): unknown[] { return this.read(this.fuelData()); }
   set fuelRows(value: unknown[]) { this.fuelData.set(this.write(this.fuelData(), value)); }
   get fuelSummaryRows(): unknown[] { return this.readGlobal(this.fuelSummaryData()); }
-  get fuelDeliveryRows(): unknown[] { return this.read(this.fuelDeliveryData()); }
   set fuelSummaryRows(value: unknown[]) { this.fuelSummaryData.set(value); }
   get problemRows(): unknown[] { return this.read(this.problemData()); }
   set problemRows(value: unknown[]) { this.problemData.set(this.write(this.problemData(), value)); }
@@ -56,7 +54,7 @@ export class GmaoDataStore {
     this.loadingStarted = true;
     const resources: GmaoResource[] = [
       'equipements', 'tickets', 'groupes-electrogenes', 'fuel-ge', 'fuel-summary',
-      'pue', 'ravitaillements-fuel', 'problemes-datacenter', 'interventions', 'pieces-rechange',
+      'pue', 'problemes-datacenter', 'interventions', 'pieces-rechange',
     ];
     await Promise.all(resources.map(async (resource) => {
       try {
@@ -118,7 +116,6 @@ export class GmaoDataStore {
       'fuel-ge': this.fuelData(),
       'fuel-summary': this.fuelSummaryData(),
       pue: this.pueData(),
-      'ravitaillements-fuel': this.fuelDeliveryData(),
       'problemes-datacenter': this.problemData(),
       interventions: this.interventionData(),
       'pieces-rechange': this.sparePartData(),
@@ -133,7 +130,6 @@ export class GmaoDataStore {
     else if (resource === 'fuel-ge') this.fuelData.set(rows);
     else if (resource === 'fuel-summary') this.fuelSummaryData.set(rows);
     else if (resource === 'pue') this.pueData.set(rows);
-    else if (resource === 'ravitaillements-fuel') this.fuelDeliveryData.set(rows);
     else if (resource === 'problemes-datacenter') this.problemData.set(rows);
     else if (resource === 'interventions') this.interventionData.set(rows);
     else this.sparePartData.set(rows);
