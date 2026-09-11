@@ -50,6 +50,12 @@ export class DocumentationsComponent {
         this.column('RH depuis PM', 'rhDepuisDernierePm'), this.column('Prochaine PM', 'rhProchainePm'),
         this.column('État', 'etat'), this.column('Commentaires', 'commentaires'),
       ]),
+      this.report('Ravitaillement Fuel', 'Livraisons de carburant reçues sur les sites.', 'ravitaillement-fuel', () => this.dataStore.fuelDeliveryRows, [
+        this.column('Date du ravitaillement', 'dateRavitaillement'), this.column('Site', 'site'), this.column('Fournisseur', 'fournisseur'),
+        this.column('N° bon de livraison', 'bonLivraison'), this.column('Type de carburant', 'typeCarburant'), this.column('Quantité reçue (L)', 'quantiteRecue'),
+        this.column('Stock avant (L)', 'stockAvant'), this.column('Stock après (L)', 'stockApres'), this.column('N° citerne ou camion', 'numeroCiterne'),
+        this.column('Réceptionné par', 'receptionnePar'), this.column('Commentaires', 'commentaires'), this.column('Date d’enregistrement', 'createdAt'),
+      ]),
       this.report('Fuel-GE', 'Journal mensuel du carburant et de la disponibilité Grid.', 'journal-fuel-ge', () => this.dataStore.fuelRows, [
         this.column('Site', 'site'), this.column('Mois et année', 'periode'), this.column('Stock initial (L)', 'stockInitial'),
         this.column('Consommé (L)', 'sortie'), this.column('Stock final (L)', 'stockFinal'), this.column('Heures GE', 'heuresGe'),
