@@ -28,7 +28,7 @@ import { Component } from '@angular/core';
       padding: clamp(36px, 7vw, 110px);
       overflow: hidden;
       background-color: var(--anthracite);
-      background-image: url('/images/home-dashboard-background.png');
+      background-image: url('/images/server-racks-background.jpg');
       background-position: center center;
       background-size: cover;
       background-repeat: no-repeat;

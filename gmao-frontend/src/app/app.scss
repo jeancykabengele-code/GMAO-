@@ -220,7 +220,7 @@ nav > a.active i { color: #ffffff; }
 .page-content { flex: 1; min-width: 0; height: 100vh; overflow-x: hidden; overflow-y: auto; background: var(--off-white); }
 .page-content.public-content { width: 100%; overflow: auto; background: #f7f7f5; }
 .page-content.has-page-background {
-  background-image: linear-gradient(rgba(41, 41, 41, 0.42), rgba(41, 41, 41, 0.42)), url('/images/datacenter-background.png');
+  background-image: linear-gradient(rgba(41, 41, 41, 0.42), rgba(41, 41, 41, 0.42)), url('/images/server-racks-background.jpg');
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
