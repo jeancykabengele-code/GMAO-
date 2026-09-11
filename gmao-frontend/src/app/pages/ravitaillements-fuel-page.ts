@@ -14,6 +14,7 @@ export class RavitaillementsFuelPageComponent {
   constructor(private readonly dataStore: GmaoDataStore = new GmaoDataStore(), private readonly excel: ExcelExportService = new ExcelExportService()) {}
   get rows(): FuelDeliveryRow[] { return this.dataStore.fuelDeliveryRows as FuelDeliveryRow[]; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
+  get canModify(): boolean { return this.dataStore.canModifyExisting; }
   get sites(): string[] { return this.dataStore.allowedSites; }
   get filteredRows(): FuelDeliveryRow[] { const q=this.searchTerm.trim().toLowerCase(); return this.rows.filter(r => (!this.selectedSite || r.site===this.selectedSite) && (!this.selectedMonth || r.date?.startsWith(this.selectedMonth)) && (!q || (r.site + ' ' + r.fournisseur + ' ' + r.bonLivraison + ' ' + r.receptionnePar).toLowerCase().includes(q))).sort((a,b)=>String(b.date).localeCompare(String(a.date))); }
   get pageCount(): number { return Math.max(1, Math.ceil(this.filteredRows.length / this.pageSize)); }

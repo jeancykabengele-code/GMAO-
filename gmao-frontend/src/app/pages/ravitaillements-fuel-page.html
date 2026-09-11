@@ -11,11 +11,11 @@
     </section>
     <div class="table-meta"><span>{{ filteredRows.length }} ravitaillement(s)</span><span>20 lignes par page</span></div>
     <div class="table-wrapper"><table>
-      <thead><tr><th>Date</th><th>Site</th><th>Fournisseur</th><th>Bon</th><th>Carburant</th><th>Quantité (L)</th><th>Stock avant</th><th>Stock après</th><th>Réceptionné par</th><th>Action</th></tr></thead>
+      <thead><tr><th>Date</th><th>Site</th><th>Fournisseur</th><th>Bon</th><th>Carburant</th><th>Quantité (L)</th><th>Stock avant</th><th>Stock après</th><th>Réceptionné par</th>@if (canModify) { <th>Action</th> }</tr></thead>
       <tbody>
         @for (row of visibleRows; track row.id || row.bonLivraison) {
-          <tr><td>{{ row.date }}</td><td>{{ row.site }}</td><td>{{ row.fournisseur }}</td><td>{{ row.bonLivraison }}</td><td>{{ row.typeCarburant }}</td><td>{{ row.quantiteLitres }}</td><td>{{ row.stockAvant }}</td><td>{{ row.stockApres }}</td><td>{{ row.receptionnePar }}</td><td><button type="button" class="edit-button" (click)="editRow(row)">Modifier</button></td></tr>
-        } @empty { <tr><td colspan="10" class="empty-message">Aucun ravitaillement ne correspond aux filtres.</td></tr> }
+          <tr><td>{{ row.date }}</td><td>{{ row.site }}</td><td>{{ row.fournisseur }}</td><td>{{ row.bonLivraison }}</td><td>{{ row.typeCarburant }}</td><td>{{ row.quantiteLitres }}</td><td>{{ row.stockAvant }}</td><td>{{ row.stockApres }}</td><td>{{ row.receptionnePar }}</td>@if (canModify) { <td><button type="button" class="edit-button" (click)="editRow(row)">Modifier</button></td> }</tr>
+        } @empty { <tr><td [attr.colspan]="canModify ? 10 : 9" class="empty-message">Aucun ravitaillement ne correspond aux filtres.</td></tr> }
       </tbody>
     </table></div>
     <nav class="pagination"><button type="button" (click)="previousPage()" [disabled]="currentPage===1">‹</button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" (click)="nextPage()" [disabled]="currentPage===pageCount">›</button></nav>
