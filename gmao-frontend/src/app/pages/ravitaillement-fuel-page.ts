@@ -17,9 +17,9 @@ export class RavitaillementFuelPageComponent {
   saving = false;
   errorMessage = '';
   readonly dataStore: GmaoDataStore;
-  entry = this.createEmptyEntry();
+  entry: ReturnType<RavitaillementFuelPageComponent["createEmptyEntry"]>;
 
-  constructor(dataStore: GmaoDataStore) { this.dataStore = dataStore; }
+  constructor(dataStore: GmaoDataStore) { this.dataStore = dataStore; this.entry = this.createEmptyEntry(); }
   get rows(): FuelDeliveryRow[] { return this.dataStore.fuelDeliveryRows as FuelDeliveryRow[]; }
   get sites(): string[] { return this.dataStore.allowedSites; }
 
