@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from .models import (
     DatacenterProblem,
     Equipment,
+    FuelDelivery,
     FuelMonthlySummary,
     FuelRecord,
     GeneratorRecord,
@@ -39,6 +40,7 @@ RESOURCE_MODELS = {
     "tickets": Ticket,
     "groupes-electrogenes": GeneratorRecord,
     "fuel-ge": FuelRecord,
+    "fuel-ravitaillements": FuelDelivery,
     "fuel-summary": FuelMonthlySummary,
     "pue": PueRecord,
     "problemes-datacenter": DatacenterProblem,
@@ -58,6 +60,15 @@ CAMEL_TO_SNAKE = {
     "rhDepuisDernierePm": "rh_depuis_derniere_pm",
     "rhProchainePm": "rh_prochaine_pm",
     "retardSignale": "retard_signale",
+    "dateRavitaillement": "date_ravitaillement",
+    "bonLivraison": "bon_livraison",
+    "typeCarburant": "type_carburant",
+    "quantiteRecue": "quantite_recue",
+    "stockAvant": "stock_avant",
+    "stockApres": "stock_apres",
+    "numeroCiterne": "numero_citerne",
+    "receptionnePar": "receptionne_par",
+    "differenceStock": "difference_stock",
     "stockInitial": "stock_initial",
     "stockFinal": "stock_final",
     "heuresGe": "heures_ge",
@@ -163,6 +174,22 @@ def _calculate_fuel_values(values, record=None):
         values["disponibilite_grid"] = max(Decimal("0"), min(Decimal("100"), availability)).quantize(Decimal("0.01"))
     return values
 
+def _calculate_fuel_delivery_values(values, record=None):
+    quantity = values.get("quantite_recue", getattr(record, "quantite_recue", None))
+    stock_before = values.get("stock_avant", getattr(record, "stock_avant", None))
+    stock_after = values.get("stock_apres", getattr(record, "stock_apres", None))
+    if quantity is None or stock_before is None:
+        raise ValidationError("La quantité reçue et le stock avant livraison sont obligatoires.")
+    if quantity < 0 or stock_before < 0 or (stock_after is not None and stock_after < 0):
+        raise ValidationError("Les quantités et les stocks ne peuvent pas être négatifs.")
+    calculated_after = stock_before + quantity
+    if stock_after is None:
+        stock_after = calculated_after
+        values["stock_apres"] = stock_after
+    values["difference_stock"] = abs(stock_after - calculated_after) > Decimal("0.001")
+    return values
+
+
 def _calculate_pue_values(values, record=None):
     energie_it = values.get("energie_it", getattr(record, "energie_it", None))
     energie_totale = values.get("energie_totale", getattr(record, "energie_totale", None))
@@ -251,12 +278,14 @@ def record_collection(request, resource):
                     _calculate_generator_values(values)
                 if model_class is FuelRecord:
                     _calculate_fuel_values(values)
+                if model_class is FuelDelivery:
+                    _calculate_fuel_delivery_values(values)
                 if model_class is PueRecord:
                     _calculate_pue_values(values)
                 record = model_class(**values, created_by=profile.id)
                 record.full_clean(exclude=["updated_by"])
                 record.save(force_insert=True)
-                if model_class in {GeneratorRecord, FuelRecord, PueRecord}:
+                if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 notify_record_created(profile, resource, record)
                 if model_class is GeneratorRecord:
@@ -298,6 +327,9 @@ def record_detail(request, resource, record_id):
             elif model_class is FuelRecord:
                 assert_can_modify(profile, values["site"])
                 _calculate_fuel_values(values, record)
+            elif model_class is FuelDelivery:
+                assert_can_modify(profile, values["site"])
+                _calculate_fuel_delivery_values(values, record)
             elif model_class is PueRecord:
                 assert_can_modify(profile, values["site"])
                 _calculate_pue_values(values, record)
@@ -308,7 +340,7 @@ def record_detail(request, resource, record_id):
             record.updated_by = profile.id
             record.full_clean()
             record.save()
-            if model_class in {GeneratorRecord, FuelRecord, PueRecord}:
+            if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
                 record.refresh_from_db()
             if model_class is GeneratorRecord:
                 notify_generator_alert(profile, record)

@@ -70,6 +70,14 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 - Calcul automatique de la consommation en litres par heure.
 - Calcul de la disponibilité Grid pour les sites raccordés.
 
+### Ravitaillement Fuel
+
+- Enregistrement des livraisons entrantes de carburant par site.
+- Calcul automatique du stock après livraison et signalement des écarts.
+- Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
+- Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
+- Le schéma PostgreSQL correspondant se trouve dans `gmao/sql/008_fuel_deliveries.sql`.
+
 ### PUE
 
 - Saisie de l’énergie IT et de l’énergie totale.
@@ -402,6 +410,14 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - `litres/heure = consommation / heures GE`.
 - La disponibilité Grid est calculée à partir des heures du mois et des heures GE.
 - Kikwit et Mbandaka sont considérés comme des sites sans Grid : disponibilité fixée à 0 et énergie SNEL non applicable.
+
+### Ravitaillement Fuel
+
+- Enregistrement des livraisons entrantes de carburant par site.
+- Calcul automatique du stock après livraison et signalement des écarts.
+- Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
+- Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
+- Le schéma PostgreSQL correspondant se trouve dans `gmao/sql/008_fuel_deliveries.sql`.
 
 ### PUE
 

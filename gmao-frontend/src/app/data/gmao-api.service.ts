@@ -9,6 +9,7 @@ export type GmaoResource =
   | 'tickets'
   | 'groupes-electrogenes'
   | 'fuel-ge'
+  | 'fuel-ravitaillements'
   | 'fuel-summary'
   | 'pue'
   | 'problemes-datacenter'

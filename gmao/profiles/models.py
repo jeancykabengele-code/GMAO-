@@ -105,6 +105,24 @@ class FuelRecord(BusinessRecord):
         db_table = "gmao_fuel_ge"
 
 
+class FuelDelivery(BusinessRecord):
+    date_ravitaillement = models.DateField()
+    fournisseur = models.TextField()
+    bon_livraison = models.TextField()
+    type_carburant = models.TextField()
+    quantite_recue = models.DecimalField(max_digits=16, decimal_places=3)
+    stock_avant = models.DecimalField(max_digits=16, decimal_places=3)
+    stock_apres = models.DecimalField(max_digits=16, decimal_places=3)
+    numero_citerne = models.TextField(blank=True)
+    receptionne_par = models.TextField()
+    commentaires = models.TextField(blank=True)
+    difference_stock = models.BooleanField(default=False)
+
+    class Meta:
+        managed = False
+        db_table = "gmao_fuel_ravitaillements"
+
+
 class FuelMonthlySummary(BusinessRecord):
     periode = models.TextField()
     stock_initial = models.DecimalField(max_digits=16, decimal_places=3)
