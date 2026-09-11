@@ -5,32 +5,43 @@
         <h1>Ravitaillement Fuel</h1>
         <p>Suivi des livraisons de carburant reçues sur les sites.</p>
       </div>
+      <button type="button" class="primary-button" (click)="openForm()">
+        <i class="bi bi-plus-lg"></i> Ajouter un ravitaillement
+      </button>
     </div>
 
     <div class="table-summary"><strong>0 ravitaillement</strong></div>
     <div class="table-wrapper">
       <table>
-        <thead>
-          <tr>
-            <th>Date du ravitaillement</th>
-            <th>Site</th>
-            <th>Fournisseur</th>
-            <th>N° bon de livraison</th>
-            <th>Type de carburant</th>
-            <th>Quantité reçue (L)</th>
-            <th>Stock avant (L)</th>
-            <th>Stock après (L)</th>
-            <th>Réceptionné par</th>
-            <th>Commentaires</th>
-            <th>Date d’enregistrement</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="11" class="empty-cell">Aucun ravitaillement enregistré</td>
-          </tr>
-        </tbody>
+        <thead><tr>
+          <th>Date du ravitaillement</th><th>Site</th><th>Fournisseur</th><th>N° bon de livraison</th>
+          <th>Type de carburant</th><th>Quantité reçue (L)</th><th>Stock avant (L)</th><th>Stock après (L)</th>
+          <th>Réceptionné par</th><th>Commentaires</th><th>Date d’enregistrement</th>
+        </tr></thead>
+        <tbody><tr><td colspan="11" class="empty-cell">Aucun ravitaillement enregistré</td></tr></tbody>
       </table>
     </div>
   </div>
+
+  @if (formOpen) {
+    <div class="modal-backdrop" (click)="closeForm()">
+      <section class="form-card" role="dialog" aria-modal="true" aria-labelledby="fuel-form-title" (click)="$event.stopPropagation()">
+        <header><div><h2 id="fuel-form-title">Ajouter un ravitaillement</h2><p>Prévisualisation du formulaire de saisie.</p></div><button type="button" class="close-button" (click)="closeForm()" aria-label="Fermer">×</button></header>
+        <div class="form-grid">
+          <label><span>Site</span><input type="text" [(ngModel)]="entry.site" placeholder="Ex. Mbuji-Mayi"></label>
+          <label><span>Date du ravitaillement</span><input type="date" [(ngModel)]="entry.date"></label>
+          <label><span>Fournisseur</span><input type="text" [(ngModel)]="entry.fournisseur"></label>
+          <label><span>N° bon de livraison</span><input type="text" [(ngModel)]="entry.bonLivraison"></label>
+          <label><span>Type de carburant</span><select [(ngModel)]="entry.carburant"><option>Diesel</option><option>Essence</option><option>Autre</option></select></label>
+          <label><span>Quantité reçue (L)</span><input type="number" min="0" [(ngModel)]="entry.quantite"></label>
+          <label><span>Stock avant livraison (L)</span><input type="number" min="0" [(ngModel)]="entry.stockAvant"></label>
+          <label><span>Stock après livraison (L)</span><input type="number" min="0" [(ngModel)]="entry.stockApres"></label>
+          <label><span>N° citerne ou camion</span><input type="text" [(ngModel)]="entry.citerne"></label>
+          <label><span>Réceptionné par</span><input type="text" [(ngModel)]="entry.receptionnePar"></label>
+          <label class="full-width"><span>Commentaires</span><textarea rows="3" [(ngModel)]="entry.commentaires"></textarea></label>
+        </div>
+        <footer><button type="button" class="secondary-button" (click)="closeForm()">Fermer</button><button type="button" class="primary-button" disabled>Enregistrer (prochaine étape)</button></footer>
+      </section>
+    </div>
+  }
 </section>
