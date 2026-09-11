@@ -8,7 +8,7 @@
   min-height: 100vh;
   padding: 24px;
   box-sizing: border-box;
-  background-image: linear-gradient(rgba(20, 20, 20, 0.16), rgba(20, 20, 20, 0.16)), url('/images/home-dashboard-background.png');
+  background-image: linear-gradient(rgba(20, 20, 20, 0.16), rgba(20, 20, 20, 0.16)), url('/images/server-racks-background.jpg');
   background-position: center;
   background-size: cover;
   background-attachment: fixed;
@@ -60,9 +60,10 @@
 
 .filter-fields {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(170px, 1fr));
+  grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(170px, 1fr)) auto;
   gap: 14px;
   margin-top: 16px;
+  align-items: end;
 }
 
 .filter-fields label {
@@ -236,6 +237,7 @@
 
 .chart-wrap {
   margin-top: 16px;
+  align-items: end;
 }
 
 .chart-wrap svg {

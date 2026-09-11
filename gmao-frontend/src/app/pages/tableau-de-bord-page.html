@@ -4,12 +4,13 @@
       <div>
         <h1>Tableau de bord</h1>
       </div>
-      <button type="button" class="reset-filter" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise"></i> R&eacute;initialiser</button>
+
     </div>
     <div class="filter-fields">
       <label><span>Site</span><select [(ngModel)]="selectedSite"><option value="">Tous les sites</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
       <label><span>Du</span><input type="date" [(ngModel)]="dateFrom" /></label>
       <label><span>Au</span><input type="date" [(ngModel)]="dateTo" /></label>
+      <button type="button" class="reset-filter" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise"></i> R&eacute;initialiser</button>
     </div>
   </section>
 
