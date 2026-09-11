@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
 
-interface FuelDeliveryRow { id?: string; dateRavitaillement: string; site: string; fournisseur: string; bonLivraison: string; typeCarburant: string; quantiteRecue: number; stockAvant: number; stockApres: number; numeroCiterne?: string; receptionnePar: string; commentaires?: string; createdAt?: string; differenceStock?: boolean; }
+interface FuelDeliveryRow { id?: string; dateRavitaillement: string; site: string; fournisseur: string; bonLivraison: string; typeCarburant: string; quantiteRecue: number; stockAvant: number; stockApres: number; numeroCiterne?: string; receptionnePar: string; commentaires?: string; createdAt?: string; created_at?: string; differenceStock?: boolean; }
 
 @Component({ selector: 'app-ravitaillement-fuel-page', standalone: true, imports: [CommonModule, FormsModule], templateUrl: './ravitaillement-fuel-page.html', styleUrls: ['./ravitaillement-fuel-page.scss'] })
 export class RavitaillementFuelPageComponent {
