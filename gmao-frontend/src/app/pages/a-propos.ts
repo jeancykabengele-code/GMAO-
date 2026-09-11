@@ -13,6 +13,7 @@ import { Component } from '@angular/core';
         de renforcer la disponibilité et la performance des infrastructures.
       </p>
       <p class="credits">Développé par <strong>KABENGELE Jeancy</strong> et <strong>ALIMASI Enoch</strong>, étudiants en sciences de l’ingénieur à l’Ulc-Icam.</p>
+          <p class="version">Version 1.0 · Année 2026</p>
     </section>
   `,
   styles: `
@@ -50,6 +51,13 @@ import { Component } from '@angular/core';
       font-size: .88rem;
       font-style: normal;
     }
+    .version {
+      margin: 10px 0 0;
+      color: #6f7782;
+      font-size: .82rem;
+      font-style: normal;
+    }
+
     @media (max-width: 640px) {
       :host {
         padding: 20px;
