@@ -16,6 +16,7 @@ import { PiecesRechangePageComponent } from './pages/pieces-rechange-page';
 import { ProblemesDatacenterPageComponent } from './pages/problemes-datacenter-page';
 import { PublicHomePageComponent } from './pages/public-home-page';
 import { PuePageComponent } from './pages/pue-page';
+import { RavitaillementFuelPageComponent } from './pages/ravitaillement-fuel-page';
 import { SuiviGroupesElectrogenesPageComponent } from './pages/suivi-groupes-electrogenes-page';
 import { SitesAdminPageComponent } from './pages/sites-admin-page';
 import { UsersAdminPageComponent } from './pages/users-admin-page';
@@ -38,6 +39,7 @@ export const routes: Routes = [
       { path: 'pieces-rechange', component: PiecesRechangePageComponent },
       { path: 'fuel-ge', component: FuelGePageComponent },
       { path: 'pue', component: PuePageComponent },
+      { path: 'ravitaillement-fuel', component: RavitaillementFuelPageComponent },
       { path: 'problemes-datacenter', component: ProblemesDatacenterPageComponent },
       { path: 'documentations', component: DocumentationsComponent, canActivate: [globalRoleGuard] },
       { path: 'administration', component: AdministrationPageComponent, canActivate: [globalRoleGuard], children: [
