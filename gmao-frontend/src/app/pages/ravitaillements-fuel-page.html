@@ -1,0 +1,45 @@
+<section class="fuel-delivery-page">
+  <div class="content-card">
+    <div class="page-toolbar"><div class="page-heading"><h1>Ravitaillement Fuel</h1></div><div class="view-actions">
+      <button type="button" class="primary-button" (click)="openSheet()"><i class="bi bi-plus-lg"></i> Ajouter un ravitaillement</button>
+      @if (canExportExcel) { <button type="button" class="export-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
+    </div></div>
+    <section class="filters">
+      <label><span>Site</span><select [(ngModel)]="selectedSite" (ngModelChange)="resetPage()"><option value="">Tous les sites</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
+      <label><span>Mois</span><input type="month" [(ngModel)]="selectedMonth" (ngModelChange)="resetPage()" /></label>
+      <label class="search"><span>Recherche</span><input type="search" placeholder="Fournisseur, bon ou réceptionnaire" [(ngModel)]="searchTerm" (ngModelChange)="resetPage()" /></label>
+    </section>
+    <div class="table-meta"><span>{{ filteredRows.length }} ravitaillement(s)</span><span>20 lignes par page</span></div>
+    <div class="table-wrapper"><table>
+      <thead><tr><th>Date</th><th>Site</th><th>Fournisseur</th><th>Bon</th><th>Carburant</th><th>Quantité (L)</th><th>Stock avant</th><th>Stock après</th><th>Réceptionné par</th><th>Action</th></tr></thead>
+      <tbody>
+        @for (row of visibleRows; track row.id || row.bonLivraison) {
+          <tr><td>{{ row.date }}</td><td>{{ row.site }}</td><td>{{ row.fournisseur }}</td><td>{{ row.bonLivraison }}</td><td>{{ row.typeCarburant }}</td><td>{{ row.quantiteLitres }}</td><td>{{ row.stockAvant }}</td><td>{{ row.stockApres }}</td><td>{{ row.receptionnePar }}</td><td><button type="button" class="edit-button" (click)="editRow(row)">Modifier</button></td></tr>
+        } @empty { <tr><td colspan="10" class="empty-message">Aucun ravitaillement ne correspond aux filtres.</td></tr> }
+      </tbody>
+    </table></div>
+    <nav class="pagination"><button type="button" (click)="previousPage()" [disabled]="currentPage===1">‹</button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" (click)="nextPage()" [disabled]="currentPage===pageCount">›</button></nav>
+  </div>
+</section>
+
+@if (sheetOpen) {
+  <div class="sheet-backdrop" (click)="closeSheet()"></div>
+  <aside class="delivery-sheet">
+    <header><h2>{{ editingRow ? "Modifier le ravitaillement" : "Ajouter un ravitaillement" }}</h2><button type="button" class="close-button" (click)="closeSheet()">×</button></header>
+    <form (ngSubmit)="save()">
+      <label><span>Site</span><select name="site" [(ngModel)]="newDelivery.site" required>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
+      <label><span>Date</span><input name="date" type="date" [(ngModel)]="newDelivery.date" required /></label>
+      <label><span>Fournisseur</span><input name="fournisseur" [(ngModel)]="newDelivery.fournisseur" required /></label>
+      <label><span>Bon de livraison</span><input name="bonLivraison" [(ngModel)]="newDelivery.bonLivraison" required /></label>
+      <label><span>Type de carburant</span><input name="typeCarburant" [(ngModel)]="newDelivery.typeCarburant" required /></label>
+      <label><span>Quantité reçue (L)</span><input name="quantiteLitres" type="number" min="0" step="0.001" [(ngModel)]="newDelivery.quantiteLitres" required /></label>
+      <label><span>Stock avant livraison (L)</span><input name="stockAvant" type="number" min="0" step="0.001" [(ngModel)]="newDelivery.stockAvant" required /></label>
+      <label><span>Stock après livraison (calculé)</span><input name="stockApres" type="number" [value]="calculatedStockAfter" readonly /></label>
+      <label><span>Camion / citerne</span><input name="camion" [(ngModel)]="newDelivery.camion" /></label>
+      <label><span>Réceptionné par</span><input name="receptionnePar" [(ngModel)]="newDelivery.receptionnePar" required /></label>
+      <label class="full-width"><span>Commentaires</span><textarea name="commentaires" rows="3" [(ngModel)]="newDelivery.commentaires"></textarea></label>
+      @if (saveError) { <p class="form-error full-width">{{ saveError }}</p> }
+      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="saving">{{ saving ? "Enregistrement…" : "Enregistrer" }}</button></div>
+    </form>
+  </aside>
+}

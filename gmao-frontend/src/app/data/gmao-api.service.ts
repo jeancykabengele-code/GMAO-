@@ -10,6 +10,7 @@ export type GmaoResource =
   | 'groupes-electrogenes'
   | 'fuel-ge'
   | 'fuel-summary'
+  | 'ravitaillements-fuel'
   | 'pue'
   | 'problemes-datacenter'
   | 'interventions'

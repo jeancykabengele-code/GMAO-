@@ -89,6 +89,22 @@ class GeneratorRecord(BusinessRecord):
         db_table = "gmao_groupes_electrogenes"
 
 
+class FuelDelivery(BusinessRecord):
+    date = models.DateField()
+    fournisseur = models.TextField()
+    bon_livraison = models.TextField()
+    type_carburant = models.TextField()
+    quantite_litres = models.DecimalField(max_digits=16, decimal_places=3)
+    stock_avant = models.DecimalField(max_digits=16, decimal_places=3)
+    stock_apres = models.DecimalField(max_digits=16, decimal_places=3)
+    camion = models.TextField(blank=True)
+    receptionne_par = models.TextField()
+    commentaires = models.TextField(blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "gmao_fuel_ravitaillements"
+
 class FuelRecord(BusinessRecord):
     periode = models.TextField()
     stock_initial = models.DecimalField(max_digits=16, decimal_places=3, null=True, blank=True)

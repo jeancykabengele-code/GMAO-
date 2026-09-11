@@ -40,7 +40,7 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 
 - Vue consolidée des indicateurs opérationnels.
 - Filtrage global par site et par période.
-- Synthèse des équipements, tickets, interventions, groupes électrogènes, Fuel-GE et PUE.
+- Synthèse des équipements, tickets, interventions, groupes électrogènes, Fuel-GE, Ravitaillement Fuel et PUE.
 - Accès réservé au Manager GMAO et au Chargé des opérations.
 
 ### Équipements
@@ -62,6 +62,12 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 - Suivi des groupes électrogènes et de leurs compteurs horaires.
 - Calcul automatique du nombre d’heures depuis la dernière maintenance préventive.
 - Détermination automatique de l’état de maintenance du groupe.
+
+### Ravitaillement Fuel
+
+- Chaque livraison est enregistrée avec le site, la date, le fournisseur, le bon de livraison, le carburant, la quantité et les stocks avant/après.
+- Le stock après est calculé automatiquement : stock avant + quantité reçue.
+- Les chefs de site peuvent saisir les ravitaillements ; les rôles globaux peuvent les consulter et les exporter.
 
 ### Fuel-GE
 
