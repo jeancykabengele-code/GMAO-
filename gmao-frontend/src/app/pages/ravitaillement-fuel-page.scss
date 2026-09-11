@@ -73,7 +73,8 @@
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(170px, 280px));
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  max-width: 1100px;
   gap: 16px;
   margin-bottom: 22px;
 }
