@@ -6,12 +6,13 @@ import { Component } from '@angular/core';
   template: `
     <section class="about-page">
       <p>
-        La plateforme GMAO ORDC centralise le suivi des équipements, des interventions, des tickets,
+        La plateforme DC SiteOps Reporting centralise le suivi des équipements, des interventions, des tickets,
         des pièces de rechange et des indicateurs techniques des différents sites. Elle permet aux
         équipes de disposer d’informations fiables et à jour, de mieux planifier les opérations de
         maintenance, d’améliorer la traçabilité des actions et de faciliter la prise de décision afin
         de renforcer la disponibilité et la performance des infrastructures.
       </p>
+      <p class="credits">Développé par <strong>KABENGELE Jeancy</strong> et <strong>ALIMASI Enoch</strong>, étudiants en sciences de l’ingénieur à l’Ulc-Icam.</p>
     </section>
   `,
   styles: `
@@ -41,6 +42,14 @@ import { Component } from '@angular/core';
       line-height: 1.75;
     }
 
+    .credits {
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(63, 68, 76, .18);
+      color: #58718b;
+      font-size: .88rem;
+      font-style: normal;
+    }
     @media (max-width: 640px) {
       :host {
         padding: 20px;
