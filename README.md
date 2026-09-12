@@ -1,6 +1,6 @@
-# GMAO ORDC
+# DC SiteOps Reporting
 
-Plateforme web de gestion de maintenance assistée par ordinateur pour centraliser le suivi des équipements, des interventions, des tickets, des groupes électrogènes, du carburant, du PUE, des problèmes Data Center et des pièces de rechange sur les sites Orange RDC.
+Plateforme web de reporting et de traçabilité des opérations sur les sites Data Center ORDC. Elle centralise les équipements, interventions, tickets, groupes électrogènes, carburant, PUE, problèmes Data Center, pièces de rechange et ravitaillements Fuel.
 
 > Guide pratique : [déploiement GitHub, Vercel et Render](DEPLOIEMENT.md).
 
@@ -96,7 +96,7 @@ Plateforme web de gestion de maintenance assistée par ordinateur pour centralis
 
 ### Documentation et exports Excel XLSX
 
-- Téléchargement de huit registres complets au format Excel XLSX depuis la page **Documentations**.
+- Téléchargement de neuf registres complets au format Excel XLSX depuis la page **Documentations**.
 - Export des données filtrées depuis chaque feuille métier.
 - Classeur XLSX structuré avec une feuille nommée, des cellules typées et des colonnes ajustées.
 - Ajout du titre, de la date d’export, d’un en-tête figé et d’une mise en forme lisible.
@@ -296,6 +296,7 @@ Les scripts SQL se trouvent dans `gmao/sql/` et doivent être appliqués dans l�
 5. `005_pue_2026.sql` : suivi PUE.
 6. `006_fuel_site_stocks_2026.sql` : stocks de carburant par site.
 7. `007_notifications.sql` : notifications persistantes, index, RLS et publication Realtime.
+8. `008_fuel_deliveries.sql` : ravitaillements Fuel, calcul du stock et écarts.
 
 Le fichier `gmao-frontend/supabase/role-access-policies.sql` configure les contraintes et politiques d’accès de `user_profiles`.
 
@@ -441,10 +442,10 @@ npm run build
 
 Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 
-État vérifié au 26 août 2026 :
+État vérifié au 12 septembre 2026 :
 
 - 14 fichiers de tests frontend réussis ;
-- 46 tests frontend réussis ;
+- 47 tests frontend réussis ;
 - compilation Angular de production réussie ;
 - avertissements non bloquants sur les budgets de taille Angular et SCSS.
 
@@ -467,7 +468,7 @@ Avant une livraison, vérifier au minimum :
 
 ## Déploiement
 
-Appliquer impérativement `gmao/sql/007_notifications.sql` dans Supabase avant de déployer la version du backend qui active les notifications. Les modèles Django sont non gérés : un déploiement Render ne crée pas cette table automatiquement.
+Appliquer impérativement `gmao/sql/007_notifications.sql` puis `gmao/sql/008_fuel_deliveries.sql` dans Supabase avant de déployer les versions qui activent les notifications et le ravitaillement Fuel. Les modèles Django sont non gérés : un déploiement Render ne crée pas cette table automatiquement.
 
 Le fichier `render.yaml` décrit le service backend Render :
 
@@ -553,6 +554,29 @@ Le build Vercel exige GMAO_API_URL, SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY. La
 - Réduction des avertissements de budgets Angular et SCSS.
 - Supervision plus détaillée de la latence API et des échecs d’enregistrement.
 - Historique d’audit métier plus complet.
+
+## Audit de préparation — 12 septembre 2026
+
+La réévaluation globale du projet a porté sur le code, les droits, la base de données, les dépendances, la compilation et les services de production.
+
+| Contrôle | Résultat |
+|---|---|
+| Frontend Angular — build production | Réussi ; avertissements de budgets de taille non bloquants |
+| Tests frontend | 47 tests réussis dans 14 fichiers |
+| Tests backend Django | 21 tests réussis, vérification Django sans problème |
+| API Render /health | HTTP 200, statut UP |
+| Base Supabase via /health/database | HTTP 200, base UP |
+| Frontend Vercel | HTTP 200 |
+| npm audit production | Aucune vulnérabilité détectée |
+| pip-audit | A exécuter après installation de pip-audit dans Python |
+
+### Points à surveiller
+
+- Le plan Render gratuit peut provoquer un délai de réveil après inactivité.
+- Les budgets Angular/SCSS sont dépassés sans bloquer le build ; une réduction des bundles reste recommandée.
+- La suppression d’un site utilise la confirmation intégrée. La suppression d’un équipement conserve une confirmation navigateur et pourra être harmonisée.
+- Le mode SQLite sert au développement local ; la production doit utiliser PostgreSQL Supabase et les scripts SQL jusqu’à 008_fuel_deliveries.sql.
+- L’import massif XLSX et les e-mails d’alerte ne sont pas encore activés ; les notifications internes persistantes sont opérationnelles.
 
 ## Sécurité
 

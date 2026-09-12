@@ -108,8 +108,9 @@ def _next_equipment_code(site_code, existing_codes):
 def _generate_equipment_code(site):
     site_code = _equipment_site_code(site)
     prefix = f"EQ-{site_code}-"
-    with connection.cursor() as cursor:
-        cursor.execute("select pg_advisory_xact_lock(hashtext(%s))", [f"gmao-equipment:{site}"])
+    if connection.vendor == "postgresql":
+        with connection.cursor() as cursor:
+            cursor.execute("select pg_advisory_xact_lock(hashtext(%s))", [f"gmao-equipment:{site}"])
     existing_codes = Equipment.objects.filter(site=site, code__startswith=prefix).values_list("code", flat=True)
     return _next_equipment_code(site_code, existing_codes)
 
