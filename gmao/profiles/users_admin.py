@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 
-from .models import Site, UserProfile
+from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_global_page_access
 from .services import ALLOWED_ROLES
 from .views import require_supabase_user
@@ -34,6 +34,14 @@ def _serialize(profile):
         "active": profile.active,
         "createdAt": profile.created_at.isoformat() if profile.created_at else None,
     }
+
+
+def _profile_has_business_history(profile_id):
+    models = (Equipment, Ticket, GeneratorRecord, FuelRecord, FuelDelivery, FuelMonthlySummary, PueRecord, DatacenterProblem, Intervention, SparePartOperation)
+    return any(
+        model.objects.filter(created_by=profile_id).exists() or model.objects.filter(updated_by=profile_id).exists()
+        for model in models
+    )
 
 
 def _deny_or_none(request):
@@ -125,6 +133,31 @@ def profile_collection(request):
         status = 503 if isinstance(error, RuntimeError) else 400
         return JsonResponse({"status": status, "code": "profile_creation_failed", "detail": detail}, status=status)
 
+
+@require_supabase_user
+def profile_delete(request, profile_id):
+    denied = _deny_or_none(request)
+    if denied:
+        return denied
+    if request.method != "DELETE":
+        return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
+    try:
+        profile = UserProfile.objects.get(id=profile_id)
+        if str(profile.id) == str(request.gmao_profile.id):
+            raise ValidationError("Vous ne pouvez pas supprimer votre propre compte.")
+        if profile.site:
+            raise ValidationError("Ce profil est encore affecté à un site. Désaffectez-le avant suppression.")
+        if _profile_has_business_history(profile.id):
+            raise ValidationError("Ce profil possède un historique métier. Désactivez-le plutôt que de le supprimer.")
+        _admin_request("DELETE", f"/admin/users/{profile.id}")
+        profile.delete()
+        return JsonResponse({"status": "deleted", "id": str(profile.id)})
+    except UserProfile.DoesNotExist:
+        return JsonResponse({"detail": "Utilisateur introuvable."}, status=404)
+    except (ValidationError, RuntimeError) as error:
+        detail = error.messages[0] if isinstance(error, ValidationError) else str(error)
+        status = 503 if isinstance(error, RuntimeError) else 409
+        return JsonResponse({"status": status, "code": "profile_deletion_rejected", "detail": detail}, status=status)
 
 @require_supabase_user
 def profile_detail(request, profile_id):

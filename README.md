@@ -102,7 +102,7 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - Django appelle Supabase Auth avec `SUPABASE_SERVICE_ROLE_KEY`, puis crée automatiquement le profil dans `user_profiles`.
 - Une invitation de connexion est envoyée par Supabase Auth.
 - La clé `service_role` doit être configurée uniquement comme variable secrète Render ; elle ne doit jamais être exposée dans Angular.
-- La désactivation et la suppression complète restent volontairement réservées à l’étape suivante.
+- La désactivation conserve le compte et son historique ; elle est recommandée dès qu’un profil possède des données métier.
 
 ### Modification des profils
 
@@ -111,6 +111,15 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - Un chef de site doit toujours être associé à un site actif.
 - Un administrateur ne peut pas désactiver son propre compte depuis cette interface.
 - La désactivation conserve le profil, les fiches métier et l historique ; le backend refuse ensuite le chargement du profil à la connexion.
+
+### Suppression sécurisée des profils
+
+- Le bouton **Supprimer définitivement** ouvre une confirmation intégrée à l’application, sans boîte de dialogue du navigateur.
+- La suppression est refusée pour son propre compte, pour un profil encore affecté à un site, ou dès qu’une donnée métier a été créée ou modifiée par ce profil.
+- Dans ces cas, il faut désactiver le compte afin de conserver l’historique et empêcher toute nouvelle connexion.
+- Si aucun historique ni affectation active n’existe, Django supprime le compte dans Supabase Auth puis la ligne correspondante dans `user_profiles`.
+- La clé `SUPABASE_SERVICE_ROLE_KEY` est nécessaire côté Render uniquement ; elle ne doit jamais être exposée au frontend ni versionnée dans Git.
+
 ### Documentation et exports Excel XLSX
 
 - Téléchargement de neuf registres complets au format Excel XLSX depuis la page **Documentations**.
