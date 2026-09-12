@@ -27,5 +27,7 @@ services:
         value: postgres.rgujwidwlqesukqwgnib
       - key: SUPABASE_DB_PASSWORD
         sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       - key: FRONTEND_ORIGINS
         value: https://gmao-ordc.vercel.app

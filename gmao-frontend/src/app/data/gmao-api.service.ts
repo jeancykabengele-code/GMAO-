@@ -55,6 +55,12 @@ export class GmaoApiService {
     }));
   }
 
+  async createProfile(profile: { email: string; fullName: string; role: string; site: string | null }): Promise<ProfileRecord> {
+    return firstValueFrom(this.http.post<ProfileRecord>(`${environment.apiUrl}/api/profiles`, profile, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
   async assignProfileSite(id: string, site: string | null): Promise<ProfileRecord> {
     return firstValueFrom(this.http.patch<ProfileRecord>(`${environment.apiUrl}/api/profiles/${id}`, { site }, {
       headers: await this.authHeaders(),

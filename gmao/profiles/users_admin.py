@@ -1,10 +1,16 @@
 import json
+import os
+import urllib.error
+import urllib.request
+from uuid import UUID
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 
 from .models import Site, UserProfile
 from .permissions import assert_global_page_access
+from .services import ALLOWED_ROLES
 from .views import require_supabase_user
 
 
@@ -19,7 +25,15 @@ def _payload(request):
 
 
 def _serialize(profile):
-    return {"id": str(profile.id), "email": profile.email, "fullName": profile.full_name, "role": profile.role, "site": profile.site, "active": profile.active}
+    return {
+        "id": str(profile.id),
+        "email": profile.email,
+        "fullName": profile.full_name,
+        "role": profile.role,
+        "site": profile.site,
+        "active": profile.active,
+        "createdAt": profile.created_at.isoformat() if profile.created_at else None,
+    }
 
 
 def _deny_or_none(request):
@@ -30,14 +44,86 @@ def _deny_or_none(request):
     return None
 
 
+def _admin_request(method, path, payload=None):
+    service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not service_key:
+        raise RuntimeError("La clé serveur Supabase n’est pas configurée sur le backend.")
+    body = None if payload is None else json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        f"{settings.SUPABASE_AUTH_URL}{path}",
+        data=body,
+        method=method,
+        headers={
+            "Authorization": f"Bearer {service_key}",
+            "apikey": service_key,
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        try:
+            detail = json.loads(error.read().decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            detail = {}
+        message = detail.get("msg") or detail.get("message") or detail.get("error_description") or "Supabase a refusé la demande."
+        raise ValidationError(message) from error
+    except urllib.error.URLError as error:
+        raise RuntimeError("Supabase Auth est momentanément inaccessible.") from error
+
+
 @require_supabase_user
 def profile_collection(request):
     denied = _deny_or_none(request)
     if denied:
         return denied
-    if request.method != "GET":
+    if request.method == "GET":
+        return JsonResponse([_serialize(profile) for profile in UserProfile.objects.order_by("email")], safe=False)
+    if request.method != "POST":
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
-    return JsonResponse([_serialize(profile) for profile in UserProfile.objects.order_by("email")], safe=False)
+    auth_user_id = None
+    try:
+        data = _payload(request)
+        email = str(data.get("email", "")).strip().lower()
+        full_name = str(data.get("fullName", "")).strip()
+        role = str(data.get("role", "")).strip()
+        site_name = data.get("site")
+        site_name = str(site_name).strip() if site_name not in (None, "") else None
+        if not email or "@" not in email:
+            raise ValidationError("Une adresse e-mail valide est obligatoire.")
+        if not full_name:
+            raise ValidationError("Le nom complet est obligatoire.")
+        if role not in ALLOWED_ROLES:
+            raise ValidationError("Le rôle sélectionné est invalide.")
+        if role == "chef_site":
+            if not site_name:
+                raise ValidationError("Un chef de site doit être associé à un site actif.")
+            if not Site.objects.filter(name=site_name, active=True).exists():
+                raise ValidationError("Le site sélectionné est introuvable ou désactivé.")
+        elif site_name:
+            raise ValidationError("Seul un chef de site peut être associé à un site.")
+        if UserProfile.objects.filter(email__iexact=email).exists():
+            raise ValidationError("Un profil utilise déjà cette adresse e-mail.")
+
+        invited_user = _admin_request("POST", "/invite", {"email": email, "data": {"full_name": full_name}})
+        auth_user_id = invited_user.get("id")
+        if not auth_user_id:
+            raise RuntimeError("Supabase n’a pas retourné l’identifiant du nouvel utilisateur.")
+        profile = UserProfile.objects.create(
+            id=UUID(auth_user_id), email=email, full_name=full_name,
+            role=role, site=site_name, active=True,
+        )
+        return JsonResponse(_serialize(profile), status=201)
+    except (ValidationError, RuntimeError) as error:
+        if auth_user_id:
+            try:
+                _admin_request("DELETE", f"/admin/users/{auth_user_id}")
+            except Exception:
+                pass
+        detail = error.messages[0] if isinstance(error, ValidationError) else str(error)
+        status = 503 if isinstance(error, RuntimeError) else 400
+        return JsonResponse({"status": status, "code": "profile_creation_failed", "detail": detail}, status=status)
 
 
 @require_supabase_user
