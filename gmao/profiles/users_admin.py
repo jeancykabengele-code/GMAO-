@@ -193,8 +193,6 @@ def profile_detail(request, profile_id):
         profile.active = active
         UserProfile.objects.filter(id=profile.id).update(full_name=full_name, role=role, site=site_name, active=active)
         profile.refresh_from_db()
-        if os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
-            _admin_request("PUT", f"/admin/users/{profile.id}", {"user_metadata": {"full_name": full_name}})
         return JsonResponse(_serialize(profile))
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable."}, status=404)
