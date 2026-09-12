@@ -68,7 +68,7 @@
 }
 
 .form-heading { position: relative; display: flex; margin-bottom: 38px; min-height: 58px; align-items: center; justify-content: center; text-align: center; }
-.heading-icon { position: absolute; left: 0; display: grid; width: 58px; height: 58px; flex: 0 0 58px; place-items: center; border-radius: 13px; color: #181817; background: var(--orange); font-size: 1.35rem; box-shadow: 0 12px 28px rgba(249,115,22,.25); }
+.heading-icon { position: absolute; top: -10px; left: 0; display: grid; width: 58px; height: 58px; flex: 0 0 58px; place-items: center; border-radius: 13px; color: #181817; background: var(--orange); font-size: 1.35rem; box-shadow: 0 12px 28px rgba(249,115,22,.25); }
 .heading-copy { width: 100%; text-align: center; }
 .form-heading h1 { margin: 0 0 6px; color: #fff; font-size: 1.9rem; font-weight: 800; letter-spacing: -.035em; }
 .form-heading p { margin: 0; color: rgba(255,255,255,.58); font-size: .82rem; }
