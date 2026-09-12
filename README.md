@@ -102,7 +102,15 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - Django appelle Supabase Auth avec `SUPABASE_SERVICE_ROLE_KEY`, puis crée automatiquement le profil dans `user_profiles`.
 - Une invitation de connexion est envoyée par Supabase Auth.
 - La clé `service_role` doit être configurée uniquement comme variable secrète Render ; elle ne doit jamais être exposée dans Angular.
-- La désactivation et la suppression complète restent volontairement réservées à l’étape suivante.`r`n### Documentation et exports Excel XLSX
+- La désactivation et la suppression complète restent volontairement réservées à l’étape suivante.
+
+### Modification des profils
+
+- Le manager et le chef des opérations peuvent modifier le nom complet, le rôle, le site associé et le statut actif/inactif.
+- L’adresse e-mail reste non modifiable depuis cette feuille afin de préserver l’identifiant Supabase Auth.
+- Un chef de site doit toujours être associé à un site actif.
+- Un administrateur ne peut pas désactiver son propre compte depuis cette interface.
+### Documentation et exports Excel XLSX
 
 - Téléchargement de neuf registres complets au format Excel XLSX depuis la page **Documentations**.
 - Export des données filtrées depuis chaque feuille métier.
@@ -289,7 +297,8 @@ La clé publique Supabase peut être exposée au navigateur. Elle ne doit toutef
 | `SUPABASE_PUBLISHABLE_KEY` | Clé publique utilisée pour Auth | Projet configuré |
 | `SUPABASE_AUTH_ISSUER` | Émetteur attendu du JWT | `<URL>/auth/v1` |
 | `SUPABASE_JWKS_URL` | Clés publiques de validation JWT | Endpoint JWKS Supabase |
-| `SUPABASE_AUTH_AUDIENCE` | Audience attendue | `authenticated` |`r`n| `SUPABASE_SERVICE_ROLE_KEY` | Clé serveur pour invitations Auth | Obligatoire sur Render, jamais dans le frontend |
+| `SUPABASE_AUTH_AUDIENCE` | Audience attendue | `authenticated` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé serveur pour invitations Auth | Obligatoire sur Render, jamais dans le frontend |
 
 Si `SUPABASE_DB_PASSWORD` est absent, Django utilise `gmao/db.sqlite3`. Les modèles métier étant liés à des tables gérées en dehors de Django, PostgreSQL Supabase reste la configuration normale pour utiliser toute l’application.
 

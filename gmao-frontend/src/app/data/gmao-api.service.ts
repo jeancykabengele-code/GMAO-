@@ -61,6 +61,12 @@ export class GmaoApiService {
     }));
   }
 
+  async updateProfile(id: string, changes: { fullName: string; role: string; site: string | null; active: boolean }): Promise<ProfileRecord> {
+    return firstValueFrom(this.http.patch<ProfileRecord>(`${environment.apiUrl}/api/profiles/${id}`, changes, {
+      headers: await this.authHeaders(),
+    }));
+  }
+
   async assignProfileSite(id: string, site: string | null): Promise<ProfileRecord> {
     return firstValueFrom(this.http.patch<ProfileRecord>(`${environment.apiUrl}/api/profiles/${id}`, { site }, {
       headers: await this.authHeaders(),

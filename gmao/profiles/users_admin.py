@@ -136,19 +136,35 @@ def profile_detail(request, profile_id):
     try:
         profile = UserProfile.objects.get(id=profile_id)
         data = _payload(request)
-        site_name = data.get("site")
-        if site_name in (None, ""):
-            profile.site = None
-        else:
-            site_name = str(site_name).strip()
-            if not Site.objects.filter(name=site_name, active=True).exists():
-                raise ValidationError("Le site sélectionné est introuvable ou désactivé.")
-            profile.site = site_name
-        if profile.role == "chef_site" and not profile.site:
-            raise ValidationError("Un chef de site doit être associé à un site actif.")
-        profile.save(update_fields=["site"])
+        full_name = str(data.get("fullName", profile.full_name)).strip()
+        role = str(data.get("role", profile.role)).strip()
+        active = data.get("active", profile.active)
+        site_name = data.get("site", profile.site)
+        site_name = str(site_name).strip() if site_name not in (None, "") else None
+        if not full_name:
+            raise ValidationError("Le nom complet est obligatoire.")
+        if role not in ALLOWED_ROLES:
+            raise ValidationError("Le rôle sélectionné est invalide.")
+        if not isinstance(active, bool):
+            raise ValidationError("Le statut actif est invalide.")
+        if str(profile.id) == str(request.gmao_profile.id) and not active:
+            raise ValidationError("Vous ne pouvez pas désactiver votre propre compte.")
+        if role == "chef_site":
+            if not site_name or not Site.objects.filter(name=site_name, active=True).exists():
+                raise ValidationError("Un chef de site doit être associé à un site actif.")
+        elif site_name:
+            raise ValidationError("Seul un chef de site peut être associé à un site.")
+        profile.full_name = full_name
+        profile.role = role
+        profile.site = site_name
+        profile.active = active
+        profile.save(update_fields=["full_name", "role", "site", "active"])
+        if os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+            _admin_request("PUT", f"/admin/users/{profile.id}", {"user_metadata": {"full_name": full_name}})
         return JsonResponse(_serialize(profile))
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable."}, status=404)
-    except ValidationError as error:
-        return JsonResponse({"status": 400, "code": "profile_rejected", "detail": error.messages[0]}, status=400)
+    except (ValidationError, RuntimeError) as error:
+        detail = error.messages[0] if isinstance(error, ValidationError) else str(error)
+        status = 503 if isinstance(error, RuntimeError) else 400
+        return JsonResponse({"status": status, "code": "profile_rejected", "detail": detail}, status=status)
