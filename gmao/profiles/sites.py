@@ -103,7 +103,8 @@ def site_detail(request, site_name):
             if not name:
                 raise ValidationError("Le nom du site est obligatoire.")
             site.name = name
-        site.save(update_fields=["code", "active"])
+        Site.objects.filter(name=site.name).update(code=site.code, active=site.active)
+        site.refresh_from_db()
         return JsonResponse(_serialize(site))
     except ValidationError as error:
         return _error(error.messages[0])
