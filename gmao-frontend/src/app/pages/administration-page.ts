@@ -10,7 +10,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       <header class="administration-header">
         <nav class="administration-tabs" aria-label="Sections d’administration">
           <a routerLink="sites" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Gestion des sites</a>
-          <a routerLink="utilisateurs" routerLinkActive="active">Affecter les chefs de site</a>
+          <a routerLink="utilisateurs" routerLinkActive="active">Gestion des utilisateurs</a>
         </nav>
       </header>
       <router-outlet></router-outlet>

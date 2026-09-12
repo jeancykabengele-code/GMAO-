@@ -9,23 +9,23 @@ import { GmaoApiService, ProfileRecord, SiteRecord } from '../data/gmao-api.serv
   imports: [CommonModule, FormsModule],
   template: `
     <section class="users-page">
+      <header class="page-header"><h1>Gestion des utilisateurs</h1><p>Consultez les profils, leurs rôles et leurs affectations.</p></header>
       @if (message) { <p class="message success">{{ message }}</p> } @if (error) { <p class="message error">{{ error }}</p> }
       <div class="card">
         @if (loading) { <p class="empty">Chargement…</p> } @else {
-          <div class="table-wrap"><table><thead><tr><th>Utilisateur</th><th>Rôle</th><th>Site</th><th>État</th></tr></thead><tbody>
+          <div class="table-wrap"><table><thead><tr><th>Nom complet</th><th>Adresse e-mail</th><th>Rôle</th><th>Site associé</th><th>Statut</th><th>Date de création</th><th>Actions</th></tr></thead><tbody>
             @for (profile of profiles; track profile.id) {
-              <tr><td><strong>{{ profile.fullName || profile.email }}</strong><small>{{ profile.email }}</small></td><td>{{ roleLabel(profile.role) }}</td>
-                <td>@if (profile.role === 'chef_site') { <select [ngModel]="profile.site || ''" (ngModelChange)="assign(profile, $event)"><option value="">Choisir un site</option>@for (site of activeSites; track site.name) { <option [value]="site.name">{{ site.name }}</option> }</select> } @else { — }</td>
-                <td>{{ profile.active ? 'Actif' : 'Désactivé' }}</td>
+              <tr><td>{{ profile.fullName || '—' }}</td><td>{{ profile.email }}</td><td>{{ roleLabel(profile.role) }}</td>
+                <td>{{ profile.site || '—' }}</td><td><span class="status" [class.inactive]="!profile.active">{{ profile.active ? 'Actif' : 'Inactif' }}</span></td><td>{{ profile.createdAt ? (profile.createdAt | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
+                <td class="actions-cell">@if (profile.role === 'chef_site') { <select [ngModel]="profile.site || ''" (ngModelChange)="assign(profile, $event)" aria-label="Associer le site"><option value="">Choisir un site</option>@for (site of activeSites; track site.name) { <option [value]="site.name">{{ site.name }}</option> }</select> } @else { Profil global }</td>
               </tr>
-            } @empty { <tr><td colspan="4" class="empty">Aucun utilisateur.</td></tr> }
+            } @empty { <tr><td colspan="7" class="empty">Aucun utilisateur.</td></tr> }
           </tbody></table></div>
         }
       </div>
     </section>
-  `,
-  styles: `
-    :host { display:block; padding:clamp(18px,4vw,44px); color:#252525; } .users-page{max-width:1100px;margin:auto}.eyebrow{text-transform:uppercase;letter-spacing:.13em;color:#ff6700;font-weight:700;font-size:.78rem;margin:0 0 6px}h1{margin:0;color:#fff}.intro{color:rgba(255,255,255,.9);margin:8px 0 24px}.card{background:rgba(255,255,255,.94);border-radius:14px;padding:22px;box-shadow:0 12px 30px rgba(0,0,0,.1)}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #e5e7eb}th{background:#292929;color:white}td small{display:block;color:#68788a;margin-top:3px}select{padding:9px;border:1px solid #cdd3da;border-radius:7px;font:inherit}.message{padding:12px 14px;border-radius:8px}.success{background:#e2f4e7;color:#216b35}.error{background:#fde6e6;color:#9a2525}.empty{text-align:center;color:#68788a;padding:24px}
+  `,  styles: `
+    :host { display:block; padding:clamp(18px,4vw,44px); color:#252525; } .users-page{max-width:1250px;margin:auto} .page-header{margin-bottom:24px}.page-header h1{margin:0;color:#fff;font-size:clamp(1.7rem,3vw,2.4rem)}.page-header p{margin:8px 0 0;color:rgba(255,255,255,.9)}.eyebrow{text-transform:uppercase;letter-spacing:.13em;color:#ff6700;font-weight:700;font-size:.78rem;margin:0 0 6px}h1{margin:0;color:#fff}.intro{color:rgba(255,255,255,.9);margin:8px 0 24px}.card{background:rgba(255,255,255,.94);border-radius:14px;padding:22px;box-shadow:0 12px 30px rgba(0,0,0,.1)}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #e5e7eb}th{background:#292929;color:white;white-space:nowrap}td small{display:block;color:#68788a;margin-top:3px}select{padding:9px;border:1px solid #cdd3da;border-radius:7px;font:inherit}.actions-cell{white-space:nowrap}.status{display:inline-block;padding:4px 9px;border-radius:999px;color:#17652c;background:#dff4e4;font-size:.85rem}.status.inactive{color:#7b3434;background:#f4dddd}.message{padding:12px 14px;border-radius:8px}.success{background:#e2f4e7;color:#216b35}.error{background:#fde6e6;color:#9a2525}.empty{text-align:center;color:#68788a;padding:24px}
   `,
 })
 export class UsersAdminPageComponent {

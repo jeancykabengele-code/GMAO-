@@ -18,7 +18,7 @@ export type GmaoResource =
 
 export type PersistedRow = Record<string, unknown> & { id?: string; site?: string };
 export interface SiteRecord { name: string; code: string; active: boolean; }
-export interface ProfileRecord { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; }
+export interface ProfileRecord { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; }
 
 @Injectable({ providedIn: 'root' })
 export class GmaoApiService {
