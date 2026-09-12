@@ -568,7 +568,7 @@ La réévaluation globale du projet a porté sur le code, les droits, la base de
 | Base Supabase via /health/database | HTTP 200, base UP |
 | Frontend Vercel | HTTP 200 |
 | npm audit production | Aucune vulnérabilité détectée |
-| pip-audit | A exécuter après installation de pip-audit dans Python |
+| pip-audit | Aucune vulnérabilité connue détectée |
 
 ### Points à surveiller
 
