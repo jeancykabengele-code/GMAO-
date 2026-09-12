@@ -8,8 +8,10 @@ from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 
 from .records import _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _next_equipment_code
+from .models import UserProfile
 from .notifications import generator_alert_stage, notify_generator_alert, notify_record_created
 from .views import current_user
+from .services import ProfileAccessError, load_active_profile
 
 from .permissions import (
     PermissionDeniedError,
@@ -121,6 +123,16 @@ class ApiTests(TestCase):
         self.assertEqual(response.json()["fullName"], "Manager GMAO")
         self.assertTrue(response.json()["permissions"]["modifyExisting"])
         self.assertFalse(response.json()["permissions"]["deleteRecords"])
+
+class ProfileActivationTests(SimpleTestCase):
+    @patch("profiles.services.UserProfile.objects")
+    def test_inactive_profile_is_not_loaded_for_login(self, profile_objects):
+        profile_objects.get.side_effect = UserProfile.DoesNotExist
+        with self.assertRaises(ProfileAccessError):
+            load_active_profile(str(uuid4()))
+        profile_objects.get.assert_called_once()
+        self.assertEqual(profile_objects.get.call_args.kwargs["active"], True)
+
 
 class EquipmentCodeTests(SimpleTestCase):
     def test_generates_next_equipment_code_from_site_code(self):

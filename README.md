@@ -110,6 +110,7 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - L’adresse e-mail reste non modifiable depuis cette feuille afin de préserver l’identifiant Supabase Auth.
 - Un chef de site doit toujours être associé à un site actif.
 - Un administrateur ne peut pas désactiver son propre compte depuis cette interface.
+- La désactivation conserve le profil, les fiches métier et l historique ; le backend refuse ensuite le chargement du profil à la connexion.
 ### Documentation et exports Excel XLSX
 
 - Téléchargement de neuf registres complets au format Excel XLSX depuis la page **Documentations**.
