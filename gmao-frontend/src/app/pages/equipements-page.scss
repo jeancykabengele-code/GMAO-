@@ -466,3 +466,11 @@ th {
   color: #9a3412;
   background: transparent;
 }
+.modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 22px; background: rgba(10,10,10,.58); }
+.confirm-modal { width: min(470px, 100%); padding: 28px; border-radius: 16px; background: #fff; box-shadow: 0 22px 60px rgba(0,0,0,.32); }
+.confirm-icon { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 50%; color: #a32828; background: #fde6e6; font-size: 1.3rem; }
+.confirm-modal h2 { margin: 16px 0 8px; color: #252525; }
+.confirm-modal p { margin: 0; color: #68788a; line-height: 1.55; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.confirm-actions .secondary-button { background: #e8e8e8; color: #333; }
+.confirm-actions .danger-button { border: 0; border-radius: 8px; padding: 11px 16px; color: #fff; background: #b52d12; font: inherit; cursor: pointer; }

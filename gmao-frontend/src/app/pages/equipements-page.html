@@ -53,3 +53,16 @@
     </form>
   </aside>
 }
+@if (pendingDeletion) {
+  <div class="modal-backdrop" (click)="cancelDeletion()">
+    <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-equipment-title" (click)="$event.stopPropagation()">
+      <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <h2 id="delete-equipment-title">Supprimer cet équipement ?</h2>
+      <p>Voulez-vous supprimer définitivement l’équipement « {{ pendingDeletion.code }} » ? Cette action est irréversible.</p>
+      <div class="confirm-actions">
+        <button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button>
+        <button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button>
+      </div>
+    </section>
+  </div>
+}

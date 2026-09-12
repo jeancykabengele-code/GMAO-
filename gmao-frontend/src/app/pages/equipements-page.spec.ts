@@ -1,4 +1,3 @@
-import { vi } from 'vitest';
 import { EquipementsPageComponent } from './equipements-page';
 
 describe('EquipementsPageComponent', () => {
@@ -60,9 +59,9 @@ describe('EquipementsPageComponent', () => {
     component.saveEquipment();
     expect(component.equipmentRows[0].etat).toBe('En panne');
 
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    await component.deleteEquipment(component.equipmentRows[0]);
+    component.deleteEquipment(component.equipmentRows[0]);
+    expect(component.pendingDeletion?.code).toBe('EQ-0');
+    await component.confirmDeletion();
     expect(component.equipmentRows).toHaveLength(20);
-    confirmSpy.mockRestore();
   });
 });

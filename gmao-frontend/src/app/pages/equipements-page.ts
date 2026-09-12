@@ -76,6 +76,7 @@ export class EquipementsPageComponent {
   selectedCriticality: EquipmentCriticality | '' = '';
   selectedState: EquipmentState | '' = '';
   editingIndex: number | null = null;
+  pendingDeletion: EquipmentRow | null = null;
   newEquipment: EquipmentRow = this.createEmptyEquipment();
 
   get filteredRows(): EquipmentRow[] {
@@ -164,11 +165,21 @@ export class EquipementsPageComponent {
     this.sheetOpen = true;
   }
 
-  async deleteEquipment(row: EquipmentRow): Promise<void> {
-    const confirmed = window.confirm(`Supprimer définitivement l'équipement ${row.code} ?`);
-    if (!confirmed) return;
+  deleteEquipment(row: EquipmentRow): void {
+    this.pendingDeletion = row;
+  }
+
+  cancelDeletion(): void {
+    this.pendingDeletion = null;
+  }
+
+  async confirmDeletion(): Promise<void> {
+    const row = this.pendingDeletion;
+    if (!row) return;
+    this.pendingDeletion = null;
     await this.dataStore.deleteRecord('equipements', row);
     if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+    this.cdr?.markForCheck();
   }
 
   familyLabel(family: EquipmentFamily): string {
