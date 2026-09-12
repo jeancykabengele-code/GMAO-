@@ -55,7 +55,20 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
           </div>
         }
       </div>
-    </section>
+
+    @if (pendingDeletion) {
+      <div class="modal-backdrop" (click)="cancelDeletion()">
+        <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-site-title" (click)="$event.stopPropagation()">
+          <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+          <h2 id="delete-site-title">Supprimer ce site ?</h2>
+          <p>Voulez-vous supprimer définitivement le site « {{ pendingDeletion.name }} » ? Cette action est irréversible.</p>
+          <div class="confirm-actions">
+            <button type="button" class="secondary" (click)="cancelDeletion()">Annuler</button>
+            <button type="button" class="danger" (click)="confirmDeletion()">Supprimer</button>
+          </div>
+        </section>
+      </div>
+    }    </section>
   `,
   styles: `
     :host { display: block; padding: clamp(18px, 4vw, 44px); color: #252525; }
@@ -76,7 +89,13 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
     .table-wrap { overflow-x: auto; } table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 13px 10px; border-bottom: 1px solid #e5e7eb; } th { background: #292929; color: white; } tr.inactive { opacity: .62; }
     .status { display: inline-block; padding: 4px 9px; border-radius: 999px; color: #17652c; background: #dff4e4; font-size: .85rem; } .status.off { color: #7b3434; background: #f4dddd; }
     .link-button { padding: 5px 8px; color: #d95300; background: transparent; } .delete-button { padding: 5px 8px; color: #a32828; background: transparent; } .empty { text-align: center; color: #68788a; padding: 24px; }
-    @media (max-width: 650px) { .page-header { align-items: stretch; flex-direction: column; } .page-header .primary { align-self: start; } }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 22px; background: rgba(10,10,10,.58); }
+    .confirm-modal { width: min(470px, 100%); padding: 28px; border-radius: 16px; background: #fff; box-shadow: 0 22px 60px rgba(0,0,0,.32); }
+    .confirm-icon { display: grid; width: 46px; height: 46px; place-items: center; border-radius: 50%; color: #a32828; background: #fde6e6; font-size: 1.3rem; }
+    .confirm-modal h2 { margin: 16px 0 8px; color: #252525; }
+    .confirm-modal p { margin: 0; color: #68788a; line-height: 1.55; }
+    .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+    .danger { color: #fff; background: #b52d12; }    @media (max-width: 650px) { .page-header { align-items: stretch; flex-direction: column; } .page-header .primary { align-self: start; } }
   `,
 })
 export class SitesAdminPageComponent {
@@ -90,6 +109,7 @@ export class SitesAdminPageComponent {
   form: SiteRecord = { name: '', code: '', active: true };
   message = '';
   error = '';
+  pendingDeletion: SiteRecord | null = null;
 
   constructor() { void this.load(); }
 
@@ -102,8 +122,13 @@ export class SitesAdminPageComponent {
 
   startCreate(): void { this.message = ''; this.error = ''; this.editing = null; this.form = { name: '', code: '', active: true }; this.formOpen = true; }
   startEdit(site: SiteRecord): void { this.message = ''; this.error = ''; this.editing = site; this.form = { ...site }; this.formOpen = true; }
-  cancel(): void { this.formOpen = false; this.editing = null; }  async deleteSite(site: SiteRecord): Promise<void> {
-    if (!window.confirm(`Supprimer définitivement le site « ${site.name} » ? Cette action est irréversible.`)) return;
+  cancel(): void { this.formOpen = false; this.editing = null; }
+  deleteSite(site: SiteRecord): void { this.message = ''; this.error = ''; this.pendingDeletion = site; }
+  cancelDeletion(): void { this.pendingDeletion = null; }
+  async confirmDeletion(): Promise<void> {
+    const site = this.pendingDeletion;
+    if (!site) return;
+    this.pendingDeletion = null;
     this.message = ''; this.error = '';
     try {
       await this.api.removeSite(site.name);
