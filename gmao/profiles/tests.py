@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -11,6 +12,7 @@ from .records import _calculate_fuel_values, _calculate_generator_values, _calcu
 from .models import UserProfile
 from .notifications import generator_alert_stage, notify_generator_alert, notify_record_created
 from .views import current_user
+from .users_admin import profile_delete
 from .services import ProfileAccessError, load_active_profile
 
 from .permissions import (
@@ -76,7 +78,43 @@ class PermissionPolicyTests(SimpleTestCase):
         with self.assertRaises(PermissionDeniedError):
             assert_can_delete_equipment(SimpleNamespace(role="chef_site", site="Goma"))
 
+class ProfileDeletionSafetyTests(SimpleTestCase):
+    def setUp(self):
+        from django.test import RequestFactory
+        self.factory = RequestFactory()
 
+    def _request(self, actor):
+        request = self.factory.delete('/api/profiles/target/delete')
+        request.gmao_profile = actor
+        return request
+
+    @patch('profiles.users_admin._admin_request')
+    @patch('profiles.users_admin.UserProfile.objects')
+    def test_chef_site_with_active_assignment_is_rejected(self, profile_objects, admin_request):
+        target = SimpleNamespace(id=uuid4(), site='Goma')
+        profile_objects.get.return_value = target
+        actor = SimpleNamespace(id=uuid4(), role='manager', site=None)
+
+        response = profile_delete.__wrapped__.__wrapped__(self._request(actor), target.id)
+
+        self.assertEqual(response.status_code, 409)
+        self.assertIn('affecté', json.loads(response.content)['detail'])
+        admin_request.assert_not_called()
+
+    @patch('profiles.users_admin._profile_has_business_history', return_value=True)
+    @patch('profiles.users_admin._admin_request')
+    @patch('profiles.users_admin.UserProfile.objects')
+    def test_profile_with_business_history_is_rejected(self, profile_objects, admin_request, has_history):
+        target = SimpleNamespace(id=uuid4(), site=None)
+        profile_objects.get.return_value = target
+        actor = SimpleNamespace(id=uuid4(), role='charge_operations', site=None)
+
+        response = profile_delete.__wrapped__.__wrapped__(self._request(actor), target.id)
+
+        self.assertEqual(response.status_code, 409)
+        self.assertIn('historique', json.loads(response.content)['detail'])
+        has_history.assert_called_once_with(target.id)
+        admin_request.assert_not_called()
 class ApiTests(TestCase):
     def test_supabase_bearer_routes_are_csrf_exempt(self):
         self.assertTrue(current_user.csrf_exempt)
