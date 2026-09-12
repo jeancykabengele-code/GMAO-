@@ -67,8 +67,9 @@
   background: linear-gradient(90deg, transparent, var(--orange), transparent);
 }
 
-.form-heading { display: flex; margin-bottom: 38px; align-items: center; justify-content: center; gap: 17px; text-align: left; }
-.heading-icon { display: grid; width: 58px; height: 58px; flex: 0 0 58px; place-items: center; border-radius: 13px; color: #181817; background: var(--orange); font-size: 1.35rem; box-shadow: 0 12px 28px rgba(249,115,22,.25); }
+.form-heading { position: relative; display: flex; margin-bottom: 38px; min-height: 58px; align-items: center; justify-content: center; text-align: center; }
+.heading-icon { position: absolute; left: 0; display: grid; width: 58px; height: 58px; flex: 0 0 58px; place-items: center; border-radius: 13px; color: #181817; background: var(--orange); font-size: 1.35rem; box-shadow: 0 12px 28px rgba(249,115,22,.25); }
+.heading-copy { width: 100%; text-align: center; }
 .form-heading h1 { margin: 0 0 6px; color: #fff; font-size: 1.9rem; font-weight: 800; letter-spacing: -.035em; }
 .form-heading p { margin: 0; color: rgba(255,255,255,.58); font-size: .82rem; }
 form > label { display: block; margin: 0 0 9px; color: rgba(255,255,255,.84); font-size: .75rem; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
@@ -137,9 +138,10 @@ form > label { display: block; margin: 0 0 9px; color: rgba(255,255,255,.84); fo
   .login-page::after { background: rgba(10,10,10,.48); }
   .form-panel { padding: 20px 15px; }
   .form-card { padding: 31px 22px; border-radius: 15px; }
-  .form-heading { margin-bottom: 31px; justify-content: flex-start; }
+  .form-heading { margin-bottom: 31px; }
   .heading-icon { width: 50px; height: 50px; flex-basis: 50px; }
-  .form-heading h1 { font-size: 1.55rem; }
+  .heading-copy { width: 100%; text-align: center; }
+.form-heading h1 { font-size: 1.55rem; }
   .form-heading p { font-size: .75rem; }
   .form-options { align-items: flex-start; flex-direction: column; gap: 10px; }
 
