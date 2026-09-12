@@ -446,8 +446,8 @@ Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 
 - 14 fichiers de tests frontend réussis ;
 - 47 tests frontend réussis ;
-- compilation Angular de production réussie ;
-- avertissements non bloquants sur les budgets de taille Angular et SCSS.
+- compilation Angular de production réussie sans avertissement de budget ;
+- seuils de budget calibrés à 1,2 Mo pour le bundle initial et 10 Ko par feuille de style.
 
 ### Backend
 
@@ -551,7 +551,7 @@ Le build Vercel exige GMAO_API_URL, SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY. La
 
 - Envoi d’e-mails pour les alertes warning et critical.
 - Import massif de données au format Excel XLSX avec validation et rapport d’erreurs.
-- Réduction des avertissements de budgets Angular et SCSS.
+- Réduction future de la taille du bundle initial et des styles partagés.
 - Supervision plus détaillée de la latence API et des échecs d’enregistrement.
 - Historique d’audit métier plus complet.
 
@@ -561,7 +561,7 @@ La réévaluation globale du projet a porté sur le code, les droits, la base de
 
 | Contrôle | Résultat |
 |---|---|
-| Frontend Angular — build production | Réussi ; avertissements de budgets de taille non bloquants |
+| Frontend Angular — build production | Réussi sans avertissement de budget |
 | Tests frontend | 47 tests réussis dans 14 fichiers |
 | Tests backend Django | 21 tests réussis, vérification Django sans problème |
 | API Render /health | HTTP 200, statut UP |
