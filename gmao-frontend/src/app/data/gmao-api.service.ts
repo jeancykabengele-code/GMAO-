@@ -43,6 +43,11 @@ export class GmaoApiService {
     }));
   }
 
+  errorMessage(reason: unknown, fallback: string): string {
+    const candidate = reason as { error?: { detail?: string; message?: string }; message?: string };
+    return candidate?.error?.detail || candidate?.error?.message || candidate?.message || fallback;
+  }
+
   async updateSite(name: string, changes: Partial<SiteRecord>): Promise<SiteRecord> {
     return firstValueFrom(this.http.patch<SiteRecord>(`${environment.apiUrl}/api/sites/${encodeURIComponent(name)}`, changes, {
       headers: await this.authHeaders(),

@@ -151,7 +151,7 @@ export class SitesAdminPageComponent {
       this.message = this.editing ? 'Site mis à jour.' : 'Site ajouté. Actualisez la page après la création pour le voir dans tous les filtres.';
       this.cancel();
     } catch (reason) {
-      this.error = reason instanceof Error ? reason.message : 'Enregistrement impossible.';
+      this.error = this.api.errorMessage(reason, 'Enregistrement impossible.');
     } finally { this.saving = false; this.cdr.detectChanges(); }
   }
 }
