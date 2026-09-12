@@ -574,7 +574,7 @@ La réévaluation globale du projet a porté sur le code, les droits, la base de
 
 - Le plan Render gratuit peut provoquer un délai de réveil après inactivité.
 - Les budgets Angular/SCSS sont dépassés sans bloquer le build ; une réduction des bundles reste recommandée.
-- La suppression d’un site utilise la confirmation intégrée. La suppression d’un équipement conserve une confirmation navigateur et pourra être harmonisée.
+Les suppressions de sites et équipements utilisent une confirmation intégrée à l application, sans boîte de dialogue du navigateur.
 - Le mode SQLite sert au développement local ; la production doit utiliser PostgreSQL Supabase et les scripts SQL jusqu’à 008_fuel_deliveries.sql.
 - L’import massif XLSX et les e-mails d’alerte ne sont pas encore activés ; les notifications internes persistantes sont opérationnelles.
 
