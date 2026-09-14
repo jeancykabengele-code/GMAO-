@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from .models import UserProfile
+from .models import Site, UserProfile
 
 
 ALLOWED_ROLES = {"manager", "charge_operations", "chef_site"}
@@ -20,5 +20,8 @@ def load_active_profile(user_id: str) -> UserProfile:
         raise ProfileAccessError("Le rôle associé à ce profil GMAO n’est pas reconnu.")
     if profile.role == "chef_site" and not profile.site:
         raise ProfileAccessError("Le chef de site n’est associé à aucun site.")
+    if profile.role == 'chef_site' and not Site.objects.filter(name=profile.site, active=True).exists():
+        raise ProfileAccessError('Le site associé à ce chef de site est désactivé.')
     return profile
+
 

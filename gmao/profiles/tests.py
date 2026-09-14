@@ -170,6 +170,17 @@ class ProfileActivationTests(SimpleTestCase):
             load_active_profile(str(uuid4()))
         profile_objects.get.assert_called_once()
         self.assertEqual(profile_objects.get.call_args.kwargs["active"], True)
+    @patch("profiles.services.Site.objects")
+    @patch("profiles.services.UserProfile.objects")
+    def test_chef_site_on_inactive_site_is_refused_at_login(self, profile_objects, site_objects):
+        profile_objects.get.return_value = SimpleNamespace(role="chef_site", site="Goma")
+        site_objects.filter.return_value.exists.return_value = False
+
+        with self.assertRaises(ProfileAccessError) as error:
+            load_active_profile(str(uuid4()))
+
+        self.assertIn("désactivé", str(error.exception))
+        site_objects.filter.assert_called_once_with(name="Goma", active=True)
 
 
 class EquipmentCodeTests(SimpleTestCase):
@@ -353,3 +364,4 @@ class NotificationApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["unreadCount"], 1)
         self.assertEqual(response.json()["items"][0]["actionPath"], "/fuel-ge")
+

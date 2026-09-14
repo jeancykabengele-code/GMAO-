@@ -628,8 +628,9 @@ La page unique **Administration** regroupe deux onglets : **Gestion des sites** 
 - désactiver ou réactiver un site ;
 - voir le statut de chaque site.
 
-Les sites actifs sont utilisés automatiquement par les filtres, les formulaires et le tableau de bord. Après l’ajout d’un site, actualiser la session pour recharger la liste des sites autorisés. La désactivation n’efface aucune donnée historique.
+Les sites actifs sont utilisés automatiquement par les filtres, les formulaires et le tableau de bord. Après l’ajout d’un site, actualiser la session pour recharger la liste des sites autorisés. La désactivation n’efface aucune donnée historique. Un chef de site affecté à un site désactivé ne peut plus se connecter ; son accès revient automatiquement lorsque le site est réactivé.
 
 Routes API protégées : `GET /api/sites`, `POST /api/sites` et `PATCH /api/sites/<nom>`. Seuls les rôles globaux peuvent les utiliser.
 
 La page **Affectation des chefs de site** permet aussi au Manager et au Chargé des opérations de choisir le site actif de chaque compte `chef_site`. Les rôles globaux ne sont pas modifiés par cette page.
+
