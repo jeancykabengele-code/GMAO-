@@ -12,6 +12,7 @@ interface MonthlyJournalRow {
   periode: string;
   sortie: number;
   stockInitial: number | null;
+    entree: number | null;
   stockFinal: number | null;
   heuresGe: number;
   litresHeure: number | null;
@@ -250,7 +251,7 @@ export class FuelGePageComponent {
 
   private createEmptyEntry(): MonthlyJournalRow {
     return {
-      site: '', periode: '', sortie: 0, stockInitial: null, stockFinal: null, heuresGe: 0, litresHeure: null,
+      site: '', periode: '', sortie: 0, stockInitial: null, entree: null, stockFinal: null, heuresGe: 0, litresHeure: null,
       snelKwh: 0, disponibiliteGrid: 0,
     };
   }
