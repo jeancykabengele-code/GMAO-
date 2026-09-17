@@ -274,6 +274,23 @@ class FuelCalculationTests(SimpleTestCase):
 
         self.assertIsNone(values["litres_heure"])
 
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("50"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("300"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("1000"))
+    def test_realistic_february_scenario_calculates_fuel_ge_values(self, previous_stock, deliveries, generator_hours):
+        values = _calculate_fuel_values({
+            "site": "Goma",
+            "periode": "2026-02",
+            "sortie": Decimal("200"),
+            "snel_kwh": Decimal("4200"),
+        })
+
+        self.assertEqual(values["stock_initial"], Decimal("1000"))
+        self.assertEqual(values["entree"], Decimal("300"))
+        self.assertEqual(values["stock_final"], Decimal("1100"))
+        self.assertEqual(values["heures_ge"], Decimal("50"))
+        self.assertEqual(values["litres_heure"], Decimal("4.000"))
+        self.assertEqual(values["disponibilite_grid"], Decimal("92.56"))
     @patch("profiles.records._generator_hours_total", return_value=None)
     @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("0"))
     @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
