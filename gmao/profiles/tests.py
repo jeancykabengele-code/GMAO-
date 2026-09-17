@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -8,7 +8,11 @@ from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 
-from .records import _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _next_equipment_code
+from .records import (
+    _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values,
+    _fuel_deliveries_total, _generator_hours_total, _next_equipment_code,
+    _previous_fuel_final_stock,
+)
 from .models import UserProfile
 from .notifications import generator_alert_stage, notify_generator_alert, notify_record_created
 from .views import current_user
@@ -260,6 +264,61 @@ class FuelCalculationTests(SimpleTestCase):
 
         self.assertIsNone(values["litres_heure"])
 
+class FuelAutomaticInputsTests(SimpleTestCase):
+    @patch("profiles.records.FuelDelivery.objects")
+    def test_sums_deliveries_for_the_site_and_month(self, delivery_objects):
+        delivery_objects.filter.return_value.aggregate.return_value = {"total": Decimal("1250.500")}
+
+        total = _fuel_deliveries_total("Goma", "2026-02")
+
+        self.assertEqual(total, Decimal("1250.500"))
+        delivery_objects.filter.assert_called_once_with(
+            site="Goma",
+            date_ravitaillement__gte=date(2026, 2, 1),
+            date_ravitaillement__lt=date(2026, 3, 1),
+        )
+
+    @patch("profiles.records.FuelDelivery.objects")
+    def test_returns_zero_when_no_delivery_exists(self, delivery_objects):
+        delivery_objects.filter.return_value.aggregate.return_value = {"total": None}
+        self.assertEqual(_fuel_deliveries_total("Goma", "2026-02"), Decimal("0"))
+
+    @patch("profiles.records.FuelRecord.objects")
+    def test_reads_the_previous_month_final_stock(self, fuel_objects):
+        fuel_objects.filter.return_value.order_by.return_value.values_list.return_value.first.return_value = Decimal("2650")
+
+        stock = _previous_fuel_final_stock("Goma", "2026-02")
+
+        self.assertEqual(stock, Decimal("2650"))
+        fuel_objects.filter.assert_called_once_with(site="Goma", periode__lt="2026-02")
+
+    @patch("profiles.records.GeneratorRecord.objects")
+    def test_sums_monthly_hours_from_each_generator_counter(self, generator_objects):
+        current = MagicMock()
+        current.values.return_value = [
+            {"code": "DC-GOM-GE-001", "rh_actuel": Decimal("220")},
+            {"code": "DC-GOM-GE-002", "rh_actuel": Decimal("130")},
+        ]
+        previous_one = MagicMock()
+        previous_one.order_by.return_value.values_list.return_value.first.return_value = Decimal("200")
+        previous_two = MagicMock()
+        previous_two.order_by.return_value.values_list.return_value.first.return_value = Decimal("100")
+        generator_objects.filter.side_effect = [current, previous_one, previous_two]
+
+        hours = _generator_hours_total("Goma", "2026-02")
+
+        self.assertEqual(hours, Decimal("50"))
+
+    @patch("profiles.records.GeneratorRecord.objects")
+    def test_returns_none_when_a_previous_generator_reading_is_missing(self, generator_objects):
+        current = MagicMock()
+        current.values.return_value = [{"code": "DC-GOM-GE-001", "rh_actuel": Decimal("220")}]
+        previous = MagicMock()
+        previous.order_by.return_value.values_list.return_value.first.return_value = None
+        generator_objects.filter.side_effect = [current, previous]
+
+        self.assertIsNone(_generator_hours_total("Goma", "2026-02"))
+
 class PueCalculationTests(SimpleTestCase):
     def test_calculates_pue_to_three_decimals(self):
         values = _calculate_pue_values({
@@ -364,4 +423,3 @@ class NotificationApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["unreadCount"], 1)
         self.assertEqual(response.json()["items"][0]["actionPath"], "/fuel-ge")
-

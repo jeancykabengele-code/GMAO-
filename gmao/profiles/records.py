@@ -140,6 +140,60 @@ def _calculate_generator_values(values, record=None):
 NO_GRID_SITES = {"Kikwit", "Mbandaka"}
 
 
+def _fuel_period_bounds(periode):
+    if not periode or not re.fullmatch(r"\d{4}-\d{2}", periode):
+        raise ValidationError("La période doit être au format AAAA-MM.")
+    try:
+        year, month = (int(value) for value in periode.split("-"))
+        start = date(year, month, 1)
+    except ValueError as error:
+        raise ValidationError("La période est invalide.") from error
+    end = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+    return start, end
+
+
+def _fuel_deliveries_total(site, periode):
+    """Retourne le total des livraisons Fuel d'un site sur le mois indiqué."""
+    start, end = _fuel_period_bounds(periode)
+    result = FuelDelivery.objects.filter(
+        site=site,
+        date_ravitaillement__gte=start,
+        date_ravitaillement__lt=end,
+    ).aggregate(total=models.Sum("quantite_recue"))
+    return result["total"] or Decimal("0")
+
+
+def _previous_fuel_final_stock(site, periode):
+    """Retourne le stock final du dernier journal Fuel-GE antérieur au mois demandé."""
+    _fuel_period_bounds(periode)
+    return FuelRecord.objects.filter(
+        site=site,
+        periode__lt=periode,
+    ).order_by("-periode").values_list("stock_final", flat=True).first()
+
+
+def _generator_hours_total(site, periode):
+    """Somme les heures mensuelles des GE; None indique qu'un relevé précédent manque."""
+    _fuel_period_bounds(periode)
+    current_records = GeneratorRecord.objects.filter(
+        site=site,
+        mois_releve=periode,
+    ).values("code", "rh_actuel")
+    if not current_records:
+        return None
+
+    total = Decimal("0")
+    for current in current_records:
+        previous_rh = GeneratorRecord.objects.filter(
+            site=site,
+            code=current["code"],
+            mois_releve__lt=periode,
+        ).order_by("-mois_releve").values_list("rh_actuel", flat=True).first()
+        if previous_rh is None or current["rh_actuel"] < previous_rh:
+            return None
+        total += current["rh_actuel"] - previous_rh
+    return total
+
 def _calculate_fuel_values(values, record=None):
     site = values.get("site", getattr(record, "site", None))
     periode = values.get("periode", getattr(record, "periode", None))
