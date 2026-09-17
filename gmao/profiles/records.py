@@ -194,7 +194,7 @@ def _generator_hours_total(site, periode):
         total += current["rh_actuel"] - previous_rh
     return total
 
-def _calculate_fuel_values(values, record=None):
+def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
     site = values.get("site", getattr(record, "site", None))
     periode = values.get("periode", getattr(record, "periode", None))
     sortie = values.get("sortie", getattr(record, "sortie", None))
@@ -208,6 +208,14 @@ def _calculate_fuel_values(values, record=None):
 
     previous_stock = _previous_fuel_final_stock(site, periode)
     if previous_stock is None:
+        record_id = getattr(record, "id", None)
+        other_fuel_records = FuelRecord.objects.filter(site=site)
+        if record_id is not None:
+            other_fuel_records = other_fuel_records.exclude(id=record_id)
+        if other_fuel_records.exists():
+            raise ValidationError("Un journal Fuel-GE existe déjà pour ce site. Le stock de départ ne peut pas être défini sur un mois antérieur.")
+        if not allow_initial_stock:
+            raise ValidationError("Seul le Manager ou le Chef des opérations peut définir le stock de départ du premier mois.")
         stock_initial = values.get("stock_initial", getattr(record, "stock_initial", None))
         if stock_initial is None:
             raise ValidationError("Le stock initial doit être défini pour le premier mois du site.")
@@ -346,7 +354,7 @@ def record_collection(request, resource):
                 if model_class is GeneratorRecord:
                     _calculate_generator_values(values)
                 if model_class is FuelRecord:
-                    _calculate_fuel_values(values)
+                    _calculate_fuel_values(values, allow_initial_stock=profile.role in GLOBAL_ROLES)
                 if model_class is FuelDelivery:
                     _calculate_fuel_delivery_values(values)
                 if model_class is PueRecord:
@@ -395,7 +403,7 @@ def record_detail(request, resource, record_id):
                 _calculate_generator_values(values, record)
             elif model_class is FuelRecord:
                 assert_can_modify(profile, values["site"])
-                _calculate_fuel_values(values, record)
+                _calculate_fuel_values(values, record, allow_initial_stock=profile.role in GLOBAL_ROLES)
             elif model_class is FuelDelivery:
                 assert_can_modify(profile, values["site"])
                 _calculate_fuel_delivery_values(values, record)

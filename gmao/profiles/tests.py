@@ -289,6 +289,47 @@ class FuelCalculationTests(SimpleTestCase):
             _calculate_fuel_values({"site": "Goma", "periode": "2026-02", "sortie": Decimal("151")})
         self.assertIn("stock final négatif", str(error.exception))
 
+    @patch("profiles.records.FuelRecord.objects")
+    @patch("profiles.records._previous_fuel_final_stock", return_value=None)
+    def test_chef_site_cannot_define_initial_fuel_stock(self, previous_stock, fuel_objects):
+        fuel_objects.filter.return_value.exists.return_value = False
+
+        with self.assertRaises(ValidationError) as error:
+            _calculate_fuel_values(
+                {"site": "Goma", "periode": "2026-01", "sortie": Decimal("0"), "stock_initial": Decimal("1000")},
+                allow_initial_stock=False,
+            )
+
+        self.assertIn("Seul le Manager", str(error.exception))
+
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("0"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("0"))
+    @patch("profiles.records.FuelRecord.objects")
+    @patch("profiles.records._previous_fuel_final_stock", return_value=None)
+    def test_global_role_can_define_initial_fuel_stock_once(self, previous_stock, fuel_objects, deliveries, generator_hours):
+        fuel_objects.filter.return_value.exists.return_value = False
+
+        values = _calculate_fuel_values(
+            {"site": "Goma", "periode": "2026-01", "sortie": Decimal("100"), "stock_initial": Decimal("1000")},
+            allow_initial_stock=True,
+        )
+
+        self.assertEqual(values["stock_initial"], Decimal("1000"))
+        self.assertEqual(values["stock_final"], Decimal("900"))
+
+    @patch("profiles.records.FuelRecord.objects")
+    @patch("profiles.records._previous_fuel_final_stock", return_value=None)
+    def test_cannot_define_another_initial_stock_after_a_journal_exists(self, previous_stock, fuel_objects):
+        fuel_objects.filter.return_value.exists.return_value = True
+
+        with self.assertRaises(ValidationError) as error:
+            _calculate_fuel_values(
+                {"site": "Goma", "periode": "2025-12", "sortie": Decimal("0"), "stock_initial": Decimal("1000")},
+                allow_initial_stock=True,
+            )
+
+        self.assertIn("mois antérieur", str(error.exception))
+
 class FuelAutomaticInputsTests(SimpleTestCase):
     @patch("profiles.records.FuelDelivery.objects")
     def test_sums_deliveries_for_the_site_and_month(self, delivery_objects):
