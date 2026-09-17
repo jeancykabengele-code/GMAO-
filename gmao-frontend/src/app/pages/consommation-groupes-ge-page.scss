@@ -73,9 +73,34 @@
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(190px, 1fr));
-  gap: 16px;
+  grid-template-columns: minmax(150px, 0.85fr) minmax(150px, 0.85fr) minmax(170px, 1fr) minmax(190px, 1fr) auto;
+  align-items: end;
+  gap: 14px;
   margin-bottom: 22px;
+}
+
+.filters .reset-button {
+  align-self: end;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--orange);
+  border-radius: 9px;
+  color: #fff;
+  background: var(--orange);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filters .reset-button:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 1180px) and (min-width: 761px) {
+  .filters {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+  }
 }
 
 .filter-field,
