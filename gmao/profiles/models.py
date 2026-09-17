@@ -134,6 +134,7 @@ class GeneratorFuelConsumption(BusinessRecord):
     class Meta:
         managed = False
         db_table = "gmao_consommations_groupes_ge"
+        unique_together = ("site", "periode", "groupe_code")
 
 class FuelMonthlySummary(BusinessRecord):
     periode = models.TextField()

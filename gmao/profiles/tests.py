@@ -10,7 +10,7 @@ from django.test import SimpleTestCase, TestCase
 
 from .records import (
     _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _recalculate_fuel_records,
-    _fuel_deliveries_total, _generator_hours_total, _next_equipment_code,
+    _fuel_deliveries_total, _generator_fuel_consumption_total, _generator_hours_total, _next_equipment_code,
     _previous_fuel_final_stock,
 )
 from .models import UserProfile
@@ -228,6 +228,21 @@ class GeneratorPmCalculationTests(SimpleTestCase):
                 "retard_signale": False,
             })
 
+class GeneratorConsumptionControlTests(SimpleTestCase):
+    @patch("profiles.records.GeneratorFuelConsumption.objects")
+    def test_monthly_total_comes_from_all_groups_of_the_site(self, consumption_objects):
+        consumption_objects.filter.return_value.aggregate.return_value = {"total": Decimal("150")}
+
+        total = _generator_fuel_consumption_total("Goma", "2026-02")
+
+        self.assertEqual(total, Decimal("150"))
+        consumption_objects.filter.assert_called_once_with(site="Goma", periode="2026-02")
+
+    def test_one_group_is_unique_per_site_and_month(self):
+        from .models import GeneratorFuelConsumption
+        self.assertIn(("site", "periode", "groupe_code"), GeneratorFuelConsumption._meta.unique_together)
+
+
 class FuelCalculationTests(SimpleTestCase):
     @patch("profiles.records._generator_hours_total", return_value=Decimal("24"))
     @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("100"))
@@ -326,9 +341,20 @@ class FuelCalculationTests(SimpleTestCase):
 
         self.assertIn("Seul le Manager", str(error.exception))
 
+    @patch("profiles.records._generator_fuel_consumption_total", return_value=Decimal("150"))
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("30"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("200"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
+    def test_two_groups_scenario_recalculates_the_site_fuel_totals(self, previous_stock, deliveries, generator_hours, group_total):
+        values = _calculate_fuel_values({"site": "Goma", "periode": "2026-02", "snel_kwh": Decimal("4200")})
+
+        self.assertEqual(values["sortie"], Decimal("150"))
+        self.assertEqual(values["stock_final"], Decimal("550"))
+        self.assertEqual(values["litres_heure"], Decimal("5.000"))
+
     def test_rejects_manual_values_that_are_calculated_automatically(self):
         with self.assertRaises(ValidationError) as error:
-            _assert_fuel_manual_fields_are_not_sent({"site": "Goma", "entree": Decimal("100")})
+            _assert_fuel_manual_fields_are_not_sent({"site": "Goma", "sortie": Decimal("100")})
         self.assertIn("calculées automatiquement", str(error.exception))
 
     def test_rejects_manual_initial_stock_on_an_existing_journal(self):

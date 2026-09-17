@@ -65,12 +65,22 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 
 ### Fuel-GE
 
-- Le chef de site renseigne uniquement le site, le mois, la consommation Fuel et le kWh SNEL lorsque le site est raccordé.
+- Le chef de site renseigne le site, le mois et le kWh SNEL lorsque le site est raccordé ; la consommation Fuel est calculée, elle n’est jamais saisie dans cette feuille.
+- Fuel-GE additionne automatiquement les consommations par groupe GE du site pour le mois sélectionné.
 - Le stock initial, les ravitaillements du mois, les heures GE, le stock final, les litres par heure et la disponibilité Grid sont calculés par Django.
 - Le premier stock de départ est défini une seule fois par le Manager ou le Chargé des opérations.
 - Toute modification d’un ravitaillement, d’un relevé RH GE ou d’un ancien journal recalcule les journaux Fuel-GE dépendants du même site.
 - Les champs calculés sont protégés : l’API refuse toute modification manuelle de ces valeurs.
 
+### Consommation par groupe GE
+
+- Suivi mensuel de la consommation Fuel de chaque groupe électrogène.
+- Une seule ligne est autorisée par combinaison **site + mois + groupe**.
+- Le chef de site saisit les litres consommés et un commentaire facultatif.
+- Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
+- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs.
+- Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
+- La table Supabase est définie dans `gmao/sql/009_generator_fuel_consumption.sql`.
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site.
@@ -446,6 +456,15 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - Les champs de calcul (ravitaillements, stocks finaux, heures GE, L/h et disponibilité Grid) ne sont jamais acceptés comme saisie manuelle par l’API.
 - Kikwit et Mbandaka sont considérés comme des sites sans Grid : disponibilité fixée à 0 et énergie SNEL non applicable.
 
+### Consommation par groupe GE
+
+- Suivi mensuel de la consommation Fuel de chaque groupe électrogène.
+- Une seule ligne est autorisée par combinaison **site + mois + groupe**.
+- Le chef de site saisit les litres consommés et un commentaire facultatif.
+- Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
+- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs.
+- Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
+- La table Supabase est définie dans `gmao/sql/009_generator_fuel_consumption.sql`.
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site.
