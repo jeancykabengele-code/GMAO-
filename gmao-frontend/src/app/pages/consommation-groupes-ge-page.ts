@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
+import { ExcelExportService } from '../shared/excel-export.service';
 
 interface ConsumptionRow { id?: string; site: string; periode: string; groupeCode: string; consommationLitres: number; heuresGe: number; litresHeure: number | null; commentaires?: string; }
 interface GeneratorRow { site: string; code: string; moisReleve: string; rhActuel: number; }
@@ -20,9 +21,10 @@ export class ConsommationGroupesGePageComponent {
   searchTerm = '';
   entry: Entry;
 
-  constructor(readonly dataStore: GmaoDataStore) { this.entry = this.empty(); }
+  constructor(readonly dataStore: GmaoDataStore, private readonly excelExporter: ExcelExportService = new ExcelExportService()) { this.entry = this.empty(); }
   get rows(): ConsumptionRow[] { return this.dataStore.generatorFuelConsumptionRows as ConsumptionRow[]; }
   get sites(): string[] { return this.dataStore.allowedSites; }
+  get canExportExcel(): boolean { return this.dataStore.canExportData; }
   get groups(): GeneratorRow[] { return this.dataStore.generatorRows as GeneratorRow[]; }
   get allowedGroups(): GeneratorRow[] { return this.groups.filter((group) => group.site === this.entry.site); }
   get filterGroups(): string[] { return [...new Set(this.rows.map((row) => row.groupeCode))].sort(); }
@@ -42,6 +44,18 @@ export class ConsommationGroupesGePageComponent {
     return current?.rhActuel !== undefined && previous?.rhActuel !== undefined ? Number(current.rhActuel) - Number(previous.rhActuel) : null;
   }
   litresHour(): number | null { const hours = this.hours(); const consumption = this.entry.consommationLitres ?? 0; return hours === null || (hours === 0 && consumption > 0) ? null : hours === 0 ? 0 : consumption / hours; }
+  exportExcel(): void {
+    if (!this.canExportExcel) return;
+    this.excelExporter.exportTable({
+      title: 'Consommation par GE', fileName: 'consommation-par-ge', rows: this.filteredRows,
+      columns: [
+        { header: 'Site', value: (row) => row.site }, { header: 'Mois', value: (row) => row.periode },
+        { header: 'Groupe', value: (row) => row.groupeCode }, { header: 'Heures GE automatiques', value: (row) => row.heuresGe },
+        { header: 'Fuel consommé (L)', value: (row) => row.consommationLitres }, { header: 'L/h automatique', value: (row) => row.litresHeure ?? '' },
+        { header: 'Commentaire', value: (row) => row.commentaires ?? '' },
+      ],
+    });
+  }
   toggleTable(): void { this.tableOpen = !this.tableOpen; }
   resetPage(): void { this.currentPage = 1; }
   previousPage(): void { if (this.currentPage > 1) this.currentPage--; }

@@ -56,6 +56,11 @@ export class DocumentationsComponent {
         this.column('Stock avant (L)', 'stockAvant'), this.column('Stock après (L)', 'stockApres'), this.column('N° citerne ou camion', 'numeroCiterne'),
         this.column('Réceptionné par', 'receptionnePar'), this.column('Commentaires', 'commentaires'), this.column('Date d’enregistrement', 'createdAt'),
       ]),
+      this.report('Consommation par GE', 'Consommations Fuel renseignées pour chaque groupe électrogène.', 'consommation-par-ge', () => this.dataStore.generatorFuelConsumptionRows, [
+        this.column('Site', 'site'), this.column('Mois', 'periode'), this.column('Groupe', 'groupeCode'),
+        this.column('Heures GE automatiques', 'heuresGe'), this.column('Fuel consommé (L)', 'consommationLitres'),
+        this.column('L/h automatique', 'litresHeure'), this.column('Commentaire', 'commentaires'),
+      ]),
       this.report('Fuel-GE', 'Journal mensuel du carburant et de la disponibilité Grid.', 'journal-fuel-ge', () => this.dataStore.fuelRows, [
         this.column('Site', 'site'), this.column('Mois et année', 'periode'), this.column('Stock initial (L)', 'stockInitial'),
         this.column('Consommé (L)', 'sortie'), this.column('Stock final (L)', 'stockFinal'), this.column('Heures GE', 'heuresGe'),

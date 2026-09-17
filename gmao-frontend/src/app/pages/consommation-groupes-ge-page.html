@@ -1,10 +1,11 @@
 <section class="fuel-ge-page">
   <div class="content-card">
     <div class="page-toolbar">
-      <div class="page-heading"><h1>Consommation par groupe GE</h1></div>
+      <div class="page-heading"><h1>Consommation par GE</h1></div>
       <div class="view-actions">
         <button type="button" class="view-button" [class.inactive]="!tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()"><i class="bi bi-speedometer2"></i> Tableau consommations</button>
         <button type="button" class="primary-button" (click)="show()"><i class="bi bi-plus-lg"></i> Renseigner la consommation</button>
+        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
       </div>
     </div>
     @if (tableOpen) {
