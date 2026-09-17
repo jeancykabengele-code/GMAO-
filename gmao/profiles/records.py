@@ -167,6 +167,16 @@ def _fuel_deliveries_total(site, periode):
     return result["total"] or Decimal("0")
 
 
+def _generator_fuel_consumption_total(site, periode):
+    """Retourne la somme des consommations renseignées groupe par groupe pour le mois."""
+    _fuel_period_bounds(periode)
+    result = GeneratorFuelConsumption.objects.filter(
+        site=site,
+        periode=periode,
+    ).aggregate(total=models.Sum("consommation_litres"))
+    return result["total"] or Decimal("0")
+
+
 def _previous_fuel_final_stock(site, periode):
     """Retourne le stock final du dernier journal Fuel-GE antérieur au mois demandé."""
     _fuel_period_bounds(periode)
@@ -199,10 +209,10 @@ def _generator_hours_total(site, periode):
     return total
 
 FUEL_AUTOMATIC_FIELDS = {
-    "entree", "stock_final", "heures_ge", "litres_heure", "disponibilite_grid",
+    "sortie", "entree", "stock_final", "heures_ge", "litres_heure", "disponibilite_grid",
 }
 FUEL_RECALCULATED_FIELDS = (
-    "stock_initial", "entree", "stock_final", "heures_ge", "litres_heure", "snel_kwh", "disponibilite_grid",
+    "stock_initial", "sortie", "entree", "stock_final", "heures_ge", "litres_heure", "snel_kwh", "disponibilite_grid",
 )
 
 
@@ -217,14 +227,11 @@ def _assert_fuel_manual_fields_are_not_sent(values, record=None):
 def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
     site = values.get("site", getattr(record, "site", None))
     periode = values.get("periode", getattr(record, "periode", None))
-    sortie = values.get("sortie", getattr(record, "sortie", None))
     if not site:
         raise ValidationError("Le site est obligatoire.")
     _fuel_period_bounds(periode)
-    if sortie is None:
-        raise ValidationError("La consommation est obligatoire.")
-    if sortie < 0:
-        raise ValidationError("La consommation ne peut pas être négative.")
+    sortie = _generator_fuel_consumption_total(site, periode)
+    values["sortie"] = sortie
 
     previous_stock = _previous_fuel_final_stock(site, periode)
     if previous_stock is None:
@@ -435,6 +442,8 @@ def record_collection(request, resource):
                     _recalculate_fuel_records(record.site, record.mois_releve, profile.id)
                 elif model_class is FuelRecord:
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
+                elif model_class is GeneratorFuelConsumption:
+                    _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is FuelDelivery:
                     _recalculate_fuel_records(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
                 if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
@@ -496,6 +505,9 @@ def record_detail(request, resource, record_id):
                 elif model_class is FuelRecord:
                     _recalculate_fuel_records(previous_site, previous_period, profile.id)
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
+                elif model_class is GeneratorFuelConsumption:
+                    _recalculate_fuel_records(previous_site, previous_period, profile.id)
+                    _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is FuelDelivery:
                     _recalculate_fuel_records(previous_site, previous_period, profile.id)
                     _recalculate_fuel_records(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
@@ -509,7 +521,11 @@ def record_detail(request, resource, record_id):
                 assert_can_delete(profile)
             assert_can_delete_equipment(profile)
             deleted_id = str(record.id)
+            deleted_site = record.site
+            deleted_period = record.periode if model_class is GeneratorFuelConsumption else None
             record.delete()
+            if deleted_period:
+                _recalculate_fuel_records(deleted_site, deleted_period, profile.id)
             return JsonResponse({"status": "deleted", "id": deleted_id})
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
     except (ValidationError, PermissionDeniedError) as error:

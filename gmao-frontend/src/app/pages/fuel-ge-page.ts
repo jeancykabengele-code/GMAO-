@@ -125,6 +125,13 @@ export class FuelGePageComponent {
       .reduce((total, row) => total + Number(row.quantiteRecue ?? 0), 0);
   }
 
+  get calculatedGroupConsumption(): number {
+    if (!this.newEntry.site || !this.newEntry.periode) return 0;
+    return (this.dataStore.generatorFuelConsumptionRows as Array<{ site?: string; periode?: string; consommationLitres?: number }>)
+      .filter((row) => row.site === this.newEntry.site && row.periode === this.newEntry.periode)
+      .reduce((total, row) => total + Number(row.consommationLitres ?? 0), 0);
+  }
+
   get calculatedGeneratorHours(): number | null {
     if (!this.newEntry.site || !this.newEntry.periode) return null;
     const rows = this.dataStore.generatorRows as Array<{ site?: string; code?: string; moisReleve?: string; rhActuel?: number }>;
@@ -143,12 +150,12 @@ export class FuelGePageComponent {
 
   get calculatedStockFinal(): number | null {
     const initial = this.calculatedStockInitial;
-    return initial === null ? null : initial + this.calculatedEntries - Number(this.newEntry.sortie || 0);
+    return initial === null ? null : initial + this.calculatedEntries - this.calculatedGroupConsumption;
   }
 
   get calculatedLitresPerHour(): number | null {
     const hours = this.calculatedGeneratorHours;
-    const consumption = Number(this.newEntry.sortie || 0);
+    const consumption = this.calculatedGroupConsumption;
     if (hours === null) return null;
     if (hours > 0) return consumption / hours;
     return consumption === 0 ? 0 : null;
@@ -217,7 +224,6 @@ export class FuelGePageComponent {
     const entry: Record<string, unknown> = {
       site: this.newEntry.site,
       periode: this.newEntry.periode,
-      sortie: Number(this.newEntry.sortie),
       snelKwh: this.isNoGridSite(this.newEntry.site) ? null : Number(this.newEntry.snelKwh || 0),
     };
     if (this.isInitialFuelMonth) entry['stockInitial'] = Number(this.newEntry.stockInitial);

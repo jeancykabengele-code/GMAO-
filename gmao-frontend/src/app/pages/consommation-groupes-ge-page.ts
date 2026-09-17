@@ -36,7 +36,7 @@ export class ConsommationGroupesGePageComponent {
   async save(): Promise<void> {
     this.error = '';
     if (!this.entry.site || !this.entry.periode || !this.entry.groupeCode || this.entry.consommationLitres === null) { this.error = 'Complétez les champs obligatoires.'; return; }
-    try { await this.dataStore.createRecord('consommations-groupes-ge', this.entry); this.close(); }
+    try { await this.dataStore.createRecord('consommations-groupes-ge', this.entry); await this.dataStore.refreshResource('fuel-ge'); this.close(); }
     catch { this.error = 'Enregistrement impossible : vérifiez les relevés RH du groupe.'; }
   }
 

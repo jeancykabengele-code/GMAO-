@@ -51,7 +51,7 @@
       } @else if (isInitialFuelMonth) {
         <div class="no-grid-message full-width"><i class="bi bi-info-circle"></i><span>Le stock de départ du premier mois doit être défini par le Manager ou le Chef des opérations.</span></div>
       }
-      <label><span>Consommation Fuel (L)</span><input name="sortie" type="number" min="0" step="0.001" [(ngModel)]="newEntry.sortie" required /></label>
+      <div class="no-grid-message"><i class="bi bi-calculator"></i><span>Consommation Fuel : <strong>{{ calculatedGroupConsumption | number:'1.0-3':'fr' }} L</strong> — somme automatique des consommations par groupe.</span></div>
       @if (isNoGridSite(newEntry.site)) {
         <div class="no-grid-message"><i class="bi bi-info-circle"></i><span>SNEL non applicable pour ce site.</span></div>
       } @else {
