@@ -194,6 +194,22 @@ def _generator_hours_total(site, periode):
         total += current["rh_actuel"] - previous_rh
     return total
 
+FUEL_AUTOMATIC_FIELDS = {
+    "entree", "stock_final", "heures_ge", "litres_heure", "disponibilite_grid",
+}
+FUEL_RECALCULATED_FIELDS = (
+    "stock_initial", "entree", "stock_final", "heures_ge", "litres_heure", "snel_kwh", "disponibilite_grid",
+)
+
+
+def _assert_fuel_manual_fields_are_not_sent(values, record=None):
+    manual_fields = sorted(FUEL_AUTOMATIC_FIELDS.intersection(values))
+    if manual_fields:
+        raise ValidationError("Les valeurs Fuel-GE calculées automatiquement ne peuvent pas être modifiées manuellement.")
+    if record is not None and "stock_initial" in values:
+        raise ValidationError("Le stock initial est calculé automatiquement et ne peut plus être modifié.")
+
+
 def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
     site = values.get("site", getattr(record, "site", None))
     periode = values.get("periode", getattr(record, "periode", None))
@@ -208,14 +224,11 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
 
     previous_stock = _previous_fuel_final_stock(site, periode)
     if previous_stock is None:
-        record_id = getattr(record, "id", None)
-        other_fuel_records = FuelRecord.objects.filter(site=site)
-        if record_id is not None:
-            other_fuel_records = other_fuel_records.exclude(id=record_id)
-        if other_fuel_records.exists():
-            raise ValidationError("Un journal Fuel-GE existe déjà pour ce site. Le stock de départ ne peut pas être défini sur un mois antérieur.")
-        if not allow_initial_stock:
-            raise ValidationError("Seul le Manager ou le Chef des opérations peut définir le stock de départ du premier mois.")
+        if record is None:
+            if FuelRecord.objects.filter(site=site).exists():
+                raise ValidationError("Un journal Fuel-GE existe déjà pour ce site. Le stock de départ ne peut pas être défini sur un mois antérieur.")
+            if not allow_initial_stock:
+                raise ValidationError("Seul le Manager ou le Chef des opérations peut définir le stock de départ du premier mois.")
         stock_initial = values.get("stock_initial", getattr(record, "stock_initial", None))
         if stock_initial is None:
             raise ValidationError("Le stock initial doit être défini pour le premier mois du site.")
@@ -250,6 +263,31 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
         availability = (Decimal("1") - (hours_ge / month_hours)) * Decimal("100")
         values["disponibilite_grid"] = max(Decimal("0"), min(Decimal("100"), availability)).quantize(Decimal("0.01"))
     return values
+
+
+def _recalculate_fuel_records(site, start_period, actor_id=None):
+    """Recalcule le mois modifié et tous les mois suivants d'un même site."""
+    _fuel_period_bounds(start_period)
+    records = FuelRecord.objects.select_for_update().filter(
+        site=site,
+        periode__gte=start_period,
+    ).order_by("periode")
+    for fuel_record in records:
+        values = {
+            "site": fuel_record.site,
+            "periode": fuel_record.periode,
+            "sortie": fuel_record.sortie,
+            "snel_kwh": fuel_record.snel_kwh,
+        }
+        _calculate_fuel_values(values, fuel_record, allow_initial_stock=True)
+        for field in FUEL_RECALCULATED_FIELDS:
+            setattr(fuel_record, field, values[field])
+        update_fields = [*FUEL_RECALCULATED_FIELDS, "updated_at"]
+        if actor_id is not None:
+            fuel_record.updated_by = actor_id
+            update_fields.append("updated_by")
+        fuel_record.full_clean()
+        fuel_record.save(update_fields=update_fields)
 
 def _calculate_fuel_delivery_values(values, record=None):
     quantity = values.get("quantite_recue", getattr(record, "quantite_recue", None))
@@ -354,6 +392,7 @@ def record_collection(request, resource):
                 if model_class is GeneratorRecord:
                     _calculate_generator_values(values)
                 if model_class is FuelRecord:
+                    _assert_fuel_manual_fields_are_not_sent(values)
                     _calculate_fuel_values(values, allow_initial_stock=profile.role in GLOBAL_ROLES)
                 if model_class is FuelDelivery:
                     _calculate_fuel_delivery_values(values)
@@ -362,6 +401,12 @@ def record_collection(request, resource):
                 record = model_class(**values, created_by=profile.id)
                 record.full_clean(exclude=["updated_by"])
                 record.save(force_insert=True)
+                if model_class is GeneratorRecord:
+                    _recalculate_fuel_records(record.site, record.mois_releve, profile.id)
+                elif model_class is FuelRecord:
+                    _recalculate_fuel_records(record.site, record.periode, profile.id)
+                elif model_class is FuelDelivery:
+                    _recalculate_fuel_records(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
                 if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 notify_record_created(profile, resource, record)
@@ -398,29 +443,47 @@ def record_detail(request, resource, record_id):
         assert_site_access(profile, record.site)
         if request.method in {"PUT", "PATCH"}:
             values = _clean_values(model_class, _payload(request))
-            if model_class is GeneratorRecord:
-                assert_site_access(profile, values["site"])
-                _calculate_generator_values(values, record)
-            elif model_class is FuelRecord:
-                assert_can_modify(profile, values["site"])
-                _calculate_fuel_values(values, record, allow_initial_stock=profile.role in GLOBAL_ROLES)
-            elif model_class is FuelDelivery:
-                assert_can_modify(profile, values["site"])
-                _calculate_fuel_delivery_values(values, record)
-            elif model_class is PueRecord:
-                assert_can_modify(profile, values["site"])
-                _calculate_pue_values(values, record)
-            else:
-                assert_can_modify(profile, values["site"])
-            for field, value in values.items():
-                setattr(record, field, value)
-            record.updated_by = profile.id
-            record.full_clean()
-            record.save()
-            if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
-                record.refresh_from_db()
-            if model_class is GeneratorRecord:
-                notify_generator_alert(profile, record)
+            with transaction.atomic():
+                previous_site = record.site
+                previous_period = (
+                    record.mois_releve if model_class is GeneratorRecord
+                    else record.periode if model_class is FuelRecord
+                    else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery
+                    else None
+                )
+                if model_class is GeneratorRecord:
+                    assert_site_access(profile, values["site"])
+                    _calculate_generator_values(values, record)
+                elif model_class is FuelRecord:
+                    assert_can_modify(profile, values["site"])
+                    _assert_fuel_manual_fields_are_not_sent(values, record)
+                    _calculate_fuel_values(values, record, allow_initial_stock=profile.role in GLOBAL_ROLES)
+                elif model_class is FuelDelivery:
+                    assert_can_modify(profile, values["site"])
+                    _calculate_fuel_delivery_values(values, record)
+                elif model_class is PueRecord:
+                    assert_can_modify(profile, values["site"])
+                    _calculate_pue_values(values, record)
+                else:
+                    assert_can_modify(profile, values["site"])
+                for field, value in values.items():
+                    setattr(record, field, value)
+                record.updated_by = profile.id
+                record.full_clean()
+                record.save()
+                if model_class is GeneratorRecord:
+                    _recalculate_fuel_records(previous_site, previous_period, profile.id)
+                    _recalculate_fuel_records(record.site, record.mois_releve, profile.id)
+                elif model_class is FuelRecord:
+                    _recalculate_fuel_records(previous_site, previous_period, profile.id)
+                    _recalculate_fuel_records(record.site, record.periode, profile.id)
+                elif model_class is FuelDelivery:
+                    _recalculate_fuel_records(previous_site, previous_period, profile.id)
+                    _recalculate_fuel_records(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
+                if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
+                    record.refresh_from_db()
+                if model_class is GeneratorRecord:
+                    notify_generator_alert(profile, record)
             return JsonResponse(_serialize(record))
         if request.method == "DELETE":
             if model_class is not Equipment:

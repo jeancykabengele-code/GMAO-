@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 
 from .records import (
-    _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values,
+    _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _recalculate_fuel_records,
     _fuel_deliveries_total, _generator_hours_total, _next_equipment_code,
     _previous_fuel_final_stock,
 )
@@ -302,6 +302,18 @@ class FuelCalculationTests(SimpleTestCase):
 
         self.assertIn("Seul le Manager", str(error.exception))
 
+    def test_rejects_manual_values_that_are_calculated_automatically(self):
+        with self.assertRaises(ValidationError) as error:
+            _assert_fuel_manual_fields_are_not_sent({"site": "Goma", "entree": Decimal("100")})
+        self.assertIn("calculées automatiquement", str(error.exception))
+
+    def test_rejects_manual_initial_stock_on_an_existing_journal(self):
+        with self.assertRaises(ValidationError) as error:
+            _assert_fuel_manual_fields_are_not_sent(
+                {"site": "Goma", "stock_initial": Decimal("1000")},
+                SimpleNamespace(stock_initial=Decimal("1000")),
+            )
+        self.assertIn("stock initial", str(error.exception))
     @patch("profiles.records._generator_hours_total", return_value=Decimal("0"))
     @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("0"))
     @patch("profiles.records.FuelRecord.objects")
@@ -329,6 +341,35 @@ class FuelCalculationTests(SimpleTestCase):
             )
 
         self.assertIn("mois antérieur", str(error.exception))
+
+class FuelRecalculationTests(SimpleTestCase):
+    @patch("profiles.records._calculate_fuel_values")
+    @patch("profiles.records.FuelRecord.objects")
+    def test_recalculates_the_changed_month_and_persists_automatic_values(self, fuel_objects, calculate):
+        record = MagicMock()
+        record.site = "Goma"
+        record.periode = "2026-03"
+        record.sortie = Decimal("120")
+        record.snel_kwh = Decimal("3000")
+        record.stock_initial = Decimal("500")
+        fuel_objects.select_for_update.return_value.filter.return_value.order_by.return_value = [record]
+
+        def calculate_values(values, *_args, **_kwargs):
+            values.update({
+                "stock_initial": Decimal("500"), "entree": Decimal("200"),
+                "stock_final": Decimal("580"), "heures_ge": Decimal("24"),
+                "litres_heure": Decimal("5"), "snel_kwh": Decimal("3000"),
+                "disponibilite_grid": Decimal("96"),
+            })
+
+        calculate.side_effect = calculate_values
+        actor_id = uuid4()
+        _recalculate_fuel_records("Goma", "2026-03", actor_id)
+
+        self.assertEqual(record.entree, Decimal("200"))
+        self.assertEqual(record.stock_final, Decimal("580"))
+        self.assertEqual(record.updated_by, actor_id)
+        record.save.assert_called_once()
 
 class FuelAutomaticInputsTests(SimpleTestCase):
     @patch("profiles.records.FuelDelivery.objects")
