@@ -65,10 +65,11 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 
 ### Fuel-GE
 
-- Suivi mensuel du stock initial, des entrées, de la consommation et du stock final.
-- Suivi des heures de fonctionnement des groupes électrogènes.
-- Calcul automatique de la consommation en litres par heure.
-- Calcul de la disponibilité Grid pour les sites raccordés.
+- Le chef de site renseigne uniquement le site, le mois, la consommation Fuel et le kWh SNEL lorsque le site est raccordé.
+- Le stock initial, les ravitaillements du mois, les heures GE, le stock final, les litres par heure et la disponibilité Grid sont calculés par Django.
+- Le premier stock de départ est défini une seule fois par le Manager ou le Chargé des opérations.
+- Toute modification d’un ravitaillement, d’un relevé RH GE ou d’un ancien journal recalcule les journaux Fuel-GE dépendants du même site.
+- Les champs calculés sont protégés : l’API refuse toute modification manuelle de ces valeurs.
 
 ### Ravitaillement Fuel
 
@@ -435,8 +436,14 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 - La période doit respecter le format `AAAA-MM`.
 - Les volumes et les heures ne peuvent pas être négatifs.
-- `litres/heure = consommation / heures GE`.
+- Pour le premier mois d’un site, le Manager ou le Chargé des opérations définit une fois le stock de départ. Pour les mois suivants, `stock initial = stock final du dernier journal antérieur`.
+- `ravitaillements du mois = somme des livraisons Fuel du site pendant la période`.
+- `heures GE = somme, par groupe, de RH actuel − RH du relevé précédent`.
+- `stock final = stock initial + ravitaillements − consommation` ; une consommation entraînant un stock négatif est refusée.
+- `litres/heure = consommation / heures GE` lorsque les heures GE sont supérieures à zéro.
 - La disponibilité Grid est calculée à partir des heures du mois et des heures GE.
+- Modifier un ravitaillement, un relevé RH ou un journal Fuel-GE recalcule automatiquement le mois concerné et les mois suivants du même site, dans une transaction.
+- Les champs de calcul (ravitaillements, stocks finaux, heures GE, L/h et disponibilité Grid) ne sont jamais acceptés comme saisie manuelle par l’API.
 - Kikwit et Mbandaka sont considérés comme des sites sans Grid : disponibilité fixée à 0 et énergie SNEL non applicable.
 
 ### Ravitaillement Fuel
@@ -469,7 +476,7 @@ npm run build
 
 Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 
-État vérifié au 12 septembre 2026 :
+État vérifié au 17 septembre 2026 :
 
 - 14 fichiers de tests frontend réussis ;
 - 47 tests frontend réussis ;

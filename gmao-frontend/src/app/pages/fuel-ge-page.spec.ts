@@ -1,38 +1,52 @@
+import { GmaoDataStore } from '../data/gmao-data-store';
 import { FuelGePageComponent } from './fuel-ge-page';
 
 describe('FuelGePageComponent', () => {
-  it('calcule automatiquement les litres par heure et la disponibilité Grid', async () => {
-    const component = new FuelGePageComponent();
+  it('calcule les litres par heure et la disponibilité Grid depuis les relevés RH', () => {
+    const store = new GmaoDataStore();
+    store.generatorRows = [
+      { site: 'Goma', code: 'GE-001', moisReleve: '2025-12', rhActuel: 200 },
+      { site: 'Goma', code: 'GE-001', moisReleve: '2026-01', rhActuel: 224 },
+    ];
+    const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Goma';
     component.newEntry.periode = '2026-01';
     component.newEntry.sortie = 300;
-    component.newEntry.heuresGe = 24;
     component.newEntry.snelKwh = 4500;
 
+    expect(component.calculatedGeneratorHours).toBe(24);
     expect(component.calculatedLitresPerHour).toBe(12.5);
     expect(component.calculatedGridAvailability).toBeCloseTo(96.77, 2);
-    await component.saveEntry();
-    expect(component.journalRows[0].litresHeure).toBe(12.5);
   });
 
-  it('fixe la disponibilité à zéro et retire SNEL pour Kikwit et Mbandaka', async () => {
-    const component = new FuelGePageComponent();
+  it('fixe la disponibilité à zéro et retire SNEL pour Kikwit et Mbandaka', () => {
+    const store = new GmaoDataStore();
+    store.generatorRows = [
+      { site: 'Kikwit', code: 'GE-001', moisReleve: '2025-12', rhActuel: 100 },
+      { site: 'Kikwit', code: 'GE-001', moisReleve: '2026-01', rhActuel: 110 },
+    ];
+    const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Kikwit';
     component.newEntry.periode = '2026-01';
     component.newEntry.sortie = 100;
-    component.newEntry.heuresGe = 10;
     component.newEntry.snelKwh = 999;
 
+    expect(component.calculatedGeneratorHours).toBe(10);
     expect(component.calculatedGridAvailability).toBe(0);
-    await component.saveEntry();
-    expect(component.journalRows[0].snelKwh).toBeNull();
-    expect(component.journalRows[0].disponibiliteGrid).toBe(0);
+    component.changeSite();
+    expect(component.newEntry.snelKwh).toBeNull();
   });
 
   it('affiche Non calculable lorsque la consommation est positive avec zéro heure', () => {
-    const component = new FuelGePageComponent();
+    const store = new GmaoDataStore();
+    store.generatorRows = [
+      { site: 'Goma', code: 'GE-001', moisReleve: '2025-12', rhActuel: 100 },
+      { site: 'Goma', code: 'GE-001', moisReleve: '2026-01', rhActuel: 100 },
+    ];
+    const component = new FuelGePageComponent(store);
+    component.newEntry.site = 'Goma';
+    component.newEntry.periode = '2026-01';
     component.newEntry.sortie = 150;
-    component.newEntry.heuresGe = 0;
     expect(component.calculatedLitresPerHour).toBeNull();
   });
 

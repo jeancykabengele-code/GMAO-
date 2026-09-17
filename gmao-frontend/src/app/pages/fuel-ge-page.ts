@@ -12,7 +12,7 @@ interface MonthlyJournalRow {
   periode: string;
   sortie: number;
   stockInitial: number | null;
-    entree: number | null;
+  entree?: number | null;
   stockFinal: number | null;
   heuresGe: number;
   litresHeure: number | null;
