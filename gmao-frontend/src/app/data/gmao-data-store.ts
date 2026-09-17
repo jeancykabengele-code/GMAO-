@@ -11,6 +11,7 @@ export class GmaoDataStore {
   private readonly ticketData = signal<unknown[]>([]);
   private readonly generatorData = signal<unknown[]>([]);
   private readonly fuelData = signal<unknown[]>([]);
+  private readonly generatorFuelConsumptionData = signal<unknown[]>([]);
   private readonly fuelDeliveryData = signal<unknown[]>([]);
   private readonly fuelSummaryData = signal<unknown[]>([]);
   private readonly problemData = signal<unknown[]>([]);
@@ -38,6 +39,7 @@ export class GmaoDataStore {
   get generatorRows(): unknown[] { return this.read(this.generatorData()); }
   set generatorRows(value: unknown[]) { this.generatorData.set(this.write(this.generatorData(), value)); }
   get fuelRows(): unknown[] { return this.read(this.fuelData()); }
+  get generatorFuelConsumptionRows(): unknown[] { return this.read(this.generatorFuelConsumptionData()); }
   get fuelDeliveryRows(): unknown[] { return this.read(this.fuelDeliveryData()); }
   set fuelRows(value: unknown[]) { this.fuelData.set(this.write(this.fuelData(), value)); }
   get fuelSummaryRows(): unknown[] { return this.readGlobal(this.fuelSummaryData()); }
@@ -55,7 +57,7 @@ export class GmaoDataStore {
     if (!this.api || this.loadingStarted) return;
     this.loadingStarted = true;
     const resources: GmaoResource[] = [
-      'equipements', 'tickets', 'groupes-electrogenes', 'fuel-ge', 'fuel-ravitaillements', 'fuel-summary',
+      'equipements', 'tickets', 'groupes-electrogenes', 'fuel-ge', 'consommations-groupes-ge', 'fuel-ravitaillements', 'fuel-summary',
       'pue', 'problemes-datacenter', 'interventions', 'pieces-rechange',
     ];
     await Promise.all(resources.map(async (resource) => {
@@ -116,6 +118,7 @@ export class GmaoDataStore {
       tickets: this.ticketData(),
       'groupes-electrogenes': this.generatorData(),
       'fuel-ge': this.fuelData(),
+      'consommations-groupes-ge': this.generatorFuelConsumptionData(),
       'fuel-ravitaillements': this.fuelDeliveryData(),
       'fuel-summary': this.fuelSummaryData(),
       pue: this.pueData(),
@@ -131,6 +134,7 @@ export class GmaoDataStore {
     else if (resource === 'tickets') this.ticketData.set(rows);
     else if (resource === 'groupes-electrogenes') this.generatorData.set(rows);
     else if (resource === 'fuel-ge') this.fuelData.set(rows);
+    else if (resource === 'consommations-groupes-ge') this.generatorFuelConsumptionData.set(rows);
     else if (resource === 'fuel-ravitaillements') this.fuelDeliveryData.set(rows);
     else if (resource === 'fuel-summary') this.fuelSummaryData.set(rows);
     else if (resource === 'pue') this.pueData.set(rows);

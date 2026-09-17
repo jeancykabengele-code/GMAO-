@@ -10,6 +10,7 @@ import { AProposComponent } from './pages/a-propos';
 import { ConnexionPageComponent } from './pages/connexion-page';
 import { EquipementsPageComponent } from './pages/equipements-page';
 import { FuelGePageComponent } from './pages/fuel-ge-page';
+import { ConsommationGroupesGePageComponent } from './pages/consommation-groupes-ge-page';
 import { GestionTicketsPageComponent } from './pages/gestion-tickets-page';
 import { InterventionsRealiseesPageComponent } from './pages/interventions-realisees-page';
 import { PiecesRechangePageComponent } from './pages/pieces-rechange-page';
@@ -38,6 +39,7 @@ export const routes: Routes = [
       { path: 'gestion-tickets', component: GestionTicketsPageComponent },
       { path: 'pieces-rechange', component: PiecesRechangePageComponent },
       { path: 'fuel-ge', component: FuelGePageComponent },
+      { path: 'consommation-groupes-ge', component: ConsommationGroupesGePageComponent },
       { path: 'pue', component: PuePageComponent },
       { path: 'ravitaillement-fuel', component: RavitaillementFuelPageComponent },
       { path: 'problemes-datacenter', component: ProblemesDatacenterPageComponent },

@@ -123,6 +123,18 @@ class FuelDelivery(BusinessRecord):
         db_table = "gmao_fuel_ravitaillements"
 
 
+class GeneratorFuelConsumption(BusinessRecord):
+    periode = models.TextField()
+    groupe_code = models.TextField()
+    consommation_litres = models.DecimalField(max_digits=16, decimal_places=3)
+    heures_ge = models.DecimalField(max_digits=14, decimal_places=2)
+    litres_heure = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
+    commentaires = models.TextField(blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "gmao_consommations_groupes_ge"
+
 class FuelMonthlySummary(BusinessRecord):
     periode = models.TextField()
     stock_initial = models.DecimalField(max_digits=16, decimal_places=3)

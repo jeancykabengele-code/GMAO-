@@ -16,6 +16,7 @@ from .models import (
     FuelMonthlySummary,
     FuelRecord,
     GeneratorRecord,
+    GeneratorFuelConsumption,
     Intervention,
     PueRecord,
     SparePartOperation,
@@ -40,6 +41,7 @@ RESOURCE_MODELS = {
     "tickets": Ticket,
     "groupes-electrogenes": GeneratorRecord,
     "fuel-ge": FuelRecord,
+    "consommations-groupes-ge": GeneratorFuelConsumption,
     "fuel-ravitaillements": FuelDelivery,
     "fuel-summary": FuelMonthlySummary,
     "pue": PueRecord,
@@ -76,6 +78,8 @@ CAMEL_TO_SNAKE = {
     "litresHeure": "litres_heure",
     "snelKwh": "snel_kwh",
     "disponibiliteGrid": "disponibilite_grid",
+    "groupeCode": "groupe_code",
+    "consommationLitres": "consommation_litres",
     "energieIt": "energie_it",
     "energieTotale": "energie_totale",
     "besoinSpare": "besoin_spare",
@@ -289,6 +293,30 @@ def _recalculate_fuel_records(site, start_period, actor_id=None):
         fuel_record.full_clean()
         fuel_record.save(update_fields=update_fields)
 
+def _calculate_generator_fuel_consumption(values, record=None):
+    site = values.get("site", getattr(record, "site", None))
+    periode = values.get("periode", getattr(record, "periode", None))
+    groupe_code = values.get("groupe_code", getattr(record, "groupe_code", None))
+    consommation = values.get("consommation_litres", getattr(record, "consommation_litres", None))
+    if not site or not periode or not groupe_code or consommation is None:
+        raise ValidationError("Le site, le mois, le groupe et la consommation sont obligatoires.")
+    if consommation < 0:
+        raise ValidationError("La consommation ne peut pas être négative.")
+    current = GeneratorRecord.objects.filter(
+        site=site, code=groupe_code, mois_releve=periode,
+    ).values_list("rh_actuel", flat=True).first()
+    previous = GeneratorRecord.objects.filter(
+        site=site, code=groupe_code, mois_releve__lt=periode,
+    ).order_by("-mois_releve").values_list("rh_actuel", flat=True).first()
+    if current is None or previous is None or current < previous:
+        raise ValidationError("Les relevés RH du groupe pour ce mois et le mois précédent sont nécessaires.")
+    hours = current - previous
+    if hours == 0 and consommation > 0:
+        raise ValidationError("Une consommation positive exige des heures GE supérieures à zéro.")
+    values["heures_ge"] = hours
+    values["litres_heure"] = (consommation / hours).quantize(Decimal("0.001")) if hours > 0 else Decimal("0")
+    return values
+
 def _calculate_fuel_delivery_values(values, record=None):
     quantity = values.get("quantite_recue", getattr(record, "quantite_recue", None))
     stock_before = values.get("stock_avant", getattr(record, "stock_avant", None))
@@ -389,14 +417,16 @@ def record_collection(request, resource):
             with transaction.atomic():
                 if model_class is Equipment:
                     values["code"] = _generate_equipment_code(values["site"])
-                if model_class is GeneratorRecord:
+                elif model_class is GeneratorRecord:
                     _calculate_generator_values(values)
-                if model_class is FuelRecord:
+                elif model_class is FuelRecord:
                     _assert_fuel_manual_fields_are_not_sent(values)
                     _calculate_fuel_values(values, allow_initial_stock=profile.role in GLOBAL_ROLES)
-                if model_class is FuelDelivery:
+                elif model_class is GeneratorFuelConsumption:
+                    _calculate_generator_fuel_consumption(values)
+                elif model_class is FuelDelivery:
                     _calculate_fuel_delivery_values(values)
-                if model_class is PueRecord:
+                elif model_class is PueRecord:
                     _calculate_pue_values(values)
                 record = model_class(**values, created_by=profile.id)
                 record.full_clean(exclude=["updated_by"])
@@ -416,15 +446,7 @@ def record_collection(request, resource):
         except (ValidationError, PermissionDeniedError) as error:
             return _error(error, 403 if isinstance(error, PermissionDeniedError) else 400)
         except IntegrityError:
-            return JsonResponse(
-                {
-                    "status": 409,
-                    "code": "duplicate_record",
-                    "detail": "Un enregistrement avec ces informations existe déjà.",
-                },
-                status=409,
-            )
-
+            return JsonResponse({"status": 409, "code": "duplicate_record", "detail": "Un enregistrement avec ces informations existe déjà."}, status=409)
     return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
 
 
@@ -438,19 +460,13 @@ def record_detail(request, resource, record_id):
     except model_class.DoesNotExist:
         return JsonResponse({"detail": "Fiche introuvable."}, status=404)
     profile = request.gmao_profile
-
     try:
         assert_site_access(profile, record.site)
         if request.method in {"PUT", "PATCH"}:
             values = _clean_values(model_class, _payload(request))
             with transaction.atomic():
                 previous_site = record.site
-                previous_period = (
-                    record.mois_releve if model_class is GeneratorRecord
-                    else record.periode if model_class is FuelRecord
-                    else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery
-                    else None
-                )
+                previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class is FuelRecord else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None)
                 if model_class is GeneratorRecord:
                     assert_site_access(profile, values["site"])
                     _calculate_generator_values(values, record)
@@ -458,6 +474,9 @@ def record_detail(request, resource, record_id):
                     assert_can_modify(profile, values["site"])
                     _assert_fuel_manual_fields_are_not_sent(values, record)
                     _calculate_fuel_values(values, record, allow_initial_stock=profile.role in GLOBAL_ROLES)
+                elif model_class is GeneratorFuelConsumption:
+                    assert_can_modify(profile, values["site"])
+                    _calculate_generator_fuel_consumption(values, record)
                 elif model_class is FuelDelivery:
                     assert_can_modify(profile, values["site"])
                     _calculate_fuel_delivery_values(values, record)
