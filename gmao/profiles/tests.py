@@ -229,40 +229,65 @@ class GeneratorPmCalculationTests(SimpleTestCase):
             })
 
 class FuelCalculationTests(SimpleTestCase):
-    def test_calculates_litres_per_hour_and_grid_availability(self):
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("24"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("100"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
+    def test_calculates_automatic_values_litres_per_hour_and_grid_availability(self, previous_stock, deliveries, generator_hours):
         values = _calculate_fuel_values({
             "site": "Goma",
             "periode": "2026-01",
             "sortie": Decimal("300"),
-            "heures_ge": Decimal("24"),
             "snel_kwh": Decimal("4500"),
         })
 
+        self.assertEqual(values["stock_initial"], Decimal("500"))
+        self.assertEqual(values["entree"], Decimal("100"))
+        self.assertEqual(values["stock_final"], Decimal("300"))
+        self.assertEqual(values["heures_ge"], Decimal("24"))
         self.assertEqual(values["litres_heure"], Decimal("12.500"))
         self.assertEqual(values["disponibilite_grid"], Decimal("96.77"))
 
-    def test_no_grid_sites_have_zero_availability_and_no_snel(self):
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("10"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("0"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
+    def test_no_grid_sites_have_zero_availability_and_no_snel(self, previous_stock, deliveries, generator_hours):
         values = _calculate_fuel_values({
             "site": "Kikwit",
             "periode": "2026-01",
             "sortie": Decimal("100"),
-            "heures_ge": Decimal("10"),
             "snel_kwh": Decimal("999"),
         })
 
         self.assertEqual(values["disponibilite_grid"], Decimal("0"))
         self.assertIsNone(values["snel_kwh"])
 
-    def test_positive_consumption_with_zero_hours_is_not_calculable(self):
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("0"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("0"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
+    def test_positive_consumption_with_zero_hours_is_not_calculable(self, previous_stock, deliveries, generator_hours):
         values = _calculate_fuel_values({
             "site": "Pigeon",
             "periode": "2026-05",
-            "sortie": Decimal("2533"),
-            "heures_ge": Decimal("0"),
+            "sortie": Decimal("253"),
             "snel_kwh": Decimal("320544"),
         })
 
         self.assertIsNone(values["litres_heure"])
+
+    @patch("profiles.records._generator_hours_total", return_value=None)
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("0"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
+    def test_rejects_save_when_generator_hours_cannot_be_calculated(self, previous_stock, deliveries, generator_hours):
+        with self.assertRaises(ValidationError):
+            _calculate_fuel_values({"site": "Goma", "periode": "2026-02", "sortie": Decimal("10")})
+
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("20"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("100"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("50"))
+    def test_rejects_consumption_that_makes_automatic_final_stock_negative(self, previous_stock, deliveries, generator_hours):
+        with self.assertRaises(ValidationError) as error:
+            _calculate_fuel_values({"site": "Goma", "periode": "2026-02", "sortie": Decimal("151")})
+        self.assertIn("stock final négatif", str(error.exception))
 
 class FuelAutomaticInputsTests(SimpleTestCase):
     @patch("profiles.records.FuelDelivery.objects")

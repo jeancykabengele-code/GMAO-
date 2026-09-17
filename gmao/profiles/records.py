@@ -198,35 +198,48 @@ def _calculate_fuel_values(values, record=None):
     site = values.get("site", getattr(record, "site", None))
     periode = values.get("periode", getattr(record, "periode", None))
     sortie = values.get("sortie", getattr(record, "sortie", None))
-    heures_ge = values.get("heures_ge", getattr(record, "heures_ge", None))
-    if not periode or not re.fullmatch(r"\d{4}-\d{2}", periode):
-        raise ValidationError("La période doit être au format AAAA-MM.")
-    try:
-        year, month = (int(value) for value in periode.split("-"))
-        month_hours = Decimal(calendar.monthrange(year, month)[1] * 24)
-    except (ValueError, calendar.IllegalMonthError) as error:
-        raise ValidationError("La période est invalide.") from error
-    if sortie is None or heures_ge is None:
-        raise ValidationError("La consommation et les heures GE sont obligatoires.")
-    if sortie < 0 or heures_ge < 0:
-        raise ValidationError("La consommation et les heures GE ne peuvent pas être négatives.")
-    for field_name, label in (
-        ("stock_initial", "Le stock initial"),
-        ("entree", "Le volume reçu"),
-        ("stock_final", "Le stock final"),
-    ):
-        field_value = values.get(field_name, getattr(record, field_name, None))
-        if field_value is not None and field_value < 0:
-            raise ValidationError(f"{label} ne peut pas être négatif.")
-    if heures_ge > 0:
-        values["litres_heure"] = (sortie / heures_ge).quantize(Decimal("0.001"))
+    if not site:
+        raise ValidationError("Le site est obligatoire.")
+    _fuel_period_bounds(periode)
+    if sortie is None:
+        raise ValidationError("La consommation est obligatoire.")
+    if sortie < 0:
+        raise ValidationError("La consommation ne peut pas être négative.")
+
+    previous_stock = _previous_fuel_final_stock(site, periode)
+    if previous_stock is None:
+        stock_initial = values.get("stock_initial", getattr(record, "stock_initial", None))
+        if stock_initial is None:
+            raise ValidationError("Le stock initial doit être défini pour le premier mois du site.")
+    else:
+        stock_initial = previous_stock
+    if stock_initial < 0:
+        raise ValidationError("Le stock initial ne peut pas être négatif.")
+
+    hours_ge = _generator_hours_total(site, periode)
+    if hours_ge is None:
+        raise ValidationError("Les relevés RH du mois et du mois précédent sont nécessaires pour calculer les heures GE.")
+
+    entree = _fuel_deliveries_total(site, periode)
+    stock_final = stock_initial + entree - sortie
+    if stock_final < 0:
+        raise ValidationError("La consommation ne peut pas rendre le stock final négatif.")
+
+    values["stock_initial"] = stock_initial
+    values["entree"] = entree
+    values["heures_ge"] = hours_ge
+    values["stock_final"] = stock_final
+    if hours_ge > 0:
+        values["litres_heure"] = (sortie / hours_ge).quantize(Decimal("0.001"))
     else:
         values["litres_heure"] = Decimal("0") if sortie == 0 else None
     if site in NO_GRID_SITES:
         values["snel_kwh"] = None
         values["disponibilite_grid"] = Decimal("0")
     else:
-        availability = (Decimal("1") - (heures_ge / month_hours)) * Decimal("100")
+        year, month = (int(value) for value in periode.split("-"))
+        month_hours = Decimal(calendar.monthrange(year, month)[1] * 24)
+        availability = (Decimal("1") - (hours_ge / month_hours)) * Decimal("100")
         values["disponibilite_grid"] = max(Decimal("0"), min(Decimal("100"), availability)).quantize(Decimal("0.01"))
     return values
 
