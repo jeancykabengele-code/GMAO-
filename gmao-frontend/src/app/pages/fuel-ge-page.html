@@ -46,20 +46,27 @@
     <form (ngSubmit)="saveEntry()">
       <label><span>Site</span><select name="site" [(ngModel)]="newEntry.site" (ngModelChange)="changeSite()" required><option value="" disabled>Sélectionner un site</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
       <label><span>Mois et année</span><input name="periode" type="month" [(ngModel)]="newEntry.periode" required /></label>
-      <label><span>Stock initial du site (L)</span><input name="stockInitial" type="number" min="0" step="0.001" [(ngModel)]="newEntry.stockInitial" required /></label>
-      <label><span>Consommation (L)</span><input name="sortie" type="number" min="0" step="0.001" [(ngModel)]="newEntry.sortie" required /></label>
-      <label><span>Stock final du site (L)</span><input name="stockFinal" type="number" min="0" step="0.001" [(ngModel)]="newEntry.stockFinal" required /></label>
-      <label><span>Heures GE</span><input name="heuresGe" type="number" min="0" step="0.01" [(ngModel)]="newEntry.heuresGe" required /></label>
-      @if (isNoGridSite(newEntry.site)) {
-        <div class="no-grid-message full-width"><i class="bi bi-info-circle"></i><span>Ce site ne dispose pas de la SNEL : kWh non applicable et disponibilité Grid fixée à 0 %.</span></div>
-      } @else {
-        <label class="full-width"><span>SNEL kWh</span><input name="snelKwh" type="number" min="0" step="0.01" [(ngModel)]="newEntry.snelKwh" required /></label>
+      @if (isInitialFuelMonth && canSetInitialStock) {
+        <label class="full-width"><span>Stock de départ du site (L)</span><input name="stockInitial" type="number" min="0" step="0.001" [(ngModel)]="newEntry.stockInitial" required /></label>
+      } @else if (isInitialFuelMonth) {
+        <div class="no-grid-message full-width"><i class="bi bi-info-circle"></i><span>Le stock de départ du premier mois doit être défini par le Manager ou le Chef des opérations.</span></div>
       }
-      <div class="calculated-values full-width">
-        <span>Consommation<strong>{{ calculatedLitresPerHour === null ? 'Non calculable' : (calculatedLitresPerHour | number:'1.0-3':'fr') + ' L/h' }}</strong></span>
-        <span>Disponibilité Grid<strong>{{ calculatedGridAvailability | number:'1.0-2':'fr' }} %</strong></span>
+      <label><span>Consommation Fuel (L)</span><input name="sortie" type="number" min="0" step="0.001" [(ngModel)]="newEntry.sortie" required /></label>
+      @if (isNoGridSite(newEntry.site)) {
+        <div class="no-grid-message"><i class="bi bi-info-circle"></i><span>SNEL non applicable pour ce site.</span></div>
+      } @else {
+        <label><span>kWh SNEL</span><input name="snelKwh" type="number" min="0" step="0.01" [(ngModel)]="newEntry.snelKwh" required /></label>
+      }
+      <div class="calculated-values full-width" aria-label="Valeurs calculées automatiquement">
+        <span>Stock initial<strong>{{ calculatedStockInitial === null ? 'À définir' : (calculatedStockInitial | number:'1.0-3':'fr') + ' L' }}</strong></span>
+        <span>Ravitaillements<strong>{{ calculatedEntries | number:'1.0-3':'fr' }} L</strong></span>
+        <span>Heures GE<strong>{{ calculatedGeneratorHours === null ? 'Relevés RH manquants' : (calculatedGeneratorHours | number:'1.0-2':'fr') + ' h' }}</strong></span>
+        <span>Litres / heure<strong>{{ calculatedLitresPerHour === null ? 'Non calculable' : (calculatedLitresPerHour | number:'1.0-3':'fr') + ' L/h' }}</strong></span>
+        <span>Disponibilité Grid<strong>{{ calculatedGridAvailability === null ? 'Non calculable' : (calculatedGridAvailability | number:'1.0-2':'fr') + ' %' }}</strong></span>
+        <span>Stock final<strong>{{ calculatedStockFinal === null ? 'Non calculable' : (calculatedStockFinal | number:'1.0-3':'fr') + ' L' }}</strong></span>
       </div>
-      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre à jour' }}</button></div>
+      @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }
+      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="isInitialFuelMonth && !canSetInitialStock"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre à jour' }}</button></div>
     </form>
   </aside>
 }

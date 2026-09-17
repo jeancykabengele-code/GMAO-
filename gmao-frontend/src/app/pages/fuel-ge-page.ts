@@ -76,6 +76,7 @@ export class FuelGePageComponent {
   selectedPeriod = '';
   searchTerm = '';
   editingIndex: number | null = null;
+    formError = '';
   newEntry: MonthlyJournalRow = this.createEmptyEntry();
 
   get filteredRows(): MonthlyJournalRow[] {
@@ -94,21 +95,72 @@ export class FuelGePageComponent {
     return this.filteredRows.slice(start, start + this.rowsPerPage);
   }
 
+  get canSetInitialStock(): boolean { return this.canModify; }
+
+  get isInitialFuelMonth(): boolean {
+    if (!this.newEntry.site || !this.newEntry.periode) return false;
+    const currentId = this.editingIndex === null ? undefined : this.journalRows[this.editingIndex]?.id;
+    return !this.journalRows.some(row => row.site === this.newEntry.site && row.id !== currentId);
+  }
+
+  get previousStockFinal(): number | null {
+    if (!this.newEntry.site || !this.newEntry.periode) return null;
+    const currentId = this.editingIndex === null ? undefined : this.journalRows[this.editingIndex]?.id;
+    const previous = this.journalRows
+      .filter(row => row.site === this.newEntry.site && row.id !== currentId && row.periode < this.newEntry.periode)
+      .sort((a, b) => b.periode.localeCompare(a.periode))[0];
+    return previous?.stockFinal ?? null;
+  }
+
+  get calculatedStockInitial(): number | null {
+    if (this.previousStockFinal !== null) return this.previousStockFinal;
+    return this.isInitialFuelMonth || this.editingIndex !== null ? this.newEntry.stockInitial : null;
+  }
+
+  get calculatedEntries(): number {
+    if (!this.newEntry.site || !this.newEntry.periode) return 0;
+    return (this.dataStore.fuelDeliveryRows as Array<{ site?: string; dateRavitaillement?: string; quantiteRecue?: number }>)
+      .filter(row => row.site === this.newEntry.site && row.dateRavitaillement?.startsWith(this.newEntry.periode))
+      .reduce((total, row) => total + Number(row.quantiteRecue ?? 0), 0);
+  }
+
+  get calculatedGeneratorHours(): number | null {
+    if (!this.newEntry.site || !this.newEntry.periode) return null;
+    const rows = this.dataStore.generatorRows as Array<{ site?: string; code?: string; moisReleve?: string; rhActuel?: number }>;
+    const currentRows = rows.filter(row => row.site === this.newEntry.site && row.moisReleve === this.newEntry.periode);
+    if (!currentRows.length) return null;
+    let total = 0;
+    for (const current of currentRows) {
+      const previous = rows
+        .filter(row => row.site === this.newEntry.site && row.code === current.code && !!row.moisReleve && row.moisReleve < this.newEntry.periode)
+        .sort((a, b) => String(b.moisReleve).localeCompare(String(a.moisReleve)))[0];
+      if (!previous || Number(current.rhActuel) < Number(previous.rhActuel)) return null;
+      total += Number(current.rhActuel) - Number(previous.rhActuel);
+    }
+    return total;
+  }
+
+  get calculatedStockFinal(): number | null {
+    const initial = this.calculatedStockInitial;
+    return initial === null ? null : initial + this.calculatedEntries - Number(this.newEntry.sortie || 0);
+  }
+
   get calculatedLitresPerHour(): number | null {
-    const hours = Number(this.newEntry.heuresGe || 0);
+    const hours = this.calculatedGeneratorHours;
     const consumption = Number(this.newEntry.sortie || 0);
+    if (hours === null) return null;
     if (hours > 0) return consumption / hours;
     return consumption === 0 ? 0 : null;
   }
 
-  get calculatedGridAvailability(): number {
+  get calculatedGridAvailability(): number | null {
     if (this.isNoGridSite(this.newEntry.site)) return 0;
+    const hours = this.calculatedGeneratorHours;
     const [year, month] = this.newEntry.periode.split('-').map(Number);
-    if (!year || !month) return 0;
+    if (hours === null || !year || !month) return null;
     const monthHours = new Date(year, month, 0).getDate() * 24;
-    return Math.max(0, Math.min(100, (1 - Number(this.newEntry.heuresGe || 0) / monthHours) * 100));
+    return Math.max(0, Math.min(100, (1 - hours / monthHours) * 100));
   }
-
   get sheetTitle(): string {
     return this.editingIndex === null ? 'Renseigner le journal mensuel' : 'Modifier la ligne du journal';
   }
@@ -138,6 +190,7 @@ export class FuelGePageComponent {
   openSheet(): void {
     this.editingIndex = null;
     this.newEntry = this.createEmptyEntry();
+    this.formError = '';
     this.sheetOpen = true;
   }
 
@@ -151,33 +204,43 @@ export class FuelGePageComponent {
   }
 
   async saveEntry(): Promise<void> {
-    const entry: MonthlyJournalRow = {
-      ...this.newEntry,
-      sortie: Number(this.newEntry.sortie),
-      stockInitial: Number(this.newEntry.stockInitial),
-      stockFinal: Number(this.newEntry.stockFinal),
-      heuresGe: Number(this.newEntry.heuresGe),
-      litresHeure: this.calculatedLitresPerHour === null ? null : Number(this.calculatedLitresPerHour.toFixed(3)),
-      snelKwh: this.isNoGridSite(this.newEntry.site) ? null : Number(this.newEntry.snelKwh || 0),
-      disponibiliteGrid: Number(this.calculatedGridAvailability.toFixed(2)),
-    };
-    if (this.editingIndex === null) {
-      await this.dataStore.createRecord('fuel-ge', entry);
-    } else {
-      await this.dataStore.updateRecord('fuel-ge', this.journalRows[this.editingIndex], entry);
+    this.formError = '';
+    if (this.isInitialFuelMonth && !this.canSetInitialStock) {
+      this.formError = 'Le stock de départ du premier mois doit être défini par le Manager ou le Chef des opérations.';
+      return;
     }
-    this.selectedSite = '';
-    this.selectedPeriod = '';
-    this.searchTerm = '';
-    this.currentPage = 1;
-    this.journalOpen = true;
-    this.closeSheet();
-    this.cdr?.markForCheck();
+    if (this.isInitialFuelMonth && (this.newEntry.stockInitial === null || Number(this.newEntry.stockInitial) < 0)) {
+      this.formError = 'Le stock de départ est obligatoire pour le premier mois du site.';
+      return;
+    }
+    const entry: Record<string, unknown> = {
+      site: this.newEntry.site,
+      periode: this.newEntry.periode,
+      sortie: Number(this.newEntry.sortie),
+      snelKwh: this.isNoGridSite(this.newEntry.site) ? null : Number(this.newEntry.snelKwh || 0),
+    };
+    if (this.isInitialFuelMonth) entry['stockInitial'] = Number(this.newEntry.stockInitial);
+    try {
+      if (this.editingIndex === null) {
+        await this.dataStore.createRecord('fuel-ge', entry);
+      } else {
+        await this.dataStore.updateRecord('fuel-ge', this.journalRows[this.editingIndex], entry);
+      }
+      this.selectedSite = '';
+      this.selectedPeriod = '';
+      this.searchTerm = '';
+      this.currentPage = 1;
+      this.journalOpen = true;
+      this.closeSheet();
+      this.cdr?.markForCheck();
+    } catch {
+      this.formError = 'Enregistrement impossible. Vérifiez les relevés RH et les données du mois.';
+    }
   }
-
   editEntry(row: MonthlyJournalRow): void {
     this.editingIndex = this.journalRows.indexOf(row);
     this.newEntry = { ...row };
+    this.formError = '';
     this.sheetOpen = true;
   }
 
@@ -187,7 +250,7 @@ export class FuelGePageComponent {
 
   private createEmptyEntry(): MonthlyJournalRow {
     return {
-      site: '', periode: '', sortie: 0, stockInitial: 0, stockFinal: 0, heuresGe: 0, litresHeure: 0,
+      site: '', periode: '', sortie: 0, stockInitial: null, stockFinal: null, heuresGe: 0, litresHeure: null,
       snelKwh: 0, disponibiliteGrid: 0,
     };
   }
