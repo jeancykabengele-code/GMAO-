@@ -66,16 +66,17 @@ class PermissionPolicyTests(SimpleTestCase):
             self.assertTrue(permissions.view_documentation)
             self.assertTrue(permissions.create_records)
             self.assertTrue(permissions.modify_existing)
-            self.assertFalse(permissions.delete_records)
+            self.assertTrue(permissions.delete_records)
             assert_site_access(profile, "Utex")
             assert_can_create(profile, "Utex")
             assert_can_modify(profile, "Utex")
             assert_global_page_access(profile)
 
-    def test_deletion_is_forbidden_for_every_role(self):
-        for role in ("manager", "charge_operations", "chef_site"):
-            with self.assertRaises(PermissionDeniedError):
-                assert_can_delete(SimpleNamespace(role=role, site="Goma"))
+    def test_only_global_roles_can_delete_business_records(self):
+        for role in ("manager", "charge_operations"):
+            assert_can_delete(SimpleNamespace(role=role, site=None))
+        with self.assertRaises(PermissionDeniedError):
+            assert_can_delete(SimpleNamespace(role="chef_site", site="Goma"))
 
     def test_only_global_roles_can_delete_equipment(self):
         for role in ("manager", "charge_operations"):

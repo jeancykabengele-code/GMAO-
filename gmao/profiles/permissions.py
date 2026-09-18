@@ -45,7 +45,7 @@ def build_permissions(profile: UserProfile) -> GmaoPermissions:
         view_documentation=is_global,
         create_records=True,
         modify_existing=is_global,
-        delete_records=False,
+        delete_records=is_global,
         allowed_sites=[site for site in allowed_sites if site],
     )
 
@@ -71,7 +71,8 @@ def assert_can_delete_equipment(profile: UserProfile) -> None:
 
 
 def assert_can_delete(profile: UserProfile) -> None:
-    raise PermissionDeniedError("La suppression des fiches GMAO est interdite.")
+    if profile.role not in GLOBAL_ROLES:
+        raise PermissionDeniedError("Seuls le Manager GMAO et le Chargé des opérations peuvent supprimer une fiche.")
 
 
 def assert_can_delete_fuel_record(profile: UserProfile) -> None:
