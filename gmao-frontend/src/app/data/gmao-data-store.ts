@@ -31,6 +31,7 @@ export class GmaoDataStore {
   get canModifyExisting(): boolean { return this.access?.canModifyExisting ?? true; }
   get canExportData(): boolean { return this.access?.canExportData ?? true; }
   get canUpdateGenerators(): boolean { return this.canModifyExisting || (this.access?.isChefSite ?? false); }
+  get isChefSite(): boolean { return this.access?.isChefSite ?? false; }
 
   get equipmentRows(): unknown[] { return this.read(this.equipmentData()); }
   set equipmentRows(value: unknown[]) { this.equipmentData.set(this.write(this.equipmentData(), value)); }

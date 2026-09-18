@@ -430,6 +430,8 @@ def record_collection(request, resource):
             with transaction.atomic():
                 if model_class is Equipment:
                     values["code"] = _generate_equipment_code(values["site"])
+                elif model_class is DatacenterProblem and profile.role not in GLOBAL_ROLES:
+                    values["statut"] = "Open"
                 elif model_class is GeneratorRecord:
                     _calculate_generator_values(values)
                 elif model_class is FuelRecord:

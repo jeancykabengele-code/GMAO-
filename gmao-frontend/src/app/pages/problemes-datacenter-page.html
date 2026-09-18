@@ -206,7 +206,7 @@
       <label>
         <span>Statut</span>
         <select name="statut" [(ngModel)]="newProblem.statut">
-          @for (status of statuses; track status) { <option [value]="status">{{ status }}</option> }
+          @for (status of allowedStatuses; track status) { <option [value]="status">{{ status }}</option> }
         </select>
       </label>
 

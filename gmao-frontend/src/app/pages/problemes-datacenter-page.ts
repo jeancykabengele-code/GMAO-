@@ -38,6 +38,7 @@ export class ProblemesDatacenterPageComponent {
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly statuses: ProblemStatus[] = ['Open', 'Ongoing', 'Closed'];
   readonly priorities: ProblemPriority[] = ['P1', 'P2', 'P3'];
+  get allowedStatuses(): ProblemStatus[] { return this.dataStore.isChefSite ? ['Open'] : this.statuses; }
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
