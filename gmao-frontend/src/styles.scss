@@ -114,3 +114,9 @@ table tbody td > strong {
 tr.notification-target-row > td {
   animation: notification-row-pulse 5s ease-out;
 }
+
+/* Les valeurs de données restent sobres et lisibles dans chaque tableau. */
+table tbody td,
+table tbody td * {
+  color: #252525 !important;
+}
