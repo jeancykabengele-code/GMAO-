@@ -12,7 +12,7 @@ SITE_MAP = {
     "DC BUKAVU": "Bukavu", "DC FIKIN": "Fikin", "DC GOMA": "Goma",
     "DC KIKWIT": "Kikwit", "DC KISANGANI": "Kisangani", "DC MATADI": "Matadi",
     "DC MBANDAKA": "Mbandaka", "DC MBUJI-MAYI": "Mbuji mayi", "DC NEW MTC": "New MTC",
-    "DC OLD MTC": "MTC", "DC PIGEON": "Pigeon", "DC TSHONDO": "Tshondo",
+    "DC OLD MTC": "MTC", "DC PIGEON": "Pigeon", "DC TSHONDO": "Katanga",
     "UTEX DATA CENTER": "Utex",
 }
 
@@ -49,11 +49,22 @@ def main():
                     continue
                 month = int(delivery["month"])
                 delivery_date = date(2026, month, calendar.monthrange(2026, month)[1])
-                comment = f"Import historique Excel 2026-{month:02d}. Date technique : dernier jour du mois."
+                comment = ""
                 prepared.append((site, delivery_date, Decimal(str(delivery["quantity"])), comment, actor[0]))
-            cursor.execute("select site, date_ravitaillement, commentaires from public.gmao_fuel_ravitaillements where commentaires like 'Import historique Excel 2026-%'")
-            existing = {(site, day, comment) for site, day, comment in cursor.fetchall()}
-            to_insert = [row for row in prepared if (row[0], row[1], row[3]) not in existing]
+            cursor.execute(
+                """
+                select site, date_ravitaillement, quantite_recue
+                from public.gmao_fuel_ravitaillements
+                where fournisseur = 'Non renseigné'
+                  and bon_livraison = 'Non renseigné'
+                  and type_carburant = 'Diesel'
+                  and stock_avant is null
+                  and stock_apres is null
+                  and commentaires = ''
+                """
+            )
+            existing = {(site, day, quantity) for site, day, quantity in cursor.fetchall()}
+            to_insert = [row for row in prepared if (row[0], row[1], row[2]) not in existing]
             print(f"Préparés : {len(prepared)} | déjà présents : {len(prepared) - len(to_insert)} | à créer : {len(to_insert)} | ignorés (site absent) : {len(skipped_sites)}")
             if skipped_sites:
                 print("Sites ignorés : " + ", ".join(sorted(set(skipped_sites))))
