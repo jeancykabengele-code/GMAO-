@@ -77,7 +77,8 @@ export class FuelGePageComponent {
   selectedPeriod = '';
   searchTerm = '';
   editingIndex: number | null = null;
-    formError = '';
+  pendingDeletion: MonthlyJournalRow | null = null;
+  formError = '';
   newEntry: MonthlyJournalRow = this.createEmptyEntry();
 
   get filteredRows(): MonthlyJournalRow[] {
@@ -251,6 +252,30 @@ export class FuelGePageComponent {
     this.sheetOpen = true;
   }
 
+  requestDeletion(): void {
+    const row = this.editingIndex === null ? null : this.journalRows[this.editingIndex];
+    if (row) this.pendingDeletion = row;
+  }
+
+  cancelDeletion(): void { this.pendingDeletion = null; }
+
+  async confirmDeletion(): Promise<void> {
+    const row = this.pendingDeletion;
+    if (!row) return;
+    this.pendingDeletion = null;
+    try {
+      await this.dataStore.deleteRecord('fuel-ge', row);
+      this.selectedSite = '';
+      this.selectedPeriod = '';
+      this.searchTerm = '';
+      this.currentPage = 1;
+      this.closeSheet();
+    } catch {
+      this.formError = 'Suppression impossible : ce journal est nécessaire au calcul des mois suivants.';
+    } finally {
+      this.cdr?.markForCheck();
+    }
+  }
   previousPage(): void { if (this.currentPage > 1) this.currentPage--; }
   nextPage(): void { if (this.currentPage < this.pageCount) this.currentPage++; }
   isNoGridSite(site: string): boolean { return this.noGridSites.has(site); }

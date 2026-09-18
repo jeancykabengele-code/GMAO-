@@ -30,6 +30,7 @@ from .permissions import (
     assert_can_create,
     assert_can_delete,
     assert_can_delete_equipment,
+    assert_can_delete_fuel_record,
     assert_can_modify,
     assert_site_access,
 )
@@ -521,12 +522,15 @@ def record_detail(request, resource, record_id):
                     notify_generator_alert(profile, record)
             return JsonResponse(_serialize(record))
         if request.method == "DELETE":
-            if model_class is not Equipment:
+            if model_class is Equipment:
+                assert_can_delete_equipment(profile)
+            elif model_class is FuelRecord:
+                assert_can_delete_fuel_record(profile)
+            else:
                 assert_can_delete(profile)
-            assert_can_delete_equipment(profile)
             deleted_id = str(record.id)
             deleted_site = record.site
-            deleted_period = record.periode if model_class is GeneratorFuelConsumption else None
+            deleted_period = record.periode if model_class in {GeneratorFuelConsumption, FuelRecord} else None
             record.delete()
             if deleted_period:
                 _recalculate_fuel_records(deleted_site, deleted_period, profile.id)

@@ -74,6 +74,11 @@ def assert_can_delete(profile: UserProfile) -> None:
     raise PermissionDeniedError("La suppression des fiches GMAO est interdite.")
 
 
+def assert_can_delete_fuel_record(profile: UserProfile) -> None:
+    if profile.role not in GLOBAL_ROLES:
+        raise PermissionDeniedError("Seuls le Manager GMAO et le Chargé des opérations peuvent supprimer une ligne Fuel-GE.")
+
+
 def assert_global_page_access(profile: UserProfile) -> None:
     if profile.role not in GLOBAL_ROLES:
         raise PermissionDeniedError("Cette page est réservée au Manager GMAO et au Chargé des opérations.")

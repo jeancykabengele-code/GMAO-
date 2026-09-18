@@ -24,6 +24,7 @@ from .permissions import (
     assert_can_create,
     assert_can_delete,
     assert_can_delete_equipment,
+    assert_can_delete_fuel_record,
     assert_can_modify,
     assert_global_page_access,
     assert_site_access,
@@ -81,6 +82,11 @@ class PermissionPolicyTests(SimpleTestCase):
             assert_can_delete_equipment(SimpleNamespace(role=role, site=None))
         with self.assertRaises(PermissionDeniedError):
             assert_can_delete_equipment(SimpleNamespace(role="chef_site", site="Goma"))
+    def test_only_global_roles_can_delete_fuel_ge(self):
+        for role in ("manager", "charge_operations"):
+            assert_can_delete_fuel_record(SimpleNamespace(role=role, site=None))
+        with self.assertRaises(PermissionDeniedError):
+            assert_can_delete_fuel_record(SimpleNamespace(role="chef_site", site="Goma"))
 
 class ProfileDeletionSafetyTests(SimpleTestCase):
     def setUp(self):

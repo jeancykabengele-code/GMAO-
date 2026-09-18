@@ -71,6 +71,7 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - Le premier stock de départ est défini une seule fois par le Manager ou le Chargé des opérations.
 - Toute modification d’un ravitaillement, d’un relevé RH GE ou d’un ancien journal recalcule les journaux Fuel-GE dépendants du même site.
 - Les champs calculés sont protégés : l’API refuse toute modification manuelle de ces valeurs.
+- Le Manager et le Chargé des opérations peuvent supprimer une ligne Fuel-GE depuis le formulaire de modification. Les mois suivants sont recalculés ; la suppression est refusée si elle rend un stock de départ incohérent.
 
 ### Consommation par groupe GE
 
