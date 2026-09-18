@@ -70,6 +70,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   }
 
   get canUpdate(): boolean { return this.dataStore.canUpdateGenerators; }
+  get canDelete(): boolean { return this.dataStore.canModifyExisting; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
 
   tableVisible = true;
@@ -78,7 +79,9 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   selectingGenerator = false;
   selectedGeneratorKey = '';
   saving = false;
+  deleting = false;
   saveError = '';
+  deleteConfirmationOpen = false;
   editingRow: GeneratorRow | null = null;
   newGenerator: GeneratorRow = this.createEmptyGenerator();
 
@@ -272,6 +275,34 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     }
   }
 
+  requestDeletion(): void {
+    if (!this.editingRow || this.saving || this.deleting) return;
+    this.deleteConfirmationOpen = true;
+  }
+
+  cancelDeletion(): void {
+    if (!this.deleting) this.deleteConfirmationOpen = false;
+  }
+
+  async deleteGenerator(): Promise<void> {
+    if (!this.editingRow || this.deleting) return;
+    this.deleting = true;
+    this.saveError = '';
+    try {
+      await this.dataStore.deleteRecord('groupes-electrogenes', this.editingRow);
+      this.deleteConfirmationOpen = false;
+      this.sheetOpen = false;
+      this.editingRow = null;
+      this.selectingGenerator = false;
+      if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+    } catch (error) {
+      this.deleteConfirmationOpen = false;
+      this.saveError = error instanceof Error ? error.message : 'La suppression du groupe électrogène a échoué.';
+    } finally {
+      this.deleting = false;
+      this.cdr?.markForCheck();
+    }
+  }
   async refresh(): Promise<void> {
     await this.dataStore.refreshResource('groupes-electrogenes');
     if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;

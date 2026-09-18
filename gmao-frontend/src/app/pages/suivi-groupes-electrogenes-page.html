@@ -74,7 +74,23 @@
       </div>
 
       @if (saveError) { <p class="form-error full-width">{{ saveError }}</p> }
-      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="saving"><i class="bi bi-check-lg"></i> {{ saving ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
+      <div class="sheet-actions full-width">
+        @if (canDelete && !selectingGenerator) { <button type="button" class="delete-button" [disabled]="saving || deleting" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }
+        <button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button>
+        <button type="submit" class="primary-button" [disabled]="saving || deleting"><i class="bi bi-check-lg"></i> {{ saving ? 'Enregistrement…' : 'Enregistrer' }}</button>
+      </div>
     </form>
   </aside>
+}
+@if (deleteConfirmationOpen) {
+  <div class="confirmation-backdrop">
+    <section class="confirmation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-generator-title">
+      <h2 id="delete-generator-title">Supprimer ce groupe ?</h2>
+      <p>Le groupe <strong>{{ editingRow?.code }}</strong> et son relevé seront supprimés définitivement.</p>
+      <div class="confirmation-actions">
+        <button type="button" class="secondary-button" [disabled]="deleting" (click)="cancelDeletion()">Annuler</button>
+        <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteGenerator()"><i class="bi bi-trash"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>
+      </div>
+    </section>
+  </div>
 }
