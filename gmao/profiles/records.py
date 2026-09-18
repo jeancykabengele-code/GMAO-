@@ -31,6 +31,7 @@ from .permissions import (
     assert_can_delete,
     assert_can_delete_equipment,
     assert_can_delete_fuel_record,
+    assert_can_delete_ticket,
     assert_can_modify,
     assert_site_access,
 )

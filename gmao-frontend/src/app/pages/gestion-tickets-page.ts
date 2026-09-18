@@ -87,6 +87,9 @@ export class GestionTicketsPageComponent {
   selectedNature: TicketNature | '' = '';
   searchTerm = '';
   ticketSheetOpen = false;
+  editingTicket: Ticket | null = null;
+  pendingDeletion: Ticket | null = null;
+  formError = '';
   newTicket: Ticket = this.createEmptyTicket();
 
   get filteredTicketRows(): Ticket[] {
@@ -187,22 +190,54 @@ export class GestionTicketsPageComponent {
   }
 
   openTicketSheet(): void {
+    this.editingTicket = null;
     this.newTicket = this.createEmptyTicket();
+    this.formError = '';
     this.ticketSheetOpen = true;
   }
 
   closeTicketSheet(): void {
     this.ticketSheetOpen = false;
+    this.editingTicket = null;
   }
 
   async saveTicket(): Promise<void> {
-    await this.dataStore.createRecord('tickets', { ...this.newTicket });
-    this.selectedSite = '';
-    this.selectedNature = '';
-    this.searchTerm = '';
-    this.ticketPage = 1;
-    this.ticketSheetOpen = false;
-    this.newTicket = this.createEmptyTicket();
+    this.formError = '';
+    try {
+      if (this.editingTicket) await this.dataStore.updateRecord('tickets', this.editingTicket, { ...this.newTicket });
+      else await this.dataStore.createRecord('tickets', { ...this.newTicket });
+      this.selectedSite = '';
+      this.selectedNature = '';
+      this.searchTerm = '';
+      this.ticketPage = 1;
+      this.closeTicketSheet();
+      this.newTicket = this.createEmptyTicket();
+    } catch {
+      this.formError = 'Enregistrement impossible. Vérifiez les informations du ticket.';
+    }
+    this.cdr?.markForCheck();
+  }
+
+  editTicket(ticket: Ticket): void {
+    this.editingTicket = ticket;
+    this.newTicket = { ...ticket };
+    this.formError = '';
+    this.ticketSheetOpen = true;
+  }
+
+  requestDeletion(): void { if (this.editingTicket) this.pendingDeletion = this.editingTicket; }
+  cancelDeletion(): void { this.pendingDeletion = null; }
+  async confirmDeletion(): Promise<void> {
+    const ticket = this.pendingDeletion;
+    if (!ticket) return;
+    this.pendingDeletion = null;
+    try {
+      await this.dataStore.deleteRecord('tickets', ticket);
+      this.ticketPage = Math.min(this.ticketPage, this.ticketPageCount);
+      this.closeTicketSheet();
+    } catch {
+      this.formError = 'Suppression impossible.';
+    }
     this.cdr?.markForCheck();
   }
 

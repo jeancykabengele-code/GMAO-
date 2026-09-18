@@ -88,7 +88,7 @@
               <th scope="col">Porteur / agent</th>
               <th scope="col">Entreprise</th>
               <th scope="col">Motif</th>
-              <th scope="col">Description</th>
+              <th scope="col">Description</th>@if (canModify) { <th scope="col">Action</th> }
             </tr>
           </thead>
           <tbody>
@@ -102,7 +102,7 @@
                 <td>{{ ticket?.porteur }}</td>
                 <td>{{ ticket?.entreprise }}</td>
                 <td>{{ ticket?.motif }}</td>
-                <td>{{ ticket?.description }}</td>
+                <td>{{ ticket?.description }}</td>@if (canModify) { <td class="action-cell">@if (ticket) { <button type="button" class="row-action" (click)="editTicket(ticket)">Mise à jour</button> }</td> }
               </tr>
             }
           </tbody>
@@ -167,11 +167,11 @@
 
 @if (ticketSheetOpen) {
   <div class="sheet-backdrop" (click)="closeTicketSheet()"></div>
-  <aside class="ticket-sheet" aria-label="Renseigner un ticket">
+  <aside class="ticket-sheet" [attr.aria-label]="editingTicket ? 'Mettre à jour le ticket' : 'Renseigner un ticket'">
     <header>
       <div>
         
-        <h2>Renseigner le ticket</h2>
+        <h2>{{ editingTicket ? 'Mettre à jour le ticket' : 'Renseigner le ticket' }}</h2>
       </div>
       <button type="button" class="close-button" aria-label="Fermer" (click)="closeTicketSheet()">
         <i class="bi bi-x-lg"></i>
@@ -239,13 +239,23 @@
         <textarea name="description" rows="4" [(ngModel)]="newTicket.description"></textarea>
       </label>
 
+      @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }
       <div class="sheet-actions full-width">
+        @if (editingTicket) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }
         <button type="button" class="secondary-button" (click)="closeTicketSheet()">Annuler</button>
-        <button type="submit" class="primary-button">
-          <i class="bi bi-check-lg"></i>
-          Enregistrer le ticket
-        </button>
+        <button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingTicket ? 'Mettre à jour' : 'Enregistrer le ticket' }}</button>
       </div>
     </form>
   </aside>
+}
+
+@if (pendingDeletion) {
+  <div class="modal-backdrop" (click)="cancelDeletion()">
+    <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-ticket-title" (click)="$event.stopPropagation()">
+      <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <h2 id="delete-ticket-title">Supprimer ce ticket ?</h2>
+      <p>Le ticket {{ pendingDeletion.numero }} sera supprimé définitivement. Cette action est irréversible.</p>
+      <div class="confirm-actions"><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div>
+    </section>
+  </div>
 }
