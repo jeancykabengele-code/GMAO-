@@ -62,6 +62,8 @@ export class PuePageComponent {
   selectedSite = '';
   selectedMonth = '';
   editingIndex: number | null = null;
+  deleting = false;
+  deleteConfirmationOpen = false;
   newEntry: PueRecord = this.createEmptyEntry();
 
   get filteredRows(): PueRecord[] {
@@ -127,6 +129,7 @@ export class PuePageComponent {
   }
 
   closeSheet(): void {
+    if (this.deleting) return;
     this.sheetOpen = false;
     this.editingIndex = null;
   }
@@ -157,11 +160,28 @@ export class PuePageComponent {
     this.sheetOpen = true;
   }
 
-  deleteEntry(row: PueRecord): void {
-    this.pueRows = this.pueRows.filter((item) => item !== row);
+requestDeletion(): void {
+    if (this.editingIndex !== null && !this.deleting) this.deleteConfirmationOpen = true;
+  }
 
-    if (this.currentPage > this.pageCount) {
-      this.currentPage = this.pageCount;
+  cancelDeletion(): void {
+    if (!this.deleting) this.deleteConfirmationOpen = false;
+  }
+
+  async deleteEntry(): Promise<void> {
+    if (this.editingIndex === null || this.deleting) return;
+    const row = this.pueRows[this.editingIndex];
+    if (!row) return;
+    this.deleting = true;
+    try {
+      await this.dataStore.deleteRecord('pue', row);
+      this.deleteConfirmationOpen = false;
+      if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+      this.deleting = false;
+      this.closeSheet();
+    } finally {
+      this.deleting = false;
+      this.cdr?.markForCheck();
     }
   }
 

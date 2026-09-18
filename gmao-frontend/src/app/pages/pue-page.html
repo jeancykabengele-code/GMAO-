@@ -170,12 +170,25 @@
       </label>
 
       <div class="sheet-actions full-width">
-        <button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button>
-        <button type="submit" class="primary-button">
+        @if (editingIndex !== null) { <button type="button" class="delete-button" [disabled]="deleting" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }
+        <button type="button" class="secondary-button" [disabled]="deleting" (click)="closeSheet()">Annuler</button>
+        <button type="submit" class="primary-button" [disabled]="deleting">
           <i class="bi bi-check-lg"></i>
           {{ editingIndex === null ? 'Enregistrer' : 'Mettre &agrave; jour' }}
         </button>
       </div>
     </form>
   </aside>
+}
+@if (deleteConfirmationOpen) {
+  <div class="confirmation-backdrop">
+    <section class="confirmation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-pue-title">
+      <h2 id="delete-pue-title">Supprimer cette ligne PUE ?</h2>
+      <p>La mesure PUE de <strong>{{ newEntry.site }}</strong> pour <strong>{{ newEntry.mois }}</strong> sera supprimée définitivement.</p>
+      <div class="confirmation-actions">
+        <button type="button" class="secondary-button" [disabled]="deleting" (click)="cancelDeletion()">Annuler</button>
+        <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteEntry()"><i class="bi bi-trash"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>
+      </div>
+    </section>
+  </div>
 }
