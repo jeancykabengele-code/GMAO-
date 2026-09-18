@@ -328,10 +328,14 @@ def _calculate_fuel_delivery_values(values, record=None):
     quantity = values.get("quantite_recue", getattr(record, "quantite_recue", None))
     stock_before = values.get("stock_avant", getattr(record, "stock_avant", None))
     stock_after = values.get("stock_apres", getattr(record, "stock_apres", None))
-    if quantity is None or stock_before is None:
-        raise ValidationError("La quantité reçue et le stock avant livraison sont obligatoires.")
-    if quantity < 0 or stock_before < 0 or (stock_after is not None and stock_after < 0):
+    if quantity is None:
+        raise ValidationError("La quantité reçue est obligatoire.")
+    if quantity < 0 or (stock_before is not None and stock_before < 0) or (stock_after is not None and stock_after < 0):
         raise ValidationError("Les quantités et les stocks ne peuvent pas être négatifs.")
+    if stock_before is None:
+        values["stock_apres"] = None
+        values["difference_stock"] = False
+        return values
     calculated_after = stock_before + quantity
     if stock_after is None:
         stock_after = calculated_after

@@ -84,6 +84,7 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site.
+- Les imports historiques peuvent conserver les stocks avant/après à « Non renseigné » lorsqu’ils ne sont pas disponibles.
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
 - Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
@@ -468,6 +469,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site.
+- Les imports historiques peuvent conserver les stocks avant/après à « Non renseigné » lorsqu’ils ne sont pas disponibles.
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
 - Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.

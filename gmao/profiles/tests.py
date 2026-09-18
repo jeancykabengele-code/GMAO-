@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 
 from .records import (
-    _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _recalculate_fuel_records,
+    _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_delivery_values, _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _recalculate_fuel_records,
     _fuel_deliveries_total, _generator_fuel_consumption_total, _generator_hours_total, _next_equipment_code,
     _previous_fuel_final_stock,
 )
@@ -241,6 +241,18 @@ class GeneratorConsumptionControlTests(SimpleTestCase):
     def test_one_group_is_unique_per_site_and_month(self):
         from .models import GeneratorFuelConsumption
         self.assertIn(("site", "periode", "groupe_code"), GeneratorFuelConsumption._meta.unique_together)
+
+
+class HistoricalFuelDeliveryTests(SimpleTestCase):
+    def test_historical_delivery_can_keep_unknown_stocks_empty(self):
+        values = _calculate_fuel_delivery_values({
+            "quantite_recue": Decimal("1250.500"),
+            "stock_avant": None,
+            "stock_apres": None,
+        })
+
+        self.assertIsNone(values["stock_apres"])
+        self.assertFalse(values["difference_stock"])
 
 
 class FuelCalculationTests(SimpleTestCase):
