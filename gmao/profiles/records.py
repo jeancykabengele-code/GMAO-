@@ -527,6 +527,8 @@ def record_detail(request, resource, record_id):
                 assert_can_delete_equipment(profile)
             elif model_class is FuelRecord:
                 assert_can_delete_fuel_record(profile)
+            elif model_class is Ticket:
+                assert_can_delete_ticket(profile)
             else:
                 assert_can_delete(profile)
             deleted_id = str(record.id)
