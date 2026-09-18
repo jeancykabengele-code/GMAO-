@@ -474,3 +474,5 @@ th {
 .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
 .confirm-actions .secondary-button { background: #e8e8e8; color: #333; }
 .confirm-actions .danger-button { border: 0; border-radius: 8px; padding: 11px 16px; color: #fff; background: #b52d12; font: inherit; cursor: pointer; }
+.sheet-actions .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 54px; padding: 13px 22px; border: 0; border-radius: 14px; color: #fff; background: #d81b07; font: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; box-shadow: none; }
+.sheet-actions .danger-button:hover { background: #b81706; }
