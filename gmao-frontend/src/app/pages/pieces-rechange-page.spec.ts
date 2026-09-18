@@ -39,7 +39,7 @@ describe('PiecesRechangePageComponent', () => {
     expect(component.filteredRows[0].ticketNumber).toBe('T-2');
   });
 
-  it('supports pagination, editing while deletion remains forbidden', () => {
+  it('supports pagination, editing and deletion confirmation', () => {
     const component = new PiecesRechangePageComponent();
     component.operationRows = Array.from({ length: 21 }, (_, index) => ({
       site: 'Mtc', date: '2026-08-18', ticketNumber: `T-${index}`, equipement: 'GE',
@@ -59,8 +59,11 @@ describe('PiecesRechangePageComponent', () => {
     expect(component.operationRows[0].quantite).toBe(5);
     expect(component.operationRows[0].statut).toBe('Utilisee');
 
-    component.deleteOperation(component.operationRows[0]);
-    expect(component.operationRows).toHaveLength(21);
+    component.editOperation(component.operationRows[0]);
+    component.requestDeletion();
+    expect(component.pendingDeletion).toBe(component.operationRows[0]);
+    component.cancelDeletion();
+    expect(component.pendingDeletion).toBeNull();
   });
 
   it('keeps operations in the shared store and clears equipment when the site changes', () => {

@@ -11,7 +11,7 @@ describe('FuelGePageComponent', () => {
     const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Goma';
     component.newEntry.periode = '2026-01';
-    component.newEntry.sortie = 300;
+    store.generatorFuelConsumptionRows = [{ site: 'Goma', periode: '2026-01', consommationLitres: 300 }];
     component.newEntry.snelKwh = 4500;
 
     expect(component.calculatedGeneratorHours).toBe(24);
@@ -28,7 +28,7 @@ describe('FuelGePageComponent', () => {
     const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Kikwit';
     component.newEntry.periode = '2026-01';
-    component.newEntry.sortie = 100;
+    store.generatorFuelConsumptionRows = [{ site: 'Kikwit', periode: '2026-01', consommationLitres: 100 }];
     component.newEntry.snelKwh = 999;
 
     expect(component.calculatedGeneratorHours).toBe(10);
@@ -46,7 +46,7 @@ describe('FuelGePageComponent', () => {
     const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Goma';
     component.newEntry.periode = '2026-01';
-    component.newEntry.sortie = 150;
+    store.generatorFuelConsumptionRows = [{ site: 'Goma', periode: '2026-01', consommationLitres: 150 }];
     expect(component.calculatedLitresPerHour).toBeNull();
   });
 

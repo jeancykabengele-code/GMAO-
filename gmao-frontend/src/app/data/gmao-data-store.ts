@@ -40,6 +40,7 @@ export class GmaoDataStore {
   set generatorRows(value: unknown[]) { this.generatorData.set(this.write(this.generatorData(), value)); }
   get fuelRows(): unknown[] { return this.read(this.fuelData()); }
   get generatorFuelConsumptionRows(): unknown[] { return this.read(this.generatorFuelConsumptionData()); }
+  set generatorFuelConsumptionRows(value: unknown[]) { this.generatorFuelConsumptionData.set(this.write(this.generatorFuelConsumptionData(), value)); }
   get fuelDeliveryRows(): unknown[] { return this.read(this.fuelDeliveryData()); }
   set fuelRows(value: unknown[]) { this.fuelData.set(this.write(this.fuelData(), value)); }
   get fuelSummaryRows(): unknown[] { return this.readGlobal(this.fuelSummaryData()); }
