@@ -47,7 +47,7 @@ describe('PuePageComponent', () => {
     expect(component.filteredRows[0].site).toBe('Utex');
   });
 
-  it('updates and paginates while deletion remains forbidden PUE rows', () => {
+  it('updates, paginates and deletes a PUE row after confirmation', async () => {
     const component = new PuePageComponent();
     const makeRow = (index: number) => ({
       site: 'Mtc',
@@ -65,11 +65,13 @@ describe('PuePageComponent', () => {
 
     const row = component.pueRows[0];
     component.editEntry(row);
-    component.newEntry.energieTotale = 160;
-    component.saveEntry();
+    component.newEntry.energieTotale = 160;    await component.saveEntry();
     expect(component.pueRows[0].pue).toBe(1.6);
 
-    component.deleteEntry(component.pueRows[0]);
-    expect(component.pueRows).toHaveLength(21);
+    component.editEntry(component.pueRows[0]);
+    component.requestDeletion();
+    expect(component.deleteConfirmationOpen).toBe(true);
+    await component.deleteEntry();
+    expect(component.pueRows).toHaveLength(20);
   });
 });
