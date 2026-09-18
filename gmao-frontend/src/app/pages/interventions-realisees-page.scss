@@ -367,3 +367,4 @@ textarea:focus {
     grid-column: auto;
   }
 }
+.danger-button{border:0;border-radius:10px;padding:10px 17px;color:#fff;background:#d81b07;font:inherit;font-weight:700;cursor:pointer}.delete-modal-backdrop{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(0,0,0,.58)}.delete-confirm-modal{width:min(430px,90vw);padding:26px;border-radius:14px;background:#fff}.delete-confirm-modal h2{margin:0 0 10px}.delete-confirm-modal p{color:#555}.delete-confirm-modal div{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}

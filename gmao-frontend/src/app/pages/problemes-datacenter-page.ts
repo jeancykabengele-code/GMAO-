@@ -81,6 +81,8 @@ export class ProblemesDatacenterPageComponent {
   selectedStatus: ProblemStatus | '' = '';
   selectedPriority: ProblemPriority | '' = '';
   searchTerm = '';
+  editingProblem: DatacenterProblem | null = null;
+  pendingDeletion: DatacenterProblem | null = null;
   newProblem: DatacenterProblem = this.createEmptyProblem();
 
   get filteredProblemRows(): DatacenterProblem[] {
@@ -147,16 +149,19 @@ export class ProblemesDatacenterPageComponent {
   }
 
   openProblemSheet(): void {
+    this.editingProblem = null;
     this.newProblem = this.createEmptyProblem();
     this.problemSheetOpen = true;
   }
 
   closeProblemSheet(): void {
     this.problemSheetOpen = false;
+    this.editingProblem = null;
   }
 
   async saveProblem(): Promise<void> {
-    await this.dataStore.createRecord('problemes-datacenter', { ...this.newProblem, statut: 'Open' });
+    if (this.editingProblem) await this.dataStore.updateRecord('problemes-datacenter', this.editingProblem, { ...this.newProblem });
+    else await this.dataStore.createRecord('problemes-datacenter', { ...this.newProblem, statut: 'Open' });
     this.selectedSite = '';
     this.selectedStatus = '';
     this.selectedPriority = '';
@@ -168,6 +173,10 @@ export class ProblemesDatacenterPageComponent {
     this.cdr?.markForCheck();
   }
 
+  editProblem(problem: DatacenterProblem): void { this.editingProblem = problem; this.newProblem = { ...problem }; this.problemSheetOpen = true; }
+  requestDeletion(): void { if (this.editingProblem) this.pendingDeletion = this.editingProblem; }
+  cancelDeletion(): void { this.pendingDeletion = null; }
+  async confirmDeletion(): Promise<void> { const row = this.pendingDeletion; if (!row) return; this.pendingDeletion = null; await this.dataStore.deleteRecord('problemes-datacenter', row); if (this.currentPage > this.pageCount) this.currentPage = this.pageCount; this.closeProblemSheet(); this.cdr?.markForCheck(); }
   async changeStatus(problem: DatacenterProblem, status: Exclude<ProblemStatus, 'Open'>): Promise<void> {
     if (problem.statut === 'Closed') return;
     const previousStatus = problem.statut;

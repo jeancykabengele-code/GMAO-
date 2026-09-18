@@ -80,6 +80,8 @@ export class InterventionsRealiseesPageComponent {
   selectedSite = '';
   selectedType: InterventionType | '' = '';
   selectedPeriod = '';
+  editingIndex: number | null = null;
+  pendingDeletion: InterventionRow | null = null;
   newIntervention: InterventionRow = this.createEmptyIntervention();
 
   get filteredRows(): InterventionRow[] {
@@ -134,12 +136,14 @@ export class InterventionsRealiseesPageComponent {
   }
 
   openSheet(): void {
+    this.editingIndex = null;
     this.newIntervention = this.createEmptyIntervention();
     this.sheetOpen = true;
   }
 
   closeSheet(): void {
     this.sheetOpen = false;
+    this.editingIndex = null;
   }
 
   async saveIntervention(): Promise<void> {
@@ -147,7 +151,8 @@ export class InterventionsRealiseesPageComponent {
       ...this.newIntervention,
       dureeHeures: Number(this.newIntervention.dureeHeures),
     };
-    await this.dataStore.createRecord('interventions', intervention);
+    if (this.editingIndex === null) await this.dataStore.createRecord('interventions', intervention);
+    else await this.dataStore.updateRecord('interventions', this.interventionRows[this.editingIndex], intervention);
     this.selectedSite = '';
     this.selectedType = '';
     this.selectedPeriod = '';
@@ -158,6 +163,10 @@ export class InterventionsRealiseesPageComponent {
     this.cdr?.markForCheck();
   }
 
+  editIntervention(row: InterventionRow): void { this.editingIndex = this.interventionRows.indexOf(row); this.newIntervention = { ...row }; this.sheetOpen = true; }
+  requestDeletion(): void { const row = this.editingIndex === null ? null : this.interventionRows[this.editingIndex]; if (row) this.pendingDeletion = row; }
+  cancelDeletion(): void { this.pendingDeletion = null; }
+  async confirmDeletion(): Promise<void> { const row = this.pendingDeletion; if (!row) return; this.pendingDeletion = null; await this.dataStore.deleteRecord('interventions', row); if (this.currentPage > this.pageCount) this.currentPage = this.pageCount; this.closeSheet(); this.cdr?.markForCheck(); }
   statusLabel(status: InterventionStatus): string {
     return status === 'Cloturee' ? 'Cl\u00f4tur\u00e9e' : 'En cours';
   }

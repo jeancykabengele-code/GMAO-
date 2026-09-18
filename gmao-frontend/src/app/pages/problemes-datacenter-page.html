@@ -185,7 +185,7 @@
     <header>
       <div>
         
-        <h2>Renseigner le problème</h2>
+        <h2>{{ editingProblem ? 'Modifier le problème' : 'Renseigner le problème' }}</h2>
       </div>
       <button type="button" class="close-button" aria-label="Fermer" (click)="closeProblemSheet()">
         <i class="bi bi-x-lg"></i>
@@ -266,12 +266,12 @@
       </label>
 
       <div class="sheet-actions full-width">
-        <button type="button" class="secondary-button" (click)="closeProblemSheet()">Annuler</button>
+        @if (editingProblem) { <button type="button" class="danger-button" (click)="requestDeletion()">Supprimer</button> }<button type="button" class="secondary-button" (click)="closeProblemSheet()">Annuler</button>
         <button type="submit" class="primary-button">
           <i class="bi bi-check-lg"></i>
-          Enregistrer le problème
+          {{ editingProblem ? 'Mettre à jour' : 'Enregistrer le problème' }}
         </button>
       </div>
     </form>
   </aside>
-}
+}@if (pendingDeletion) { <div class="delete-modal-backdrop" (click)="cancelDeletion()"><section class="delete-confirm-modal" (click)="$event.stopPropagation()"><h2>Supprimer cette ligne ?</h2><p>Cette action est irréversible.</p><div><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div></section></div> }

@@ -17,10 +17,10 @@
       </div>
 
       <div class="table-wrapper"><table>
-        <thead><tr><th>Num&eacute;ro du ticket</th><th>Date</th><th>Site</th><th>&Eacute;quipement</th><th>Type</th><th>Travail r&eacute;alis&eacute;</th><th>Agent</th><th>Dur&eacute;e</th><th>Statut</th></tr></thead>
+        <thead><tr><th>Num&eacute;ro du ticket</th><th>Date</th><th>Site</th><th>&Eacute;quipement</th><th>Type</th><th>Travail r&eacute;alis&eacute;</th><th>Agent</th><th>Dur&eacute;e</th><th>Statut</th>@if (canModify) { <th>Action</th> }</tr></thead>
         <tbody>@for (row of visibleRows; track row?.id || $index) { <tr [attr.data-record-id]="row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row?.id)">
           <td>{{ row?.ticketNumber }}</td><td>{{ row?.date }}</td><td>{{ row?.site }}</td><td>{{ row?.equipement }}</td><td>{{ row?.type }}</td><td>{{ row?.travailRealise }}</td><td>{{ row?.agent }}</td><td>{{ row ? row.dureeHeures + ' h' : '' }}</td>
-          <td>@if (row) { {{ statusLabel(row.statut) }} }</td>
+          <td>@if (row) { {{ statusLabel(row.statut) }} }</td>@if (canModify) { <td class="action-cell">@if (row) { <button type="button" class="row-action" (click)="editIntervention(row)">Modifier</button> }</td> }
         </tr> }</tbody>
       </table></div>
       <div class="pagination" aria-label="Pagination des interventions"><button type="button" class="page-button" aria-label="Page precedente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="bi bi-chevron-right"></i></button></div>
@@ -31,7 +31,7 @@
 @if (sheetOpen) {
   <div class="sheet-backdrop" (click)="closeSheet()"></div>
   <aside class="intervention-sheet" aria-label="Renseigner une intervention">
-    <header><div><h2>Renseigner une intervention</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
+    <header><div><h2>{{ editingIndex === null ? 'Renseigner une intervention' : 'Modifier l’intervention' }}</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
     <form (ngSubmit)="saveIntervention()">
       <label><span>Num&eacute;ro du ticket</span><input name="ticketNumber" type="text" [(ngModel)]="newIntervention.ticketNumber" required /></label>
       <label><span>Date</span><input name="date" type="date" [(ngModel)]="newIntervention.date" required /></label>
@@ -47,7 +47,7 @@
       <label><span>Dur&eacute;e (heures)</span><input name="dureeHeures" type="number" min="0.25" step="0.25" [(ngModel)]="newIntervention.dureeHeures" required /></label>
       <label><span>Statut</span><select name="statut" [(ngModel)]="newIntervention.statut" required>@for (status of statuses; track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select></label>
       <label class="full-width"><span>Travail r&eacute;alis&eacute;</span><textarea name="travailRealise" rows="4" [(ngModel)]="newIntervention.travailRealise" required></textarea></label>
-      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> Enregistrer</button></div>
+      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="requestDeletion()">Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre à jour' }}</button></div>
     </form>
   </aside>
-}
+}@if (pendingDeletion) { <div class="delete-modal-backdrop" (click)="cancelDeletion()"><section class="delete-confirm-modal" (click)="$event.stopPropagation()"><h2>Supprimer cette ligne ?</h2><p>Cette action est irréversible.</p><div><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div></section></div> }
