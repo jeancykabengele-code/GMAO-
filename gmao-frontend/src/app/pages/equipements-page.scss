@@ -177,7 +177,7 @@ th {
 .action-cell {
   display: flex;
   gap: 8px;
-  min-width: 210px;
+  min-width: 130px;
 }
 
 .row-action {
@@ -476,3 +476,7 @@ th {
 .confirm-actions .danger-button { border: 0; border-radius: 8px; padding: 11px 16px; color: #fff; background: #b52d12; font: inherit; cursor: pointer; }
 .sheet-actions .danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 54px; padding: 13px 22px; border: 0; border-radius: 14px; color: #fff; background: #d81b07; font: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; box-shadow: none; }
 .sheet-actions .danger-button:hover { background: #b81706; }
+/* Colonnes compactes pour garder le tableau Équipements équilibré. */
+th:nth-child(3), td:nth-child(3) { width: 160px; min-width: 160px; }
+th:last-child, td.action-cell { width: 130px; min-width: 130px; }
+.action-cell { justify-content: center; }
