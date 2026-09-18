@@ -129,22 +129,7 @@
                 @if (canModify) {
                   <td class="action-cell">
                     @if (problem) {
-                      <button
-                      type="button"
-                      class="status-action ongoing-action"
-                      [disabled]="problem.statut !== 'Open'"
-                      (click)="changeStatus(problem, 'Ongoing')"
-                    >
-                      Ongoing
-                    </button>
-                    <button
-                      type="button"
-                      class="status-action closed-action"
-                      [disabled]="problem.statut === 'Closed'"
-                      (click)="changeStatus(problem, 'Closed')"
-                    >
-                      Closed
-                    </button>
+                      <button type="button" class="row-action" (click)="editProblem(problem)"><i class="bi bi-pencil"></i> Modifier</button>
                     }
                   </td>
                 }
@@ -220,7 +205,9 @@
 
       <label>
         <span>Statut</span>
-        <input name="statut" type="text" [value]="newProblem.statut" readonly />
+        <select name="statut" [(ngModel)]="newProblem.statut">
+          @for (status of statuses; track status) { <option [value]="status">{{ status }}</option> }
+        </select>
       </label>
 
       <label>
@@ -266,7 +253,7 @@
       </label>
 
       <div class="sheet-actions full-width">
-        @if (editingProblem) { <button type="button" class="danger-button" (click)="requestDeletion()">Supprimer</button> }<button type="button" class="secondary-button" (click)="closeProblemSheet()">Annuler</button>
+        @if (editingProblem) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="bi bi-trash"></i> Effacer</button> }<button type="button" class="secondary-button" (click)="closeProblemSheet()">Annuler</button>
         <button type="submit" class="primary-button">
           <i class="bi bi-check-lg"></i>
           {{ editingProblem ? 'Mettre à jour' : 'Enregistrer le problème' }}
@@ -274,4 +261,4 @@
       </div>
     </form>
   </aside>
-}@if (pendingDeletion) { <div class="delete-modal-backdrop" (click)="cancelDeletion()"><section class="delete-confirm-modal" (click)="$event.stopPropagation()"><h2>Supprimer cette ligne ?</h2><p>Cette action est irréversible.</p><div><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div></section></div> }
+}@if (pendingDeletion) { <div class="delete-modal-backdrop" (click)="cancelDeletion()"><section class="delete-confirm-modal" (click)="$event.stopPropagation()"><h2>Effacer ce problème ?</h2><p>Cette action est irréversible.</p><div><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()"><i class="bi bi-trash"></i> Effacer</button></div></section></div> }
