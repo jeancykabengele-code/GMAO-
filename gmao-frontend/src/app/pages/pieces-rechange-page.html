@@ -62,7 +62,16 @@
       <label><span>Quantit&eacute;</span><input name="quantite" type="number" min="1" step="1" [(ngModel)]="newOperation.quantite" required /></label>
       <label><span>Agent</span><input name="agent" type="text" [(ngModel)]="newOperation.agent" required /></label>
       <label><span>Statut</span><select name="statut" [(ngModel)]="newOperation.statut" required>@for (status of statuses; track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select></label>
-      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre a jour' }}</button></div>
+      @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }<div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre a jour' }}</button></div>
     </form>
   </aside>
+}@if (pendingDeletion) {
+  <div class="modal-backdrop" (click)="cancelDeletion()">
+    <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-spare-part-title" (click)="$event.stopPropagation()">
+      <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <h2 id="delete-spare-part-title">Supprimer cette opération ?</h2>
+      <p>La ligne « {{ pendingDeletion.designation }} » sera supprimée définitivement. Cette action est irréversible.</p>
+      <div class="confirm-actions"><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div>
+    </section>
+  </div>
 }

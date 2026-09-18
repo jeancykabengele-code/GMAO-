@@ -78,6 +78,8 @@ export class PiecesRechangePageComponent {
   selectedPeriod = '';
   selectedStatus: SparePartStatus | '' = '';
   editingIndex: number | null = null;
+  pendingDeletion: SparePartOperation | null = null;
+  formError = '';
   newOperation: SparePartOperation = this.createEmptyOperation();
 
   get filteredRows(): SparePartOperation[] {
@@ -137,6 +139,7 @@ export class PiecesRechangePageComponent {
   openSheet(): void {
     this.editingIndex = null;
     this.newOperation = this.createEmptyOperation();
+    this.formError = '';
     this.sheetOpen = true;
   }
 
@@ -171,9 +174,25 @@ export class PiecesRechangePageComponent {
     this.sheetOpen = true;
   }
 
-  deleteOperation(row: SparePartOperation): void {
-    this.operationRows = this.operationRows.filter((item) => item !== row);
-    if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+  requestDeletion(): void {
+    const row = this.editingIndex === null ? null : this.operationRows[this.editingIndex];
+    if (row) this.pendingDeletion = row;
+  }
+
+  cancelDeletion(): void { this.pendingDeletion = null; }
+
+  async confirmDeletion(): Promise<void> {
+    const row = this.pendingDeletion;
+    if (!row) return;
+    this.pendingDeletion = null;
+    try {
+      await this.dataStore.deleteRecord('pieces-rechange', row);
+      if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+      this.closeSheet();
+    } catch {
+      this.formError = 'Suppression impossible.';
+    }
+    this.cdr?.markForCheck();
   }
 
   statusLabel(status: SparePartStatus): string {
