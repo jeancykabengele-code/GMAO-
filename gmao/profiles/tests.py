@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 
 from .records import (
-    _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_delivery_values, _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _recalculate_fuel_records,
+    _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_delivery_values, _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _recalculate_fuel_records, _recalculate_fuel_records_after_delivery_change,
     _fuel_deliveries_total, _generator_fuel_consumption_total, _generator_hours_total, _next_equipment_code,
     _previous_fuel_final_stock,
 )
@@ -441,6 +441,12 @@ class FuelRecalculationTests(SimpleTestCase):
         self.assertEqual(record.stock_final, Decimal("580"))
         self.assertEqual(record.updated_by, actor_id)
         record.save.assert_called_once()
+
+class FuelDeliveryRecalculationTests(SimpleTestCase):
+    @patch("profiles.records._recalculate_fuel_records", side_effect=ValidationError("Les relevés RH du mois et du mois précédent sont nécessaires pour calculer les heures GE."))
+    def test_delivery_change_is_kept_when_generator_readings_are_missing(self, recalculate):
+        _recalculate_fuel_records_after_delivery_change("Goma", "2026-02", uuid4())
+        recalculate.assert_called_once()
 
 class FuelAutomaticInputsTests(SimpleTestCase):
     @patch("profiles.records.FuelDelivery.objects")

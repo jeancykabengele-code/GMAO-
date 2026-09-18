@@ -302,6 +302,14 @@ def _recalculate_fuel_records(site, start_period, actor_id=None):
         fuel_record.full_clean()
         fuel_record.save(update_fields=update_fields)
 
+def _recalculate_fuel_records_after_delivery_change(site, periode, actor_id=None):
+    """Recalcule Fuel-GE sans empêcher une livraison historique si les RH manquent."""
+    try:
+        _recalculate_fuel_records(site, periode, actor_id)
+    except ValidationError as error:
+        if not any("relevés RH" in message for message in error.messages):
+            raise
+
 def _calculate_generator_fuel_consumption(values, record=None):
     site = values.get("site", getattr(record, "site", None))
     periode = values.get("periode", getattr(record, "periode", None))
@@ -453,7 +461,7 @@ def record_collection(request, resource):
                 elif model_class is GeneratorFuelConsumption:
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is FuelDelivery:
-                    _recalculate_fuel_records(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
+                    _recalculate_fuel_records_after_delivery_change(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
                 if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 notify_record_created(profile, resource, record)
@@ -517,8 +525,8 @@ def record_detail(request, resource, record_id):
                     _recalculate_fuel_records(previous_site, previous_period, profile.id)
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is FuelDelivery:
-                    _recalculate_fuel_records(previous_site, previous_period, profile.id)
-                    _recalculate_fuel_records(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
+                    _recalculate_fuel_records_after_delivery_change(previous_site, previous_period, profile.id)
+                    _recalculate_fuel_records_after_delivery_change(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
                 if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 if model_class is GeneratorRecord:
