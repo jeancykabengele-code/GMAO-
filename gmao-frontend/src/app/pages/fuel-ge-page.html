@@ -21,7 +21,7 @@
       </div>
 
       <div class="table-wrapper"><table>
-        <thead><tr><th>Site</th><th>Mois et année</th><th>Stock initial<br />automatique (L)</th><th>Ravitaillements<br />du mois (L)</th><th>Consommation<br />(L)</th><th>Stock final<br />automatique (L)</th><th>Heures GE<br />automatiques</th><th>L/h<br />automatique</th><th>kWh SNEL</th><th>Disponibilité Grid<br />automatique</th>@if (canModify) { <th>Action</th> }</tr></thead>
+        <thead><tr><th>Site</th><th>Mois et année</th><th>Stock initial<br />(L)</th><th>Ravitaillements<br />du mois (L)</th><th>Consommation<br />(L)</th><th>Stock final<br />(L)</th><th>Heures GE</th><th>L/h</th><th>kWh SNEL</th><th>Disponibilité Grid</th>@if (canModify) { <th>Action</th> }</tr></thead>
         <tbody>
           @for (row of visibleRows; track row.id || row.site + row.periode) {
             <tr [attr.data-record-id]="row.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row.id)">
