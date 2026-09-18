@@ -23,7 +23,7 @@
           <td>{{ row?.code }}</td><td>{{ row?.nom }}</td><td>{{ row?.dateMiseEnService }}</td><td>{{ row ? familyLabel(row.famille) : '' }}</td><td>{{ row?.localisation }}</td><td>{{ row?.marqueModele }}</td>
           <td>@if (row) { <span class="state-badge" [class.state-service]="row.etat === 'En service'" [class.state-down]="row.etat === 'Hors service' || row.etat === 'En panne'" [class.state-maintenance]="row.etat === 'En maintenance'">{{ row.etat }}</span> }</td>
           <td>@if (row) { <span class="criticality-badge" [class.criticality-low]="row.criticite === 'Faible'" [class.criticality-medium]="row.criticite === 'Moyenne'" [class.criticality-high]="row.criticite === 'Elevee'" [class.criticality-critical]="row.criticite === 'Critique'">{{ criticalityLabel(row.criticite) }}</span> }</td>
-          @if (canModify) { <td class="action-cell">@if (row) { <button type="button" class="row-action edit-action" (click)="editEquipment(row)"><i class="bi bi-pencil"></i> Modifier</button><button type="button" class="row-action delete-action" (click)="deleteEquipment(row)"><i class="bi bi-trash3"></i> Supprimer</button> }</td> }
+          @if (canModify) { <td class="action-cell">@if (row) { <button type="button" class="row-action edit-action" (click)="editEquipment(row)"><i class="bi bi-pencil"></i> Modifier</button> }</td> }
         </tr> }</tbody>
       </table></div>
       <div class="pagination" aria-label="Pagination des equipements"><button type="button" class="page-button" aria-label="Page precedente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="bi bi-chevron-right"></i></button></div>
@@ -49,7 +49,7 @@
       <label class="full-width"><span>Marque/Mod&egrave;le</span><input name="marqueModele" type="text" [(ngModel)]="newEquipment.marqueModele" required /></label>
       <label><span>&Eacute;tat</span><select name="etat" [(ngModel)]="newEquipment.etat" required>@for (state of states; track state) { <option [value]="state">{{ state }}</option> }</select></label>
       <label><span>Criticit&eacute;</span><select name="criticite" [(ngModel)]="newEquipment.criticite" required>@for (criticality of criticalities; track criticality) { <option [value]="criticality">{{ criticalityLabel(criticality) }}</option> }</select></label>
-      <div class="sheet-actions full-width"><button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre a jour' }}</button></div>
+      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="deleteEquipment()"><i class="bi bi-trash"></i> Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre a jour' }}</button></div>
     </form>
   </aside>
 }

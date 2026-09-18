@@ -165,8 +165,9 @@ export class EquipementsPageComponent {
     this.sheetOpen = true;
   }
 
-  deleteEquipment(row: EquipmentRow): void {
-    this.pendingDeletion = row;
+deleteEquipment(row?: EquipmentRow): void {
+    const target = row ?? (this.editingIndex === null ? null : this.equipmentRows[this.editingIndex]);
+    if (target) this.pendingDeletion = target;
   }
 
   cancelDeletion(): void {
@@ -179,6 +180,7 @@ export class EquipementsPageComponent {
     this.pendingDeletion = null;
     await this.dataStore.deleteRecord('equipements', row);
     if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+    this.closeSheet();
     this.cdr?.markForCheck();
   }
 
