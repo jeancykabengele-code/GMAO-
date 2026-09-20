@@ -22,7 +22,12 @@ export class ConsommationGroupesGePageComponent {
   entry: Entry;
 
   constructor(readonly dataStore: GmaoDataStore, private readonly excelExporter: ExcelExportService = new ExcelExportService()) { this.entry = this.empty(); }
-  get rows(): ConsumptionRow[] { return this.dataStore.generatorFuelConsumptionRows as ConsumptionRow[]; }
+  get rows(): ConsumptionRow[] {
+    return (this.dataStore.generatorFuelConsumptionRows as ConsumptionRow[]).map((row) => ({
+      ...row,
+      commentaires: row.commentaires === 'Import Excel « Consommation par site et par GE 2026 ».' ? '' : row.commentaires,
+    }));
+  }
   get sites(): string[] { return this.dataStore.allowedSites; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   get groups(): GeneratorRow[] { return this.dataStore.generatorRows as GeneratorRow[]; }
