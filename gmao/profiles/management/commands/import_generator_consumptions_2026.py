@@ -11,7 +11,7 @@ from profiles.permissions import GLOBAL_ROLES
 
 
 SOURCE_FILE = Path(__file__).resolve().parents[3] / "data" / "consommations_groupes_ge_2026.csv"
-IMPORT_COMMENT = "Import Excel « Consommation par site et par GE 2026 »."
+IMPORT_COMMENT = ""
 
 
 class Command(BaseCommand):
@@ -39,6 +39,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Import GE ignoré : aucun profil global actif."))
             return
 
+        removed_comments = GeneratorFuelConsumption.objects.filter(
+            commentaires="Import Excel « Consommation par site et par GE 2026 »."
+        ).update(commentaires="")
         known_codes = set(GeneratorRecord.objects.values_list("site", "code"))
         inserted = skipped_existing = skipped_unknown_group = 0
 
@@ -87,7 +90,7 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 "Import GE 2026 terminé : "
                 f"{inserted} ajoutée(s), {skipped_existing} déjà présente(s), "
-                f"{skipped_unknown_group} ignorée(s)."
+                f"{skipped_unknown_group} ignorée(s), {removed_comments} commentaire(s) retiré(s)."
             )
         )
 
