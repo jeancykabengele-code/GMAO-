@@ -15,7 +15,7 @@
         <label class="filter-field"><span>Groupe</span><select [(ngModel)]="selectedGroup" (ngModelChange)="resetPage()"><option value="">Tous les groupes</option>@for (group of filterGroups; track group) { <option [value]="group">{{ group }}</option> }</select></label>
         <label class="filter-field search-field"><span>Recherche</span><input type="search" placeholder="Rechercher…" [(ngModel)]="searchTerm" (ngModelChange)="resetPage()" /></label>
       </div>
-      <div class="table-wrapper"><table><thead><tr><th>Site</th><th>Mois</th><th>Groupe</th><th>Heures GE automatiques</th><th>Fuel consommé (L)</th><th>L/h automatique</th><th>Commentaire</th></tr></thead><tbody>
+      <div class="table-wrapper"><table><colgroup><col class="site-column"><col class="month-column"><col class="group-column"><col class="hours-column"><col class="fuel-column"><col class="rate-column"><col class="comment-column"></colgroup><thead><tr><th>Site</th><th>Mois</th><th>Groupe</th><th>Heures GE</th><th>Fuel consommé (L)</th><th>L/h</th><th>Commentaire</th></tr></thead><tbody>
         @for (row of visibleRows; track row.id) { <tr><td>{{ row.site }}</td><td>{{ row.periode }}</td><td>{{ row.groupeCode }}</td><td>{{ row.heuresGe | number:'1.0-2':'fr' }}</td><td>{{ row.consommationLitres | number:'1.0-3':'fr' }}</td><td>{{ row.litresHeure === null ? 'Non calculable' : (row.litresHeure | number:'1.0-3':'fr') }}</td><td>{{ row.commentaires || '—' }}</td></tr> }
         @if (!visibleRows.length) { <tr><td colspan="7" class="empty-message">Aucune consommation par groupe enregistrée.</td></tr> }
       </tbody></table></div>

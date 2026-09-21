@@ -55,8 +55,8 @@ export class ConsommationGroupesGePageComponent {
       title: 'Consommation par GE', fileName: 'consommation-par-ge', rows: this.filteredRows,
       columns: [
         { header: 'Site', value: (row) => row.site }, { header: 'Mois', value: (row) => row.periode },
-        { header: 'Groupe', value: (row) => row.groupeCode }, { header: 'Heures GE automatiques', value: (row) => row.heuresGe },
-        { header: 'Fuel consommé (L)', value: (row) => row.consommationLitres }, { header: 'L/h automatique', value: (row) => row.litresHeure ?? '' },
+        { header: 'Groupe', value: (row) => row.groupeCode }, { header: 'Heures GE', value: (row) => row.heuresGe },
+        { header: 'Fuel consommé (L)', value: (row) => row.consommationLitres }, { header: 'L/h', value: (row) => row.litresHeure ?? '' },
         { header: 'Commentaire', value: (row) => row.commentaires ?? '' },
       ],
     });
