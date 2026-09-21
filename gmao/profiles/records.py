@@ -193,7 +193,7 @@ def _previous_fuel_final_stock(site, periode):
 def _generator_hours_total(site, periode):
     """Somme les heures mensuelles depuis les relevés RH archivés par groupe."""
     _fuel_period_bounds(periode)
-    group_codes = list(GeneratorRecord.objects.filter(site=site).values_list("code", flat=True))
+    group_codes = list(dict.fromkeys(GeneratorRecord.objects.filter(site=site).values_list("code", flat=True)))
     if not group_codes:
         return None
     current_records = {
@@ -358,7 +358,7 @@ def _validate_monthly_reading(values, record=None):
 
 
 def _sync_generator_current_from_readings(site, groupe_code, actor_id=None):
-    generator = GeneratorRecord.objects.filter(site=site, code=groupe_code).first()
+    generator = GeneratorRecord.objects.filter(site=site, code=groupe_code).order_by("-created_at").first()
     latest = GeneratorMonthlyReading.objects.filter(site=site, groupe_code=groupe_code).order_by("-periode").first()
     if not generator or not latest:
         return
