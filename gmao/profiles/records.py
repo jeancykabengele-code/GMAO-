@@ -123,6 +123,25 @@ def _generate_equipment_code(site):
     return _next_equipment_code(site_code, existing_codes)
 
 
+def _is_generator_equipment(equipment):
+    normalized_code = unicodedata.normalize("NFKD", equipment.code or "").encode("ascii", "ignore").decode("ascii").lower()
+    description = " ".join((equipment.nom or "", equipment.marque_modele or "")).lower()
+    return equipment.famille == "Energie" and (
+        "groupe" in description
+        or "electrogene" in description
+        or re.search(r"(^|[^a-z0-9])ge([^a-z0-9]|$)", normalized_code)
+    )
+
+
+def _set_generator_from_equipment(values, record=None):
+    site = values.get("site", getattr(record, "site", None))
+    code = values.get("code", getattr(record, "code", None))
+    equipment = Equipment.objects.filter(site=site, code=code).first()
+    if not equipment or not _is_generator_equipment(equipment):
+        raise ValidationError("Le groupe doit être sélectionné parmi les groupes électrogènes enregistrés dans Équipements pour ce site.")
+    values["type_ge"] = equipment.nom or equipment.marque_modele
+    return values
+
 def _assert_generator_code_unique(values, record=None):
     site = values.get("site", getattr(record, "site", None))
     code = values.get("code", getattr(record, "code", None))
@@ -500,6 +519,8 @@ def record_collection(request, resource):
                 elif model_class is DatacenterProblem and profile.role not in GLOBAL_ROLES:
                     values["statut"] = "Open"
                 elif model_class is GeneratorRecord:
+                    _set_generator_from_equipment(values)
+                    _assert_generator_code_unique(values)
                     _calculate_generator_values(values)
                 elif model_class is GeneratorMonthlyReading:
                     _validate_monthly_reading(values)
@@ -558,6 +579,8 @@ def record_detail(request, resource, record_id):
                 previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class in {GeneratorMonthlyReading, FuelRecord} else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None)
                 if model_class is GeneratorRecord:
                     assert_site_access(profile, values["site"])
+                    _set_generator_from_equipment(values, record)
+                    _assert_generator_code_unique(values, record)
                     _calculate_generator_values(values, record)
                 elif model_class is GeneratorMonthlyReading:
                     assert_can_modify(profile, values["site"])

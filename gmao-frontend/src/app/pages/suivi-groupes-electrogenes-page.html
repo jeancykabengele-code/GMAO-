@@ -61,14 +61,15 @@
     <header><div><h2>{{ creatingGenerator ? 'Ajouter un groupe et son relevé' : (selectingGenerator ? 'Renseigner les compteurs' : newGenerator.code) }}</h2><p>{{ newGenerator.site }} · {{ newGenerator.typeGe }}</p></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
     <form (ngSubmit)="saveGenerator()">
       @if (selectingGenerator) {
-        <label class="full-width"><span>Groupe électrogène</span><select name="selectedGeneratorKey" [(ngModel)]="selectedGeneratorKey" (ngModelChange)="selectGenerator($event)">@for (row of generatorRows; track row.id || row.code) { <option [value]="row.id || row.code">{{ row.site }} — {{ row.code }} — {{ row.typeGe }}</option> }</select></label>
+        <label><span>Site</span><select name="generatorSite" [(ngModel)]="newGenerator.site" (ngModelChange)="selectedGeneratorKey = ''; creatingGenerator = false"><option value="">Sélectionner un site</option>@for (site of entrySites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
+        <label><span>Groupe électrogène</span><select name="selectedGeneratorKey" [(ngModel)]="selectedGeneratorKey" (ngModelChange)="selectEquipment($event)" required><option value="">Sélectionner un groupe enregistré</option>@for (row of availableEquipmentGroups; track row.id || row.code) { <option [value]="row.id || (row.site + '::' + row.code)">{{ row.code }} — {{ row.nom || row.marqueModele }}</option> }</select></label>
+        @if (!availableEquipmentGroups.length) { <p class="form-error full-width">Aucun groupe électrogène enregistré dans Équipements pour ce site.</p> }
       }
       @if (creatingGenerator) {
-        <label><span>Code du groupe</span><input name="code" [(ngModel)]="newGenerator.code" placeholder="DC-BKV-GE-001" required /></label>
-        <label><span>Groupe électrogène</span><input name="typeGe" [(ngModel)]="newGenerator.typeGe" placeholder="VISA 250 KVA G1" required /></label>
+        <label><span>Code du groupe</span><input name="code" readonly [(ngModel)]="newGenerator.code" /></label>
+        <label><span>Groupe électrogène</span><input name="typeGe" readonly [(ngModel)]="newGenerator.typeGe" /></label>
         <label><span>RH lors de la dernière PM</span><input name="rhDernierePmCreation" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhDernierePm" required /></label>
-      }
-      <label><span>Mois du relevé</span><input name="moisReleve" type="month" [(ngModel)]="newGenerator.moisReleve" required /></label>
+      }      <label><span>Mois du relevé</span><input name="moisReleve" type="month" [(ngModel)]="newGenerator.moisReleve" required /></label>
       <label><span>RH actuel</span><input name="rhActuel" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhActuel" required /></label>
       @if (!creatingGenerator) { <label><span>RH lors de la dernière PM</span><input name="rhDernierePm" type="number" readonly [(ngModel)]="newGenerator.rhDernierePm" required /></label> }
       <label class="full-width"><span>Commentaires</span><textarea name="commentaires" rows="3" [(ngModel)]="newGenerator.commentaires"></textarea></label>

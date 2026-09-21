@@ -10,6 +10,15 @@ import { NotificationRecordFocusService } from '../shared/notification-record-fo
 
 type PmState = 'PmDepassee' | 'PmUrgente' | 'ASurveiller' | 'Normal';
 
+interface EquipmentRow {
+  id?: string;
+  site: string;
+  code: string;
+  nom: string;
+  famille: string;
+  marqueModele: string;
+}
+
 interface GeneratorRow {
   id?: string;
   site: string;
@@ -70,6 +79,18 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   }
 
   get canUpdate(): boolean { return this.dataStore.canUpdateGenerators; }
+
+  get entrySites(): string[] { return this.dataStore.allowedSites; }
+
+  get equipmentRows(): EquipmentRow[] {
+    return this.dataStore.equipmentRows as EquipmentRow[];
+  }
+
+  get availableEquipmentGroups(): EquipmentRow[] {
+    return this.equipmentRows
+      .filter((row) => row.site === this.newGenerator.site && this.isGeneratorEquipment(row))
+      .sort((left, right) => (left.code + ' ' + left.nom).localeCompare(right.code + ' ' + right.nom, 'fr'));
+  }
   get canDelete(): boolean { return this.dataStore.canModifyExisting; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
 
@@ -187,31 +208,41 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   }
 
   openEntrySheet(): void {
-    const row = this.filteredRows[0] || this.generatorRows[0];
-    if (!row) {
-      this.creatingGenerator = true;
-      this.selectingGenerator = false;
-      this.editingRow = null;
-      this.newGenerator = {
-        ...this.createEmptyGenerator(),
-        site: this.dataStore.allowedSites[0] || '',
-        moisReleve: new Date().toISOString().slice(0, 7),
-      };
-      this.saveError = '';
-      this.sheetOpen = true;
-      return;
-    }
     this.creatingGenerator = false;
     this.selectingGenerator = true;
-    this.selectedGeneratorKey = this.rowKey(row);
-    this.loadRowInSheet(row);
-    this.newGenerator.moisReleve = new Date().toISOString().slice(0, 7);
-  }
-  selectGenerator(key: string): void {
-    const row = this.generatorRows.find((candidate) => this.rowKey(candidate) === key);
-    if (row) this.loadRowInSheet(row, true);
+    this.editingRow = null;
+    this.newGenerator = {
+      ...this.createEmptyGenerator(),
+      site: this.dataStore.allowedSites[0] || '',
+      moisReleve: new Date().toISOString().slice(0, 7),
+    };
+    this.selectedGeneratorKey = this.equipmentKey(this.availableEquipmentGroups[0]);
+    this.saveError = '';
+    this.sheetOpen = true;
+    if (this.selectedGeneratorKey) this.selectEquipment(this.selectedGeneratorKey);
   }
 
+  selectEquipment(key: string): void {
+    const equipment = this.availableEquipmentGroups.find((candidate) => this.equipmentKey(candidate) === key);
+    if (!equipment) return;
+    this.selectedGeneratorKey = key;
+    const existing = this.generatorRows.find((row) => row.site === equipment.site && row.code === equipment.code);
+    if (existing) {
+      this.creatingGenerator = false;
+      this.loadRowInSheet(existing, true);
+      this.newGenerator.moisReleve = new Date().toISOString().slice(0, 7);
+      return;
+    }
+    this.creatingGenerator = true;
+    this.editingRow = null;
+    this.newGenerator = {
+      ...this.createEmptyGenerator(),
+      site: equipment.site,
+      code: equipment.code,
+      typeGe: equipment.nom || equipment.marqueModele,
+      moisReleve: this.newGenerator.moisReleve || new Date().toISOString().slice(0, 7),
+    };
+  }
   openSheet(row: GeneratorRow): void {
     this.selectingGenerator = false;
     this.selectedGeneratorKey = this.rowKey(row);
@@ -352,6 +383,18 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.sheetOpen = true;
   }
 
+  private equipmentKey(row: EquipmentRow | undefined): string {
+    return row ? (row.id || `${row.site}::${row.code}`) : '';
+  }
+
+  private isGeneratorEquipment(row: EquipmentRow): boolean {
+    const normalize = (value: string | undefined) => (value || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+    const code = normalize(row.code);
+    const description = normalize(`${row.nom} ${row.marqueModele}`);
+    return normalize(row.famille) === 'energie'
+      && (description.includes('groupe') || description.includes('electrogene') || /(^|[^a-z0-9])ge([^a-z0-9]|$)/.test(code));
+  }
   private rowKey(row: GeneratorRow): string {
     return row.id || row.code;
   }
