@@ -123,6 +123,17 @@ def _generate_equipment_code(site):
     return _next_equipment_code(site_code, existing_codes)
 
 
+def _assert_generator_code_unique(values, record=None):
+    site = values.get("site", getattr(record, "site", None))
+    code = values.get("code", getattr(record, "code", None))
+    if not site or not code:
+        raise ValidationError("Le site et le code du groupe sont obligatoires.")
+    records = GeneratorRecord.objects.filter(site=site, code=code)
+    if record is not None:
+        records = records.exclude(id=record.id)
+    if records.exists():
+        raise ValidationError("Un groupe électrogène utilise déjà ce code pour ce site.")
+
 def _calculate_generator_values(values, record=None):
     rh_actuel = values.get("rh_actuel", getattr(record, "rh_actuel", None))
     rh_derniere_pm = values.get("rh_derniere_pm", getattr(record, "rh_derniere_pm", None))
