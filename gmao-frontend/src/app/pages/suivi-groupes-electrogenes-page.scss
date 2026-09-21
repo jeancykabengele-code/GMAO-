@@ -230,6 +230,15 @@ th {
   white-space: nowrap;
 }
 
+/* Colonne compacte : la valeur est toujours au format AAAA-MM. */
+th:nth-child(8),
+td:nth-child(8) {
+  width: 132px;
+  min-width: 132px;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
 .pm-state {
   font-weight: 800;
   white-space: nowrap;
