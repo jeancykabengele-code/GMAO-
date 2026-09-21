@@ -67,28 +67,32 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
     expect(component.generatorRows).toHaveLength(1);
   });
 
-  it('enregistre le nouveau compteur et ses valeurs PM recalculées', async () => {
+  it('enregistre le nouveau relevé RH mensuel', async () => {
     const component = new SuiviGroupesElectrogenesPageComponent();
     const existingRow = row();
-    const updateRecord = vi.spyOn((component as any).dataStore, 'updateRecord').mockResolvedValue(undefined);
+    const createRecord = vi.spyOn((component as any).dataStore, 'createRecord').mockResolvedValue(undefined);
+    const refreshResource = vi.spyOn((component as any).dataStore, 'refreshResource').mockResolvedValue(undefined);
     component.generatorRows = [existingRow];
     component.openSheet(existingRow);
+    component.newGenerator.moisReleve = '2026-09';
     component.newGenerator.rhActuel = 330;
-    component.newGenerator.rhDernierePm = 100;
 
     await component.saveGenerator();
 
-    expect(updateRecord).toHaveBeenCalledWith(
-      'groupes-electrogenes',
-      existingRow,
-      expect.objectContaining({
-        rhActuel: 330,
-        rhDernierePm: 100,
-        rhDepuisDernierePm: 230,
-        rhProchainePm: 350,
-        etat: 'PmUrgente',
-      }),
-    );
+    expect(createRecord).toHaveBeenCalledWith('releves-rh-ge', expect.objectContaining({
+      site: 'Goma', groupeCode: 'DC-GOM-GE-001', periode: '2026-09', rhActuel: 330,
+    }));
+    expect(refreshResource).toHaveBeenCalledWith('groupes-electrogenes');
     expect(component.sheetOpen).toBe(false);
+  });
+
+  it('ouvre la création du premier groupe quand le tableau est vide', () => {
+    const component = new SuiviGroupesElectrogenesPageComponent();
+    component.generatorRows = [];
+
+    component.openEntrySheet();
+
+    expect(component.sheetOpen).toBe(true);
+    expect(component.creatingGenerator).toBe(true);
   });
 });

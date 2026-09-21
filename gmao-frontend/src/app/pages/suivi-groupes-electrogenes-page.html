@@ -6,7 +6,7 @@
     </div>
       <div class="view-actions">
       <button type="button" class="view-button" [class.inactive]="!tableVisible" [attr.aria-pressed]="tableVisible" (click)="toggleTable()"><i class="bi bi-speedometer2"></i> Suivi des compteurs</button>
-      @if (canUpdate) { <button type="button" class="primary-button" [disabled]="generatorRows.length === 0" (click)="openEntrySheet()"><i class="bi bi-plus-lg"></i> Renseigner un compteur</button> }
+      @if (canUpdate) { <button type="button" class="primary-button" (click)="openEntrySheet()"><i class="bi bi-plus-lg"></i> Renseigner un compteur</button> }
       @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
     </div>
     </div>
@@ -58,14 +58,19 @@
 @if (sheetOpen) {
   <div class="sheet-backdrop" (click)="closeSheet()"></div>
   <aside class="generator-sheet" aria-label="Renseigner les compteurs GE">
-    <header><div><h2>{{ selectingGenerator ? 'Renseigner les compteurs' : newGenerator.code }}</h2><p>{{ newGenerator.site }} · {{ newGenerator.typeGe }}</p></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
+    <header><div><h2>{{ creatingGenerator ? 'Ajouter un groupe et son relevé' : (selectingGenerator ? 'Renseigner les compteurs' : newGenerator.code) }}</h2><p>{{ newGenerator.site }} · {{ newGenerator.typeGe }}</p></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
     <form (ngSubmit)="saveGenerator()">
       @if (selectingGenerator) {
         <label class="full-width"><span>Groupe électrogène</span><select name="selectedGeneratorKey" [(ngModel)]="selectedGeneratorKey" (ngModelChange)="selectGenerator($event)">@for (row of generatorRows; track row.id || row.code) { <option [value]="row.id || row.code">{{ row.site }} — {{ row.code }} — {{ row.typeGe }}</option> }</select></label>
       }
+      @if (creatingGenerator) {
+        <label><span>Code du groupe</span><input name="code" [(ngModel)]="newGenerator.code" placeholder="DC-BKV-GE-001" required /></label>
+        <label><span>Groupe électrogène</span><input name="typeGe" [(ngModel)]="newGenerator.typeGe" placeholder="VISA 250 KVA G1" required /></label>
+        <label><span>RH lors de la dernière PM</span><input name="rhDernierePmCreation" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhDernierePm" required /></label>
+      }
       <label><span>Mois du relevé</span><input name="moisReleve" type="month" [(ngModel)]="newGenerator.moisReleve" required /></label>
       <label><span>RH actuel</span><input name="rhActuel" type="number" min="0" step="0.01" [(ngModel)]="newGenerator.rhActuel" required /></label>
-      <label><span>RH lors de la dernière PM</span><input name="rhDernierePm" type="number" readonly [(ngModel)]="newGenerator.rhDernierePm" required /></label>
+      @if (!creatingGenerator) { <label><span>RH lors de la dernière PM</span><input name="rhDernierePm" type="number" readonly [(ngModel)]="newGenerator.rhDernierePm" required /></label> }
       <label class="full-width"><span>Commentaires</span><textarea name="commentaires" rows="3" [(ngModel)]="newGenerator.commentaires"></textarea></label>
 
       <div class="calculated-values full-width">

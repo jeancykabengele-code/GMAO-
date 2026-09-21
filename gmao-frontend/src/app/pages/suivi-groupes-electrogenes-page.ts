@@ -77,6 +77,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   filtersVisible = true;
   sheetOpen = false;
   selectingGenerator = false;
+  creatingGenerator = false;
   selectedGeneratorKey = '';
   saving = false;
   deleting = false;
@@ -187,12 +188,25 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
 
   openEntrySheet(): void {
     const row = this.filteredRows[0] || this.generatorRows[0];
-    if (!row) return;
+    if (!row) {
+      this.creatingGenerator = true;
+      this.selectingGenerator = false;
+      this.editingRow = null;
+      this.newGenerator = {
+        ...this.createEmptyGenerator(),
+        site: this.dataStore.allowedSites[0] || '',
+        moisReleve: new Date().toISOString().slice(0, 7),
+      };
+      this.saveError = '';
+      this.sheetOpen = true;
+      return;
+    }
+    this.creatingGenerator = false;
     this.selectingGenerator = true;
     this.selectedGeneratorKey = this.rowKey(row);
     this.loadRowInSheet(row);
+    this.newGenerator.moisReleve = new Date().toISOString().slice(0, 7);
   }
-
   selectGenerator(key: string): void {
     const row = this.generatorRows.find((candidate) => this.rowKey(candidate) === key);
     if (row) this.loadRowInSheet(row, true);
@@ -209,8 +223,8 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.sheetOpen = false;
     this.editingRow = null;
     this.selectingGenerator = false;
+    this.creatingGenerator = false;
   }
-
   get previewRhDepuisPm(): number {
     return Math.max(0, Number(this.newGenerator.rhActuel || 0) - Number(this.newGenerator.rhDernierePm || 0));
   }
@@ -250,10 +264,22 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   }
 
   async saveGenerator(): Promise<void> {
-    if (!this.editingRow || this.saving) return;
+    if ((!this.editingRow && !this.creatingGenerator) || this.saving) return;
     this.saving = true;
     this.saveError = '';
     try {
+      if (this.creatingGenerator) {
+        await this.dataStore.createRecord('groupes-electrogenes', {
+          site: this.newGenerator.site,
+          code: this.newGenerator.code,
+          typeGe: this.newGenerator.typeGe,
+          moisReleve: this.newGenerator.moisReleve,
+          rhActuel: Number(this.newGenerator.rhActuel),
+          rhDernierePm: Number(this.newGenerator.rhDernierePm),
+          retardSignale: false,
+          commentaires: this.newGenerator.commentaires,
+        });
+      }
       await this.dataStore.createRecord('releves-rh-ge', {
         site: this.newGenerator.site,
         groupeCode: this.newGenerator.code,
@@ -265,6 +291,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
       this.sheetOpen = false;
       this.editingRow = null;
       this.selectingGenerator = false;
+      this.creatingGenerator = false;
     } catch (error) {
       this.saveError = error instanceof Error ? error.message : 'L’enregistrement du relevé RH a échoué.';
     } finally {
