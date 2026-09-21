@@ -233,10 +233,20 @@ th {
 /* Colonne compacte : la valeur est toujours au format AAAA-MM. */
 th:nth-child(8),
 td:nth-child(8) {
-  width: 132px;
-  min-width: 132px;
+  width: 104px;
+  min-width: 104px;
+  max-width: 104px;
   padding-right: 8px;
   padding-left: 8px;
+}
+
+th:nth-child(8) {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+td:nth-child(8) {
+  white-space: nowrap;
 }
 
 .pm-state {
