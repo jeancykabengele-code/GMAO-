@@ -293,7 +293,8 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
       this.selectingGenerator = false;
       this.creatingGenerator = false;
     } catch (error) {
-      this.saveError = error instanceof Error ? error.message : 'L’enregistrement du relevé RH a échoué.';
+      const apiError = error as { error?: { detail?: string; message?: string }; message?: string };
+      this.saveError = apiError?.error?.detail || apiError?.error?.message || apiError?.message || 'L’enregistrement du relevé RH a échoué.';
     } finally {
       this.saving = false;
       this.cdr?.markForCheck();
