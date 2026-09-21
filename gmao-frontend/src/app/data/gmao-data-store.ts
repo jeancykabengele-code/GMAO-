@@ -10,6 +10,7 @@ export class GmaoDataStore {
   private readonly equipmentData = signal<unknown[]>([]);
   private readonly ticketData = signal<unknown[]>([]);
   private readonly generatorData = signal<unknown[]>([]);
+  private readonly monthlyReadingData = signal<unknown[]>([]);
   private readonly fuelData = signal<unknown[]>([]);
   private readonly generatorFuelConsumptionData = signal<unknown[]>([]);
   private readonly fuelDeliveryData = signal<unknown[]>([]);
@@ -59,7 +60,7 @@ export class GmaoDataStore {
     if (!this.api || this.loadingStarted) return;
     this.loadingStarted = true;
     const resources: GmaoResource[] = [
-      'equipements', 'tickets', 'groupes-electrogenes', 'fuel-ge', 'consommations-groupes-ge', 'fuel-ravitaillements', 'fuel-summary',
+      'equipements', 'tickets', 'groupes-electrogenes', 'releves-rh-ge', 'fuel-ge', 'consommations-groupes-ge', 'fuel-ravitaillements', 'fuel-summary',
       'pue', 'problemes-datacenter', 'interventions', 'pieces-rechange',
     ];
     await Promise.all(resources.map(async (resource) => {
@@ -119,6 +120,7 @@ export class GmaoDataStore {
       equipements: this.equipmentData(),
       tickets: this.ticketData(),
       'groupes-electrogenes': this.generatorData(),
+      'releves-rh-ge': this.monthlyReadingData(),
       'fuel-ge': this.fuelData(),
       'consommations-groupes-ge': this.generatorFuelConsumptionData(),
       'fuel-ravitaillements': this.fuelDeliveryData(),
@@ -135,6 +137,7 @@ export class GmaoDataStore {
     if (resource === 'equipements') this.equipmentData.set(rows);
     else if (resource === 'tickets') this.ticketData.set(rows);
     else if (resource === 'groupes-electrogenes') this.generatorData.set(rows);
+    else if (resource === 'releves-rh-ge') this.monthlyReadingData.set(rows);
     else if (resource === 'fuel-ge') this.fuelData.set(rows);
     else if (resource === 'consommations-groupes-ge') this.generatorFuelConsumptionData.set(rows);
     else if (resource === 'fuel-ravitaillements') this.fuelDeliveryData.set(rows);

@@ -254,27 +254,24 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.saving = true;
     this.saveError = '';
     try {
-      const changes: GeneratorRow = {
-        ...this.newGenerator,
+      await this.dataStore.createRecord('releves-rh-ge', {
+        site: this.newGenerator.site,
+        groupeCode: this.newGenerator.code,
+        periode: this.newGenerator.moisReleve,
         rhActuel: Number(this.newGenerator.rhActuel),
-        rhDernierePm: Number(this.newGenerator.rhDernierePm),
-        rhDepuisDernierePm: this.previewRhDepuisPm,
-        rhProchainePm: this.previewProchainePm,
-        etat: this.previewState,
-        moisReleve: new Date().toISOString().slice(0, 7),
-      };
-      await this.dataStore.updateRecord('groupes-electrogenes', this.editingRow, changes);
+        commentaires: this.newGenerator.commentaires,
+      });
+      await this.dataStore.refreshResource('groupes-electrogenes');
       this.sheetOpen = false;
       this.editingRow = null;
       this.selectingGenerator = false;
     } catch (error) {
-      this.saveError = error instanceof Error ? error.message : 'La mise à jour du compteur a échoué.';
+      this.saveError = error instanceof Error ? error.message : 'L’enregistrement du relevé RH a échoué.';
     } finally {
       this.saving = false;
       this.cdr?.markForCheck();
     }
   }
-
   requestDeletion(): void {
     if (!this.editingRow || this.saving || this.deleting) return;
     this.deleteConfirmationOpen = true;

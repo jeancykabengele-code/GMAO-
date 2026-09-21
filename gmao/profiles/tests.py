@@ -493,16 +493,32 @@ class FuelAutomaticInputsTests(SimpleTestCase):
 
         self.assertEqual(hours, Decimal("50"))
 
+    @patch("profiles.records.GeneratorMonthlyReading.objects")
     @patch("profiles.records.GeneratorRecord.objects")
-    def test_returns_none_when_a_previous_generator_reading_is_missing(self, generator_objects):
+    def test_sums_monthly_hours_from_each_generator_counter(self, generator_objects, reading_objects):
+        generator_objects.filter.return_value.values_list.return_value = ["DC-GOM-GE-001", "DC-GOM-GE-002"]
         current = MagicMock()
-        current.values.return_value = [{"code": "DC-GOM-GE-001", "rh_actuel": Decimal("220")}]
+        current.values.return_value = [
+            {"groupe_code": "DC-GOM-GE-001", "rh_actuel": Decimal("220")},
+            {"groupe_code": "DC-GOM-GE-002", "rh_actuel": Decimal("130")},
+        ]
+        previous_one = MagicMock()
+        previous_one.order_by.return_value.values_list.return_value.first.return_value = Decimal("200")
+        previous_two = MagicMock()
+        previous_two.order_by.return_value.values_list.return_value.first.return_value = Decimal("100")
+        reading_objects.filter.side_effect = [current, previous_one, previous_two]
+        self.assertEqual(_generator_hours_total("Goma", "2026-02"), Decimal("50"))
+
+    @patch("profiles.records.GeneratorMonthlyReading.objects")
+    @patch("profiles.records.GeneratorRecord.objects")
+    def test_returns_none_when_a_previous_generator_reading_is_missing(self, generator_objects, reading_objects):
+        generator_objects.filter.return_value.values_list.return_value = ["DC-GOM-GE-001"]
+        current = MagicMock()
+        current.values.return_value = [{"groupe_code": "DC-GOM-GE-001", "rh_actuel": Decimal("220")}]
         previous = MagicMock()
         previous.order_by.return_value.values_list.return_value.first.return_value = None
-        generator_objects.filter.side_effect = [current, previous]
-
+        reading_objects.filter.side_effect = [current, previous]
         self.assertIsNone(_generator_hours_total("Goma", "2026-02"))
-
 class PueCalculationTests(SimpleTestCase):
     def test_calculates_pue_to_three_decimals(self):
         values = _calculate_pue_values({

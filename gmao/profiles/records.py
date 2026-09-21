@@ -16,6 +16,7 @@ from .models import (
     FuelMonthlySummary,
     FuelRecord,
     GeneratorRecord,
+    GeneratorMonthlyReading,
     GeneratorFuelConsumption,
     Intervention,
     PueRecord,
@@ -42,6 +43,7 @@ RESOURCE_MODELS = {
     "equipements": Equipment,
     "tickets": Ticket,
     "groupes-electrogenes": GeneratorRecord,
+    "releves-rh-ge": GeneratorMonthlyReading,
     "fuel-ge": FuelRecord,
     "consommations-groupes-ge": GeneratorFuelConsumption,
     "fuel-ravitaillements": FuelDelivery,
@@ -189,27 +191,26 @@ def _previous_fuel_final_stock(site, periode):
 
 
 def _generator_hours_total(site, periode):
-    """Somme les heures mensuelles des GE; None indique qu'un relevé précédent manque."""
+    """Somme les heures mensuelles depuis les relevés RH archivés par groupe."""
     _fuel_period_bounds(periode)
-    current_records = GeneratorRecord.objects.filter(
-        site=site,
-        mois_releve=periode,
-    ).values("code", "rh_actuel")
-    if not current_records:
+    group_codes = list(GeneratorRecord.objects.filter(site=site).values_list("code", flat=True))
+    if not group_codes:
         return None
-
+    current_records = {
+        row["groupe_code"]: row["rh_actuel"]
+        for row in GeneratorMonthlyReading.objects.filter(site=site, periode=periode).values("groupe_code", "rh_actuel")
+    }
+    if any(code not in current_records for code in group_codes):
+        return None
     total = Decimal("0")
-    for current in current_records:
-        previous_rh = GeneratorRecord.objects.filter(
-            site=site,
-            code=current["code"],
-            mois_releve__lt=periode,
-        ).order_by("-mois_releve").values_list("rh_actuel", flat=True).first()
-        if previous_rh is None or current["rh_actuel"] < previous_rh:
+    for code in group_codes:
+        previous_rh = GeneratorMonthlyReading.objects.filter(
+            site=site, groupe_code=code, periode__lt=periode,
+        ).order_by("-periode").values_list("rh_actuel", flat=True).first()
+        if previous_rh is None or current_records[code] < previous_rh:
             return None
-        total += current["rh_actuel"] - previous_rh
+        total += current_records[code] - previous_rh
     return total
-
 FUEL_AUTOMATIC_FIELDS = {
     "sortie", "entree", "stock_final", "heures_ge", "litres_heure", "disponibilite_grid",
 }
@@ -319,12 +320,12 @@ def _calculate_generator_fuel_consumption(values, record=None):
         raise ValidationError("Le site, le mois, le groupe et la consommation sont obligatoires.")
     if consommation < 0:
         raise ValidationError("La consommation ne peut pas être négative.")
-    current = GeneratorRecord.objects.filter(
-        site=site, code=groupe_code, mois_releve=periode,
+    current = GeneratorMonthlyReading.objects.filter(
+        site=site, groupe_code=groupe_code, periode=periode,
     ).values_list("rh_actuel", flat=True).first()
-    previous = GeneratorRecord.objects.filter(
-        site=site, code=groupe_code, mois_releve__lt=periode,
-    ).order_by("-mois_releve").values_list("rh_actuel", flat=True).first()
+    previous = GeneratorMonthlyReading.objects.filter(
+        site=site, groupe_code=groupe_code, periode__lt=periode,
+    ).order_by("-periode").values_list("rh_actuel", flat=True).first()
     if current is None or previous is None or current < previous:
         raise ValidationError("Les relevés RH du groupe pour ce mois et le mois précédent sont nécessaires.")
     hours = current - previous
@@ -333,6 +334,53 @@ def _calculate_generator_fuel_consumption(values, record=None):
     values["heures_ge"] = hours
     values["litres_heure"] = (consommation / hours).quantize(Decimal("0.001")) if hours > 0 else Decimal("0")
     return values
+
+def _validate_monthly_reading(values, record=None):
+    site = values.get("site", getattr(record, "site", None))
+    periode = values.get("periode", getattr(record, "periode", None))
+    groupe_code = values.get("groupe_code", getattr(record, "groupe_code", None))
+    rh_actuel = values.get("rh_actuel", getattr(record, "rh_actuel", None))
+    if not site or not periode or not groupe_code or rh_actuel is None:
+        raise ValidationError("Le site, le mois, le groupe et le compteur RH sont obligatoires.")
+    _fuel_period_bounds(periode)
+    if rh_actuel < 0:
+        raise ValidationError("Le compteur RH ne peut pas être négatif.")
+    if not GeneratorRecord.objects.filter(site=site, code=groupe_code).exists():
+        raise ValidationError("Le groupe électrogène sélectionné n'existe pas pour ce site.")
+    readings = GeneratorMonthlyReading.objects.filter(site=site, groupe_code=groupe_code)
+    if record is not None:
+        readings = readings.exclude(id=record.id)
+    if readings.filter(periode=periode).exists():
+        raise ValidationError("Un relevé RH existe déjà pour ce groupe et ce mois.")
+    previous = readings.filter(periode__lt=periode).order_by("-periode").values_list("rh_actuel", flat=True).first()
+    if previous is not None and rh_actuel < previous:
+        raise ValidationError("Le compteur RH ne peut pas être inférieur au dernier relevé du groupe.")
+
+
+def _sync_generator_current_from_readings(site, groupe_code, actor_id=None):
+    generator = GeneratorRecord.objects.filter(site=site, code=groupe_code).first()
+    latest = GeneratorMonthlyReading.objects.filter(site=site, groupe_code=groupe_code).order_by("-periode").first()
+    if not generator or not latest:
+        return
+    values = {"rh_actuel": latest.rh_actuel}
+    _calculate_generator_values(values, generator)
+    generator.mois_releve = latest.periode
+    generator.rh_actuel = values["rh_actuel"]
+    generator.rh_depuis_derniere_pm = values["rh_depuis_derniere_pm"]
+    generator.rh_prochaine_pm = values["rh_prochaine_pm"]
+    generator.etat = values["etat"]
+    generator.commentaires = latest.commentaires
+    if actor_id is not None:
+        generator.updated_by = actor_id
+    generator.save(update_fields=["mois_releve", "rh_actuel", "rh_depuis_derniere_pm", "rh_prochaine_pm", "etat", "commentaires", "updated_by", "updated_at"])
+
+
+def _recalculate_fuel_records_after_reading_change(site, periode, actor_id=None):
+    try:
+        _recalculate_fuel_records(site, periode, actor_id)
+    except ValidationError as error:
+        if not any("relevés RH" in message for message in error.messages):
+            raise
 
 def _calculate_fuel_delivery_values(values, record=None):
     quantity = values.get("quantite_recue", getattr(record, "quantite_recue", None))
@@ -442,6 +490,8 @@ def record_collection(request, resource):
                     values["statut"] = "Open"
                 elif model_class is GeneratorRecord:
                     _calculate_generator_values(values)
+                elif model_class is GeneratorMonthlyReading:
+                    _validate_monthly_reading(values)
                 elif model_class is FuelRecord:
                     _assert_fuel_manual_fields_are_not_sent(values)
                     _calculate_fuel_values(values, allow_initial_stock=profile.role in GLOBAL_ROLES)
@@ -455,14 +505,17 @@ def record_collection(request, resource):
                 record.full_clean(exclude=["updated_by"])
                 record.save(force_insert=True)
                 if model_class is GeneratorRecord:
-                    _recalculate_fuel_records(record.site, record.mois_releve, profile.id)
+                    pass
+                elif model_class is GeneratorMonthlyReading:
+                    _sync_generator_current_from_readings(record.site, record.groupe_code, profile.id)
+                    _recalculate_fuel_records_after_reading_change(record.site, record.periode, profile.id)
                 elif model_class is FuelRecord:
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is GeneratorFuelConsumption:
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is FuelDelivery:
                     _recalculate_fuel_records_after_delivery_change(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
-                if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
+                if model_class in {GeneratorRecord, GeneratorMonthlyReading, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 notify_record_created(profile, resource, record)
                 if model_class is GeneratorRecord:
@@ -491,10 +544,13 @@ def record_detail(request, resource, record_id):
             values = _clean_values(model_class, _payload(request))
             with transaction.atomic():
                 previous_site = record.site
-                previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class is FuelRecord else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None)
+                previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class in {GeneratorMonthlyReading, FuelRecord} else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None)
                 if model_class is GeneratorRecord:
                     assert_site_access(profile, values["site"])
                     _calculate_generator_values(values, record)
+                elif model_class is GeneratorMonthlyReading:
+                    assert_can_modify(profile, values["site"])
+                    _validate_monthly_reading(values, record)
                 elif model_class is FuelRecord:
                     assert_can_modify(profile, values["site"])
                     _assert_fuel_manual_fields_are_not_sent(values, record)
@@ -516,8 +572,12 @@ def record_detail(request, resource, record_id):
                 record.full_clean()
                 record.save()
                 if model_class is GeneratorRecord:
-                    _recalculate_fuel_records(previous_site, previous_period, profile.id)
-                    _recalculate_fuel_records(record.site, record.mois_releve, profile.id)
+                    pass
+                elif model_class is GeneratorMonthlyReading:
+                    _sync_generator_current_from_readings(previous_site, record.groupe_code, profile.id)
+                    _sync_generator_current_from_readings(record.site, record.groupe_code, profile.id)
+                    _recalculate_fuel_records_after_reading_change(previous_site, previous_period, profile.id)
+                    _recalculate_fuel_records_after_reading_change(record.site, record.periode, profile.id)
                 elif model_class is FuelRecord:
                     _recalculate_fuel_records(previous_site, previous_period, profile.id)
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
@@ -527,7 +587,7 @@ def record_detail(request, resource, record_id):
                 elif model_class is FuelDelivery:
                     _recalculate_fuel_records_after_delivery_change(previous_site, previous_period, profile.id)
                     _recalculate_fuel_records_after_delivery_change(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
-                if model_class in {GeneratorRecord, FuelRecord, FuelDelivery, PueRecord}:
+                if model_class in {GeneratorRecord, GeneratorMonthlyReading, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 if model_class is GeneratorRecord:
                     notify_generator_alert(profile, record)
@@ -543,10 +603,13 @@ def record_detail(request, resource, record_id):
                 assert_can_delete(profile)
             deleted_id = str(record.id)
             deleted_site = record.site
-            deleted_period = record.periode if model_class in {GeneratorFuelConsumption, FuelRecord} else None
+            deleted_period = record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord} else None
+            deleted_group_code = record.groupe_code if model_class is GeneratorMonthlyReading else None
             record.delete()
+            if deleted_group_code:
+                _sync_generator_current_from_readings(deleted_site, deleted_group_code, profile.id)
             if deleted_period:
-                _recalculate_fuel_records(deleted_site, deleted_period, profile.id)
+                _recalculate_fuel_records_after_reading_change(deleted_site, deleted_period, profile.id)
             return JsonResponse({"status": "deleted", "id": deleted_id})
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
     except (ValidationError, PermissionDeniedError) as error:

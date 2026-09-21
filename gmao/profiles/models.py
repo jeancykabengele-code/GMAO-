@@ -89,6 +89,18 @@ class GeneratorRecord(BusinessRecord):
         db_table = "gmao_groupes_electrogenes"
 
 
+class GeneratorMonthlyReading(BusinessRecord):
+    """Historique interne des compteurs RH mensuels des groupes électrogènes."""
+    periode = models.TextField()
+    groupe_code = models.TextField()
+    rh_actuel = models.DecimalField(max_digits=14, decimal_places=2)
+    commentaires = models.TextField(blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "gmao_releves_rh_ge"
+        unique_together = ("site", "periode", "groupe_code")
+
 class FuelRecord(BusinessRecord):
     periode = models.TextField()
     stock_initial = models.DecimalField(max_digits=16, decimal_places=3, null=True, blank=True)
