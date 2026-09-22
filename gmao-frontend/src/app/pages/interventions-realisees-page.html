@@ -4,7 +4,7 @@
       <div class="page-heading"><h1>Interventions r&eacute;alis&eacute;es</h1><p>Journal des travaux effectu&eacute;s sur les &eacute;quipements des diff&eacute;rents sites.</p></div>
       <div class="view-actions">
         <button type="button" class="view-button" [class.inactive]="!tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()"><i class="solaris-icon solaris-tools"></i> Journal des interventions</button>
-        <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner une intervention</button>
+        @if (canEnterData) { <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner une intervention</button> }
         @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
       </div>
     </div>

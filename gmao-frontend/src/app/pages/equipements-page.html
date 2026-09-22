@@ -4,7 +4,7 @@
       <div class="page-heading"><h1>&Eacute;quipements</h1><p>Registre multisite des actifs et de leur &eacute;tat op&eacute;rationnel.</p></div>
       <div class="view-actions">
         <button type="button" class="view-button" [class.inactive]="!tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()"><i class="solaris-icon solaris-equipment"></i> Registre des &eacute;quipements</button>
-        <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner un &eacute;quipement</button>
+        @if (canEnterData) { <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner un &eacute;quipement</button> }
         @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
       </div>
     </div>

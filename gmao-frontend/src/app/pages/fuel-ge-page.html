@@ -7,7 +7,7 @@
       </div>
       <div class="view-actions">
         <button type="button" class="view-button" [class.inactive]="!journalOpen" [attr.aria-pressed]="journalOpen" (click)="toggleJournal()"><i class="solaris-icon solaris-documentation"></i> Journal mensuel</button>
-        <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner le journal</button>
+        @if (canEnterData) { <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner le journal</button> }
         @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
       </div>
     </div>

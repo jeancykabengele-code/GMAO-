@@ -58,4 +58,21 @@ describe('AccessControlService', () => {
     expect(access.canExportData).toBe(true);
     expect(store.canExportData).toBe(true);
   });
+
+  it('reserves new data entry to chefs de site while global roles retain editing', () => {
+    profileState.set({
+      id: 'manager', email: 'manager@ordc.cd', full_name: 'Manager', role: 'manager',
+      site: null, active: true, created_at: '2026-01-01T00:00:00Z',
+    });
+    expect(access.canEnterSiteData).toBe(false);
+    expect(store.canEnterData).toBe(false);
+    expect(access.canModifyExisting).toBe(true);
+
+    profileState.set({
+      id: 'chef-goma', email: 'goma@ordc.cd', full_name: 'Chef Goma', role: 'chef_site',
+      site: 'Goma', active: true, created_at: '2026-01-01T00:00:00Z',
+    });
+    expect(access.canEnterSiteData).toBe(true);
+    expect(store.canEnterData).toBe(true);
+  });
 });

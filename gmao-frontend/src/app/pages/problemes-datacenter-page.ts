@@ -35,6 +35,7 @@ export class ProblemesDatacenterPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly statuses: ProblemStatus[] = ['Open', 'Ongoing', 'Closed'];
   readonly priorities: ProblemPriority[] = ['P1', 'P2', 'P3'];
@@ -149,7 +150,7 @@ export class ProblemesDatacenterPageComponent {
     this.resetPage();
   }
 
-  openProblemSheet(): void {
+  openProblemSheet(): void { if (!this.canEnterData) return;
     this.editingProblem = null;
     this.newProblem = this.createEmptyProblem();
     this.problemSheetOpen = true;

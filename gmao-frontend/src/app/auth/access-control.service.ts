@@ -34,6 +34,10 @@ export class AccessControlService {
     return this.profile?.permissions?.createRecords ?? Boolean(this.profile?.active);
   }
 
+  get canEnterSiteData(): boolean {
+    return !this.profile || this.isChefSite;
+  }
+
   get canModifyExisting(): boolean {
     return this.profile?.permissions?.modifyExisting ?? (!this.profile || this.isGlobalRole);
   }

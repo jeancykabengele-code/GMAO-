@@ -68,6 +68,7 @@ export class PiecesRechangePageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly statuses: SparePartStatus[] = ['Recue', 'Utilisee', 'Retournee'];
 
@@ -136,7 +137,7 @@ export class PiecesRechangePageComponent {
     this.newOperation.equipement = '';
   }
 
-  openSheet(): void {
+  openSheet(): void { if (!this.canEnterData) return;
     this.editingIndex = null;
     this.newOperation = this.createEmptyOperation();
     this.formError = '';

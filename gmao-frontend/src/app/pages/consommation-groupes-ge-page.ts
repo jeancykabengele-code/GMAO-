@@ -29,6 +29,7 @@ export class ConsommationGroupesGePageComponent {
     }));
   }
   get sites(): string[] { return this.dataStore.allowedSites; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   get groups(): GeneratorRow[] { return this.dataStore.generatorRows as GeneratorRow[]; }
   get allowedGroups(): GeneratorRow[] { return this.groups.filter((group) => group.site === this.entry.site); }
@@ -66,7 +67,7 @@ export class ConsommationGroupesGePageComponent {
   previousPage(): void { if (this.currentPage > 1) this.currentPage--; }
   nextPage(): void { if (this.currentPage < this.pageCount) this.currentPage++; }
   resetFilters(): void { this.selectedSite = ''; this.selectedPeriod = ''; this.selectedGroup = ''; this.searchTerm = ''; this.currentPage = 1; }
-  show(): void { this.error = ''; this.entry = this.empty(); this.open = true; }
+  show(): void { if (!this.canEnterData) return; this.error = ''; this.entry = this.empty(); this.open = true; }
   close(): void { this.open = false; }
   async save(): Promise<void> {
     this.error = '';

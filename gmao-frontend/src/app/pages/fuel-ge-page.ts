@@ -63,6 +63,7 @@ export class FuelGePageComponent {
 
   get sites(): string[] { return this.dataStore.allowedSites; }
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   get journalRows(): MonthlyJournalRow[] { return this.dataStore.fuelRows as MonthlyJournalRow[]; }
   set journalRows(value: MonthlyJournalRow[]) { this.dataStore.fuelRows = value; }
@@ -196,7 +197,7 @@ export class FuelGePageComponent {
   toggleJournal(): void { this.journalOpen = !this.journalOpen; }
   resetPage(): void { this.currentPage = 1; }
 
-  openSheet(): void {
+  openSheet(): void { if (!this.canEnterData) return;
     this.editingIndex = null;
     this.newEntry = this.createEmptyEntry();
     this.formError = '';

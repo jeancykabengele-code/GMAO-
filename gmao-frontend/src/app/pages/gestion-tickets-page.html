@@ -70,10 +70,10 @@
           </div>
         </label>
 
-        <button type="button" class="primary-button" (click)="openTicketSheet()">
+        @if (canEnterData) { <button type="button" class="primary-button" (click)="openTicketSheet()">
           <i class="solaris-icon solaris-add"></i>
           Renseigner le ticket
-        </button>
+        </button> }
       </div>
 
       <div class="table-wrapper">

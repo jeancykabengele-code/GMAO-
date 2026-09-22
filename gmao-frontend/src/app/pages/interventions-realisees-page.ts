@@ -70,6 +70,7 @@ export class InterventionsRealiseesPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly interventionTypes: InterventionType[] = ['PM', 'Corrective', 'Cleanning', 'Controle', 'Autre'];
   readonly statuses: InterventionStatus[] = ['Cloturee', 'En cours'];
@@ -135,7 +136,7 @@ export class InterventionsRealiseesPageComponent {
     this.newIntervention.equipement = '';
   }
 
-  openSheet(): void {
+  openSheet(): void { if (!this.canEnterData) return;
     this.editingIndex = null;
     this.newIntervention = this.createEmptyIntervention();
     this.sheetOpen = true;

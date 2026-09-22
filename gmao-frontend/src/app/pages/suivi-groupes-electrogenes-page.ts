@@ -109,6 +109,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return rows.sort((left, right) => `${right.moisReleve} ${right.code}`.localeCompare(`${left.moisReleve} ${left.code}`, 'fr'));
   }
   get canUpdate(): boolean { return this.dataStore.canUpdateGenerators; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
 
   get entrySites(): string[] { return this.dataStore.allowedSites; }
 
@@ -236,7 +237,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     if (this.currentPage < this.pageCount) this.currentPage++;
   }
 
-  openEntrySheet(): void {
+  openEntrySheet(): void { if (!this.canEnterData) return;
     this.creatingGenerator = false;
     this.selectingGenerator = true;
     this.editingRow = null;

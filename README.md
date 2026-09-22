@@ -534,7 +534,7 @@ Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 État vérifié au 22 septembre 2026 :
 
 - 14 fichiers de tests frontend réussis ;
-- 48 tests frontend réussis dans 14 fichiers ;
+- 49 tests frontend réussis dans 14 fichiers ;
 - compilation Angular de production réussie sans avertissement de budget ;
 - seuils de budget calibrés à 1,2 Mo pour le bundle initial et 10 Ko par feuille de style.
 

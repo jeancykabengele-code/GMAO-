@@ -44,6 +44,7 @@ export class GestionTicketsPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly natures: TicketNature[] = ['PM', 'WO', 'Incident', 'Curative', 'Visit'];
 
@@ -189,7 +190,7 @@ export class GestionTicketsPageComponent {
     this.resetTicketPage();
   }
 
-  openTicketSheet(): void {
+  openTicketSheet(): void { if (!this.canEnterData) return;
     this.editingTicket = null;
     this.newTicket = this.createEmptyTicket();
     this.formError = '';

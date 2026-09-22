@@ -9,9 +9,9 @@
       <button type="button" class="view-button" [class.inactive]="!tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()">
         <i class="solaris-icon solaris-spare-parts"></i> Journal des pi&egrave;ces
       </button>
-      <button type="button" class="primary-button" (click)="openSheet()">
+      @if (canEnterData) { <button type="button" class="primary-button" (click)="openSheet()">
         <i class="solaris-icon solaris-add"></i> Renseigner l'op&eacute;ration
-      </button>
+      </button> }
       @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
 
     </div>

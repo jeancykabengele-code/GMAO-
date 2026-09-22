@@ -35,6 +35,7 @@ export class EquipementsPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly families: EquipmentFamily[] = ['Energie', 'Climatisation', 'IT', 'Securite', 'Anti-incendie', 'Plomberie/hydraulique', 'Batiment', 'Telecoms'];
   readonly criticalities: EquipmentCriticality[] = ['Faible', 'Moyenne', 'Elevee', 'Critique'];
@@ -131,7 +132,7 @@ export class EquipementsPageComponent {
     this.currentPage = 1;
   }
 
-  openSheet(): void {
+  openSheet(): void { if (!this.canEnterData) return;
     this.editingIndex = null;
     this.newEquipment = this.createEmptyEquipment();
     this.sheetOpen = true;

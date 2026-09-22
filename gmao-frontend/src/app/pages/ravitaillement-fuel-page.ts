@@ -19,6 +19,7 @@ export class RavitaillementFuelPageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get filteredRows(): FuelDeliveryRow[] { return this.rows.filter(row => (!this.selectedSite || row.site === this.selectedSite) && (!this.fromDate || row.dateRavitaillement >= this.fromDate) && (!this.toDate || row.dateRavitaillement <= this.toDate)); }
   get pageCount(): number { return Math.max(1, Math.ceil(this.filteredRows.length / this.rowsPerPage)); }
   get visibleRows(): FuelDeliveryRow[] { const start = (this.currentPage - 1) * this.rowsPerPage; return this.filteredRows.slice(start, start + this.rowsPerPage); }
@@ -28,7 +29,7 @@ export class RavitaillementFuelPageComponent {
   nextPage(): void { if (this.currentPage < this.pageCount) this.currentPage++; }
   resetFilters(): void { this.selectedSite = ''; this.fromDate = ''; this.toDate = ''; this.currentPage = 1; }
   exportExcel(): void { if (!this.canExportExcel) return; this.excelExporter.exportTable({ title: 'Ravitaillement Fuel', fileName: 'ravitaillement-fuel', rows: this.filteredRows, columns: [{ header: 'Date du ravitaillement', value: r => r.dateRavitaillement }, { header: 'Site', value: r => r.site }, { header: 'Fournisseur', value: r => r.fournisseur }, { header: 'N° bon de livraison', value: r => r.bonLivraison }, { header: 'Type de carburant', value: r => r.typeCarburant }, { header: 'Quantité reçue (L)', value: r => r.quantiteRecue }, { header: 'Stock avant (L)', value: r => r.stockAvant }, { header: 'Stock après (L)', value: r => r.stockApres }, { header: 'Réceptionné par', value: r => r.receptionnePar }, { header: 'Commentaires', value: r => r.commentaires ?? '' }, { header: 'Date d’enregistrement', value: r => r.createdAt ?? '' }] }); }
-  openForm(): void { this.errorMessage = ''; this.entry = this.createEmptyEntry(); this.formOpen = true; }
+  openForm(): void { if (!this.canEnterData) return; this.errorMessage = ''; this.entry = this.createEmptyEntry(); this.formOpen = true; }
   openEdit(row: FuelDeliveryRow): void { if (!this.canModify) return; this.errorMessage = ''; this.editingRow = row; this.entry = { dateRavitaillement: row.dateRavitaillement, site: row.site, fournisseur: row.fournisseur, bonLivraison: row.bonLivraison, typeCarburant: row.typeCarburant, quantiteRecue: row.quantiteRecue, stockAvant: row.stockAvant, stockApres: row.stockApres, numeroCiterne: row.numeroCiterne ?? '', receptionnePar: row.receptionnePar, commentaires: row.commentaires ?? '' }; this.formOpen = true; }
   closeForm(): void { if (!this.saving && !this.deleting) this.formOpen = false; }
   requestDeletion(): void { if (this.editingRow && !this.saving && !this.deleting) this.deleteConfirmationOpen = true; }

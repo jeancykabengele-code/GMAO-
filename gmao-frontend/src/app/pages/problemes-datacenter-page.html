@@ -14,10 +14,10 @@
         Journal de problème
       </button>
 
-      <button type="button" class="primary-button" (click)="openProblemSheet()">
+      @if (canEnterData) { <button type="button" class="primary-button" (click)="openProblemSheet()">
         <i class="solaris-icon solaris-add"></i>
         Renseigner le problème
-      </button>
+      </button> }
       @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
 
     </div>

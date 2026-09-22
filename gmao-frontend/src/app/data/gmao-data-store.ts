@@ -30,6 +30,7 @@ export class GmaoDataStore {
 
   get allowedSites(): string[] { return this.access?.allowedSites ?? [...ORANGE_RDC_SITES]; }
   get canModifyExisting(): boolean { return this.access?.canModifyExisting ?? true; }
+  get canEnterData(): boolean { return this.access?.canEnterSiteData ?? true; }
   get canExportData(): boolean { return this.access?.canExportData ?? true; }
   get canUpdateGenerators(): boolean { return this.canModifyExisting || (this.access?.isChefSite ?? false); }
   get isChefSite(): boolean { return this.access?.isChefSite ?? false; }

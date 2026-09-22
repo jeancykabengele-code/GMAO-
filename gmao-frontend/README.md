@@ -27,7 +27,7 @@ npm test -- --watch=false --reporters verbose --progress=false
 npm run build
 ```
 
-Bilan vérifié le 22 septembre 2026 : **48 tests réussis dans 14 suites** et compilation de production réussie.
+Bilan vérifié le 22 septembre 2026 : **49 tests réussis dans 14 suites** et compilation de production réussie.
 
 ## Déploiement
 

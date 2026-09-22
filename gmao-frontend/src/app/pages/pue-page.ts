@@ -28,6 +28,7 @@ export class PuePageComponent {
   get sites(): string[] { return this.dataStore.allowedSites; }
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
 
   constructor(
@@ -122,7 +123,7 @@ export class PuePageComponent {
     this.currentPage = 1;
   }
 
-  openSheet(): void {
+  openSheet(): void { if (!this.canEnterData) return;
     this.editingIndex = null;
     this.newEntry = this.createEmptyEntry();
     this.sheetOpen = true;
