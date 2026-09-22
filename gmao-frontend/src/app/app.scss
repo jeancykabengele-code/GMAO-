@@ -18,9 +18,41 @@
 .app-shell { display: flex; height: 100vh; overflow: hidden; background: var(--off-white); }
 .sidebar { width: 270px; height: 100vh; flex: 0 0 270px; padding: 20px 14px; overflow-x: hidden; overflow-y: auto; color: #1f1f1d; background: var(--sidebar); border-right: 1px solid #d7d7d3; transition: width 0.25s ease, flex-basis 0.25s ease, padding 0.25s ease; }
 .sidebar.hidden { width: 0; flex-basis: 0; padding-right: 0; padding-left: 0; }
-.brand { display: flex; align-items: center; margin: 0 0 14px; padding: 0 8px 20px; border-bottom: 1px solid #d7d7d3; color: var(--orange); font-size: 1.25rem; font-weight: 800; text-decoration: none; }
-.brand i, .brand strong { color: var(--orange); }
+.brand {
+  display: flex;
+  min-height: 92px;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 14px;
+  padding: 10px 12px 18px;
+  border-bottom: 1px solid #d7d7d3;
+  color: var(--anthracite);
+  text-decoration: none;
+}
 
+.brand-logo-safe-area {
+  display: grid;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+  place-items: center;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.brand-logo-safe-area img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-product {
+  color: var(--anthracite);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
 
 .notification-center {
   position: relative;
@@ -253,6 +285,9 @@ nav > a.active i { color: #ffffff; }
 
 @media (max-width: 760px) {
   .sidebar { width: 230px; flex-basis: 230px; }
+  .brand { min-height: 76px; gap: 12px; padding-inline: 8px; }
+  .brand-logo-safe-area { width: 64px; height: 64px; flex-basis: 64px; padding: 8px; }
+  .brand-product { font-size: 0.95rem; }
   .sidebar-toggle { left: 246px; }
   .sidebar-toggle.sidebar-closed { left: 18px; }
 }

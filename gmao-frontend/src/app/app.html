@@ -1,8 +1,11 @@
 <div class="app-shell">
   @if (!isPublicRoute) {
   <aside class="sidebar" [class.hidden]="sidebarHidden">
-    <a class="brand" routerLink="/accueil">
-      <span>GMAO ORDC</span>
+    <a class="brand" routerLink="/accueil" aria-label="GMAO ORDC – Accueil">
+      <span class="brand-logo-safe-area">
+        <img src="/assets/orange/logo/orange-master-logo.png" alt="Orange" width="465" height="465" />
+      </span>
+      <span class="brand-product">GMAO ORDC</span>
     </a>
 
 
