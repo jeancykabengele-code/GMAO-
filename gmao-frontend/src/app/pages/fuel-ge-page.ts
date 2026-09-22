@@ -97,7 +97,7 @@ export class FuelGePageComponent {
     return this.filteredRows.slice(start, start + this.rowsPerPage);
   }
 
-  get canSetInitialStock(): boolean { return this.canModify; }
+  get canSetInitialStock(): boolean { return this.canModify || this.dataStore.isChefSite; }
 
   get isInitialFuelMonth(): boolean {
     if (!this.newEntry.site || !this.newEntry.periode) return false;

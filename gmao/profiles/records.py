@@ -526,7 +526,7 @@ def record_collection(request, resource):
                     _validate_monthly_reading(values)
                 elif model_class is FuelRecord:
                     _assert_fuel_manual_fields_are_not_sent(values)
-                    _calculate_fuel_values(values, allow_initial_stock=profile.role in GLOBAL_ROLES)
+                    _calculate_fuel_values(values, allow_initial_stock=profile.role in (GLOBAL_ROLES | {"chef_site"}))
                 elif model_class is GeneratorFuelConsumption:
                     _calculate_generator_fuel_consumption(values)
                 elif model_class is FuelDelivery:
@@ -588,7 +588,7 @@ def record_detail(request, resource, record_id):
                 elif model_class is FuelRecord:
                     assert_can_modify(profile, values["site"])
                     _assert_fuel_manual_fields_are_not_sent(values, record)
-                    _calculate_fuel_values(values, record, allow_initial_stock=profile.role in GLOBAL_ROLES)
+                    _calculate_fuel_values(values, record, allow_initial_stock=profile.role in (GLOBAL_ROLES | {"chef_site"}))
                 elif model_class is GeneratorFuelConsumption:
                     assert_can_modify(profile, values["site"])
                     _calculate_generator_fuel_consumption(values, record)
