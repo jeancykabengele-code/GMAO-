@@ -290,3 +290,47 @@ table tbody td * { color: var(--orange-black) !important; }
 }
 
 .page-content .state-critical { color: var(--orange-white) !important; background: #c91400 !important; }
+/* États métier : couleurs secondaires réservées aux informations utiles. */
+:root {
+  --orange-success: #087a46;
+  --orange-success-tint: #e6f4ea;
+  --orange-critical: #c91400;
+  --orange-critical-tint: #fff0ee;
+  --orange-warning-tint: #fff2e5;
+}
+
+/* Validation : seule la réussite utilise le vert. */
+.page-content :is(.state-good, .state-normal, .state-service, .pm-normal, .status-closed, .status-used, .message.success, .success, .status:not(.off)) {
+  color: var(--orange-success) !important;
+  background: var(--orange-success-tint) !important;
+}
+
+/* Attention : Orange, la couleur principale, signale une action ou un suivi nécessaire. */
+.page-content :is(.state-alert, .state-maintenance, .pm-watch, .status-open, .status-progress, .status-received, .status-returned, .criticality-medium, .criticality-high, .priority-p2) {
+  color: var(--orange-black) !important;
+  background: var(--orange-warning-tint) !important;
+  border-color: var(--orange) !important;
+}
+
+/* Critique : le rouge est réservé au danger, à l’erreur et aux opérations irréversibles. */
+.page-content :is(.state-critical, .state-down, .pm-urgent, .pm-overdue, .criticality-critical, .priority-p1, .message.error, .error, .form-error) {
+  color: var(--orange-critical) !important;
+  background: var(--orange-critical-tint) !important;
+  border-color: var(--orange-critical) !important;
+}
+
+.page-content :is(.state-critical, .priority-p1) {
+  color: var(--orange-white) !important;
+  background: var(--orange-critical) !important;
+}
+
+.page-content .field.invalid {
+  border-color: var(--orange-critical) !important;
+}
+
+/* Les états descriptifs ne créent pas de nouvelle couleur de marque. */
+.page-content :is(.status-ongoing, .criticality-low, .priority-p3) {
+  color: var(--orange-dark-gray) !important;
+  background: var(--orange-light-gray) !important;
+  border-color: var(--orange-medium-gray) !important;
+}
