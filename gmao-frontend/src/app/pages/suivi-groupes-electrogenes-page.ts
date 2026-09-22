@@ -16,7 +16,7 @@ interface MonthlyReadingRow {
   groupeCode: string;
   periode: string;
   rhActuel: number;
-  commentaires: string;
+  commentaires: string;`r`n  updatedAt?: string | null;
 }
 
 interface EquipmentRow {
