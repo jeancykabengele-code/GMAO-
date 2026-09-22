@@ -25,7 +25,7 @@
       <div class="table-meta"><span>{{ filteredRows.length }} groupe(s)</span><span>20 lignes par page</span></div>
       <div class="table-wrapper">
         <table>
-          <thead><tr><th>Site</th><th>Code</th><th>Groupe</th><th>RH actuel</th><th>RH depuis PM</th><th>Prochaine PM</th><th>État</th><th>Mois du dernier relevé</th>@if (canUpdate) { <th>Action</th> }</tr></thead>
+          <thead><tr><th>Site</th><th>Code</th><th>Groupe</th><th>RH actuel</th><th>RH depuis PM</th><th>Prochaine PM</th><th>État</th><th>Mois du relevé</th>@if (canUpdate) { <th>Action</th> }</tr></thead>
           <tbody>
             @for (row of visibleRows; track row.id || row.code) {
               <tr [attr.data-record-id]="row.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row.id)">

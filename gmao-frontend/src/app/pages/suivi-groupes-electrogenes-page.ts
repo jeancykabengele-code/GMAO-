@@ -97,10 +97,12 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     for (const reading of this.generatorReadingRows) {
       const generator = generators.get(`${reading.site}::${reading.groupeCode}`);
       if (!generator) continue;
+      const hoursSincePm = Math.max(0, Number(reading.rhActuel) - Number(generator.rhDernierePm));
       rows.push({
         ...generator, ...reading, id: reading.id, code: generator.code, typeGe: generator.typeGe,
         moisReleve: reading.periode,
-        rhDepuisDernierePm: Math.max(0, Number(reading.rhActuel) - Number(generator.rhDernierePm)),
+        rhDepuisDernierePm: hoursSincePm,
+        etat: this.calculateState(hoursSincePm, generator.retardSignale),
       });
     }
     return rows.sort((left, right) => `${right.moisReleve} ${right.code}`.localeCompare(`${left.moisReleve} ${left.code}`, 'fr'));
