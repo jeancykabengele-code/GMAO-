@@ -10,6 +10,10 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
     commentaires: '',
   });
 
+  const equipment = () => ({
+    id: 'equipment-ge-1', site: 'Goma', code: 'DC-GOM-GE-001', nom: 'Groupe électrogène LINZ 150 KVA',
+    famille: 'Energie', marqueModele: 'LINZ 150 KVA',
+  });
   it('calcule les RH depuis la PM et la prochaine PM', () => {
     const component = new SuiviGroupesElectrogenesPageComponent();
     component.openSheet(row());
@@ -55,9 +59,10 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
     expect(component.tableVisible).toBe(false);
   });
 
-  it('ouvre Renseigner sur un groupe existant sans créer de doublon', () => {
+  it('sélectionne un groupe existant depuis les équipements sans créer de doublon', () => {
     const component = new SuiviGroupesElectrogenesPageComponent();
     component.generatorRows = [row()];
+    component.equipmentRows = [equipment()];
 
     component.openEntrySheet();
 
@@ -86,13 +91,16 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
     expect(component.sheetOpen).toBe(false);
   });
 
-  it('ouvre la création du premier groupe quand le tableau est vide', () => {
+  it('prépare le premier groupe à partir d’un équipement GE', () => {
     const component = new SuiviGroupesElectrogenesPageComponent();
     component.generatorRows = [];
+    component.equipmentRows = [equipment()];
 
     component.openEntrySheet();
 
     expect(component.sheetOpen).toBe(true);
     expect(component.creatingGenerator).toBe(true);
+    expect(component.newGenerator.code).toBe('DC-GOM-GE-001');
+    expect(component.newGenerator.typeGe).toBe('Groupe électrogène LINZ 150 KVA');
   });
 });

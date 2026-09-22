@@ -86,6 +86,10 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return this.dataStore.equipmentRows as EquipmentRow[];
   }
 
+  set equipmentRows(value: EquipmentRow[]) {
+    this.dataStore.equipmentRows = value;
+  }
+
   get availableEquipmentGroups(): EquipmentRow[] {
     return this.equipmentRows
       .filter((row) => row.site === this.newGenerator.site && this.isGeneratorEquipment(row))
@@ -213,7 +217,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.editingRow = null;
     this.newGenerator = {
       ...this.createEmptyGenerator(),
-      site: this.dataStore.allowedSites[0] || '',
+      site: this.entrySites.find((site) => this.equipmentRows.some((row) => row.site === site && this.isGeneratorEquipment(row))) || this.entrySites[0] || '',
       moisReleve: new Date().toISOString().slice(0, 7),
     };
     this.selectedGeneratorKey = this.equipmentKey(this.availableEquipmentGroups[0]);
