@@ -643,12 +643,15 @@ def record_detail(request, resource, record_id):
             deleted_id = str(record.id)
             deleted_site = record.site
             deleted_period = record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord} else None
+            deleted_delivery_period = record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None
             deleted_group_code = record.groupe_code if model_class is GeneratorMonthlyReading else None
             record.delete()
             if deleted_group_code:
                 _sync_generator_current_from_readings(deleted_site, deleted_group_code, profile.id)
             if deleted_period:
                 _recalculate_fuel_records_after_reading_change(deleted_site, deleted_period, profile.id)
+            if deleted_delivery_period:
+                _recalculate_fuel_records_after_delivery_change(deleted_site, deleted_delivery_period, profile.id)
             return JsonResponse({"status": "deleted", "id": deleted_id})
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
     except (ValidationError, PermissionDeniedError) as error:

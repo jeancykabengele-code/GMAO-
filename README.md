@@ -68,11 +68,21 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - Le chef de site renseigne le site, le mois et le kWh SNEL lorsque le site est raccordé ; la consommation Fuel est calculée, elle n’est jamais saisie dans cette feuille.
 - Fuel-GE additionne automatiquement les consommations par groupe GE du site pour le mois sélectionné.
 - Le stock initial, les ravitaillements du mois, les heures GE, le stock final, les litres par heure et la disponibilité Grid sont calculés par Django.
-- Le premier stock de départ est défini une seule fois par le Manager ou le Chargé des opérations.
+- Le premier stock de départ est défini une seule fois par le Chef de site, le Manager ou le Chargé des opérations.
 - Toute modification d’un ravitaillement, d’un relevé RH GE ou d’un ancien journal recalcule les journaux Fuel-GE dépendants du même site.
 - Les champs calculés sont protégés : l’API refuse toute modification manuelle de ces valeurs.
 - Le Manager et le Chargé des opérations peuvent supprimer une ligne Fuel-GE depuis le formulaire de modification. Les mois suivants sont recalculés ; la suppression est refusée si elle rend un stock de départ incohérent.
 
+### Liaisons entre les feuilles Fuel et GE
+
+Les données sont reliées par le **site**, le **mois (`AAAA-MM`)** et, pour les relevés/consommations, le **code du groupe**. L’équipement enregistré dans **Équipements** est la source du code, du nom et du site des groupes électrogènes proposés dans **Suivi groupes électrogènes**.
+
+1. **Suivi groupes électrogènes** enregistre un relevé RH par groupe et par mois. Les heures d’un groupe sont calculées par `RH du mois − RH du relevé précédent`. Une référence de décembre permet donc de calculer les heures de janvier.
+2. **Consommation par groupe GE** reçoit les litres saisis pour le même groupe et le même mois. Elle reprend les heures calculées au point 1 et calcule `L/h = litres / heures`.
+3. **Ravitaillement Fuel** enregistre chaque livraison datée. Sa quantité est additionnée automatiquement dans le mois concerné ; les stocks avant/après servent de contrôle physique de la livraison et ne remplacent pas les calculs Fuel-GE.
+4. **Fuel-GE** est la synthèse mensuelle du site : `stock final = stock initial + somme des ravitaillements − somme des consommations`. Il additionne également les heures de tous les groupes et calcule la moyenne `L/h`. Dès le deuxième mois, le stock initial reprend le stock final du mois précédent.
+
+Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans PostgreSQL, puis l’interface est rafraîchie.
 ### Consommation par groupe GE
 
 - Suivi mensuel de la consommation Fuel de chaque groupe électrogène.
@@ -199,10 +209,10 @@ Les rôles reconnus sont `manager`, `charge_operations` et `chef_site`.
 | Accéder au tableau de bord global | Oui | Oui | Non |
 | Accéder à Documentations | Oui | Oui | Non |
 | Créer une fiche | Oui | Oui | Oui, sur son site |
-| Modifier une fiche existante | Oui | Oui | Non, sauf suivi GE autorisé |
+| Modifier une fiche existante | Oui, toutes les fiches | Oui, toutes les fiches | Selon les droits de son site |
 | Exporter les données en Excel XLSX | Oui | Oui | Non |
 | Supprimer un équipement | Oui | Oui | Non |
-| Supprimer une autre fiche métier | Non | Non | Non |
+| Supprimer une autre fiche métier | Oui, toutes les fiches | Oui, toutes les fiches | Non |
 
 Le backend reste l’autorité finale : masquer un bouton dans Angular ne remplace jamais le contrôle de permission effectué par Django.
 
@@ -448,7 +458,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 - La période doit respecter le format `AAAA-MM`.
 - Les volumes et les heures ne peuvent pas être négatifs.
-- Pour le premier mois d’un site, le Manager ou le Chargé des opérations définit une fois le stock de départ. Pour les mois suivants, `stock initial = stock final du dernier journal antérieur`.
+- Pour le premier mois d’un site, le Chef de site, le Manager ou le Chargé des opérations définit une fois le stock de départ. Pour les mois suivants, `stock initial = stock final du dernier journal antérieur`.
 - `ravitaillements du mois = somme des livraisons Fuel du site pendant la période`.
 - `heures GE = somme, par groupe, de RH actuel − RH du relevé précédent`.
 - `stock final = stock initial + ravitaillements − consommation` ; une consommation entraînant un stock négatif est refusée.

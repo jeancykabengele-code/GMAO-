@@ -129,7 +129,6 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
 
   tableVisible = true;
-  filtersVisible = true;
   sheetOpen = false;
   selectingGenerator = false;
   creatingGenerator = false;
@@ -217,10 +216,6 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.tableVisible = !this.tableVisible;
   }
 
-  toggleFilters(): void {
-    this.filtersVisible = !this.filtersVisible;
-  }
-
   resetPage(): void {
     this.currentPage = 1;
   }
@@ -300,32 +295,6 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
 
   get previewState(): PmState {
     return this.calculateState(this.previewRhDepuisPm, this.newGenerator.retardSignale);
-  }
-
-  get lastReadingLabel(): string {
-    return this.formatReadingDate(this.newGenerator.updatedAt);
-  }
-
-  get lastReadingAgeLabel(): string {
-    const days = this.readingAgeDays(this.newGenerator.updatedAt);
-    if (days === null) return 'Aucun relevé enregistré';
-    if (days === 0) return 'Relevé effectué aujourd’hui';
-    return 'Dernier relevé il y a ' + days + ' jour' + (days > 1 ? 's' : '');
-  }
-
-  readingAgeDays(value: string | null | undefined): number | null {
-    if (!value) return null;
-    const timestamp = new Date(value).getTime();
-    if (Number.isNaN(timestamp)) return null;
-    return Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
-  }
-
-  readingFreshnessLabel(value: string | null | undefined): string {
-    const days = this.readingAgeDays(value);
-    if (days === null) return 'Non renseigné';
-    if (days >= 14) return 'Relevé ancien';
-    if (days >= 7) return 'À mettre à jour';
-    return 'À jour';
   }
 
   async saveGenerator(): Promise<void> {
