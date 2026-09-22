@@ -21,6 +21,7 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - [Fonctionnalités](#fonctionnalités)
 - [Architecture](#architecture)
 - [Technologies](#technologies)
+- [Charte visuelle Orange](#charte-visuelle-orange)
 - [Rôles et permissions](#rôles-et-permissions)
 - [Structure du dépôt](#structure-du-dépôt)
 - [Installation locale](#installation-locale)
@@ -189,7 +190,7 @@ Le frontend gère l’interface, les filtres et la génération des fichiers Exc
 
 | Couche | Technologies |
 |---|---|
-| Frontend | Angular 22, TypeScript 6, RxJS, Bootstrap 5, Bootstrap Icons |
+| Frontend | Angular 22, TypeScript 6, RxJS, Bootstrap 5, icônes Solaris |
 | Authentification | Supabase Auth |
 | Backend | Python 3.14, Django 6 |
 | Base de données | PostgreSQL Supabase, SQLite comme repli local |
@@ -198,6 +199,27 @@ Le frontend gère l’interface, les filtres et la génération des fichiers Exc
 | Serveur de production | Gunicorn |
 | Conteneur et hébergement | Docker, Render |
 
+## Charte visuelle Orange
+
+L’interface applique la charte Orange sur l’ensemble des écrans.
+
+- **Typographie** : Helvetica Neue 55 (texte courant), 65 (intermédiaire) et 75 (titres et éléments forts).
+- **Logo** : Master Logo Orange officiel, conservé dans son format carré avec une zone de sécurité et un affichage responsive desktop/mobile.
+- **Couleurs principales** : noir, blanc, Orange `#FF7900` et gris numérique.
+- **Icônes** : pack Solaris local. `bootstrap-icons` n’est plus chargé ni déclaré comme dépendance.
+- **Composants** : menu, boutons, tableaux, formulaires, alertes, fenêtres et focus utilisent le système de couleurs Orange.
+- **États métier** : vert réservé à la validation, Orange à l’attention ou au suivi, rouge aux erreurs et situations critiques ; gris pour les informations neutres.
+- **Graphiques** : Orange est la série principale ; les gris servent aux comparaisons et les couleurs d’état uniquement aux données métier concernées.
+
+Les ressources de la charte se trouvent dans `gmao-frontend/public/assets/orange/` :
+
+```text
+gmao-frontend/public/assets/orange/
+├── fonts/                         # Helvetica Neue 55, 65 et 75
+├── icons/                         # Icônes Solaris officielles
+│   └── manifest.json              # Correspondance historique Bootstrap → Solaris
+└── logo/orange-master-logo.png    # Master Logo officiel
+```
 ## Rôles et permissions
 
 Les rôles reconnus sont `manager`, `charge_operations` et `chef_site`.
@@ -223,7 +245,8 @@ GMAO-Web/
 ├── README.md
 ├── render.yaml
 ├── gmao-frontend/
-│   ├── public/images/              # Logos et arrière-plans
+│   ├── public/assets/orange/       # Polices Helvetica, Master Logo et icônes Solaris
+│   ├── public/images/              # Arrière-plans
 │   ├── src/app/
 │   │   ├── auth/                   # Session, gardes et contrôle d’accès
 │   │   ├── components/             # Barre latérale
@@ -508,10 +531,10 @@ npm run build
 
 Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 
-État vérifié au 17 septembre 2026 :
+État vérifié au 22 septembre 2026 :
 
 - 14 fichiers de tests frontend réussis ;
-- 47 tests frontend réussis ;
+- 48 tests frontend réussis dans 14 fichiers ;
 - compilation Angular de production réussie sans avertissement de budget ;
 - seuils de budget calibrés à 1,2 Mo pour le bundle initial et 10 Ko par feuille de style.
 
@@ -628,7 +651,7 @@ La réévaluation globale du projet a porté sur le code, les droits, la base de
 | Contrôle | Résultat |
 |---|---|
 | Frontend Angular — build production | Réussi sans avertissement de budget |
-| Tests frontend | 47 tests réussis dans 14 fichiers |
+| Tests frontend | 48 tests réussis dans 14 fichiers |
 | Tests backend Django | 21 tests réussis, vérification Django sans problème |
 | API Render /health | HTTP 200, statut UP |
 | Base Supabase via /health/database | HTTP 200, base UP |
@@ -656,7 +679,7 @@ Les suppressions de sites et équipements utilisent une confirmation intégrée 
 
 ---
 
-Ce README décrit l’état vérifié du projet GMAO ORDC au **26 août 2026**. Il doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API, d’une variable d’environnement ou d’une règle métier.
+Ce README décrit l’état vérifié du projet GMAO ORDC au **22 septembre 2026**. Il doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API, d’une variable d’environnement ou d’une règle métier.
 
 ## Administration
 
