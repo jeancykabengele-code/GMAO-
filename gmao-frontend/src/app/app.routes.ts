@@ -2,54 +2,39 @@ import { Routes } from '@angular/router';
 import { authGuard } from './auth/auth.guard';
 import { globalRoleGuard } from './auth/global-role.guard';
 import { portalEntryGuard } from './auth/portal-entry.guard';
-import { BlankPageComponent } from './pages/blank-page';
-import { DocumentationsComponent } from './pages/documentations';
-import { AccueilPageComponent } from './pages/accueil-page';
-import { AdministrationPageComponent } from './pages/administration-page';
-import { AProposComponent } from './pages/a-propos';
-import { ConnexionPageComponent } from './pages/connexion-page';
-import { EquipementsPageComponent } from './pages/equipements-page';
-import { FuelGePageComponent } from './pages/fuel-ge-page';
-import { ConsommationGroupesGePageComponent } from './pages/consommation-groupes-ge-page';
-import { GestionTicketsPageComponent } from './pages/gestion-tickets-page';
-import { InterventionsRealiseesPageComponent } from './pages/interventions-realisees-page';
-import { PiecesRechangePageComponent } from './pages/pieces-rechange-page';
-import { ProblemesDatacenterPageComponent } from './pages/problemes-datacenter-page';
-import { PublicHomePageComponent } from './pages/public-home-page';
-import { PuePageComponent } from './pages/pue-page';
-import { RavitaillementFuelPageComponent } from './pages/ravitaillement-fuel-page';
-import { SuiviGroupesElectrogenesPageComponent } from './pages/suivi-groupes-electrogenes-page';
-import { SitesAdminPageComponent } from './pages/sites-admin-page';
-import { UsersAdminPageComponent } from './pages/users-admin-page';
-import { TableauDeBordPageComponent } from './pages/tableau-de-bord-page';
 
 export const routes: Routes = [
-  { path: '', component: PublicHomePageComponent, pathMatch: 'full' },
-  { path: 'connexion', component: ConnexionPageComponent, canActivate: [portalEntryGuard] },
+  { path: '', loadComponent: () => import('./pages/public-home-page').then((module) => module.PublicHomePageComponent), pathMatch: 'full' },
+  { path: 'connexion', loadComponent: () => import('./pages/connexion-page').then((module) => module.ConnexionPageComponent), canActivate: [portalEntryGuard] },
   {
     path: '',
     canActivateChild: [authGuard],
     children: [
-      { path: 'accueil', component: AccueilPageComponent },
-      { path: 'tableau-de-bord', component: TableauDeBordPageComponent, canActivate: [globalRoleGuard] },
-      { path: 'equipements', component: EquipementsPageComponent },
+      { path: 'accueil', loadComponent: () => import('./pages/accueil-page').then((module) => module.AccueilPageComponent) },
+      { path: 'tableau-de-bord', loadComponent: () => import('./pages/tableau-de-bord-page').then((module) => module.TableauDeBordPageComponent), canActivate: [globalRoleGuard] },
+      { path: 'equipements', loadComponent: () => import('./pages/equipements-page').then((module) => module.EquipementsPageComponent) },
       { path: 'maintenance', redirectTo: 'maintenance/interventions-realisees', pathMatch: 'full' },
-      { path: 'maintenance/interventions-realisees', component: InterventionsRealiseesPageComponent },
-      { path: 'maintenance/suivi-groupes-electrogenes', component: SuiviGroupesElectrogenesPageComponent },
-      { path: 'gestion-tickets', component: GestionTicketsPageComponent },
-      { path: 'pieces-rechange', component: PiecesRechangePageComponent },
-      { path: 'fuel-ge', component: FuelGePageComponent },
-      { path: 'consommation-groupes-ge', component: ConsommationGroupesGePageComponent },
-      { path: 'pue', component: PuePageComponent },
-      { path: 'ravitaillement-fuel', component: RavitaillementFuelPageComponent },
-      { path: 'problemes-datacenter', component: ProblemesDatacenterPageComponent },
-      { path: 'documentations', component: DocumentationsComponent, canActivate: [globalRoleGuard] },
-      { path: 'administration', component: AdministrationPageComponent, canActivate: [globalRoleGuard], children: [
-        { path: '', redirectTo: 'sites', pathMatch: 'full' },
-        { path: 'sites', component: SitesAdminPageComponent },
-        { path: 'utilisateurs', component: UsersAdminPageComponent },
-      ] },
-      { path: 'a-propos', component: AProposComponent },
+      { path: 'maintenance/interventions-realisees', loadComponent: () => import('./pages/interventions-realisees-page').then((module) => module.InterventionsRealiseesPageComponent) },
+      { path: 'maintenance/suivi-groupes-electrogenes', loadComponent: () => import('./pages/suivi-groupes-electrogenes-page').then((module) => module.SuiviGroupesElectrogenesPageComponent) },
+      { path: 'gestion-tickets', loadComponent: () => import('./pages/gestion-tickets-page').then((module) => module.GestionTicketsPageComponent) },
+      { path: 'pieces-rechange', loadComponent: () => import('./pages/pieces-rechange-page').then((module) => module.PiecesRechangePageComponent) },
+      { path: 'fuel-ge', loadComponent: () => import('./pages/fuel-ge-page').then((module) => module.FuelGePageComponent) },
+      { path: 'consommation-groupes-ge', loadComponent: () => import('./pages/consommation-groupes-ge-page').then((module) => module.ConsommationGroupesGePageComponent) },
+      { path: 'pue', loadComponent: () => import('./pages/pue-page').then((module) => module.PuePageComponent) },
+      { path: 'ravitaillement-fuel', loadComponent: () => import('./pages/ravitaillement-fuel-page').then((module) => module.RavitaillementFuelPageComponent) },
+      { path: 'problemes-datacenter', loadComponent: () => import('./pages/problemes-datacenter-page').then((module) => module.ProblemesDatacenterPageComponent) },
+      { path: 'documentations', loadComponent: () => import('./pages/documentations').then((module) => module.DocumentationsComponent), canActivate: [globalRoleGuard] },
+      {
+        path: 'administration',
+        loadComponent: () => import('./pages/administration-page').then((module) => module.AdministrationPageComponent),
+        canActivate: [globalRoleGuard],
+        children: [
+          { path: '', redirectTo: 'sites', pathMatch: 'full' },
+          { path: 'sites', loadComponent: () => import('./pages/sites-admin-page').then((module) => module.SitesAdminPageComponent) },
+          { path: 'utilisateurs', loadComponent: () => import('./pages/users-admin-page').then((module) => module.UsersAdminPageComponent) },
+        ],
+      },
+      { path: 'a-propos', loadComponent: () => import('./pages/a-propos').then((module) => module.AProposComponent) },
     ],
   },
   { path: '**', redirectTo: '' },
