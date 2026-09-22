@@ -81,19 +81,19 @@ export class TableauDeBordPageComponent {
     return [
       this.pieItem('En service', rows.filter((row) => row.etat === 'En service').length, '#16a34a'),
       this.pieItem('En panne', rows.filter((row) => row.etat === 'En panne').length, '#dc2626'),
-      this.pieItem('En maintenance', rows.filter((row) => row.etat === 'En maintenance').length, '#f59e0b'),
-      this.pieItem('Hors service', rows.filter((row) => row.etat === 'Hors service').length, '#64748b'),
+      this.pieItem('En maintenance', rows.filter((row) => row.etat === 'En maintenance').length, '#ff7900'),
+      this.pieItem('Hors service', rows.filter((row) => row.etat === 'Hors service').length, '#c91400'),
     ];
   }
 
   get ticketItems(): PieItem[] {
     const rows = this.filteredTicketRows;
     return [
-      this.pieItem('PM', rows.filter((row) => row.nature === 'PM').length, '#2563eb'),
-      this.pieItem('Visit', rows.filter((row) => row.nature === 'Visit').length, '#06b6d4'),
-      this.pieItem('WO', rows.filter((row) => row.nature === 'WO').length, '#f59e0b'),
-      this.pieItem('Curative', rows.filter((row) => row.nature === 'Curative').length, '#dc2626'),
-      this.pieItem('Incident', rows.filter((row) => row.nature === 'Incident').length, '#64748b'),
+      this.pieItem('PM', rows.filter((row) => row.nature === 'PM').length, '#ff7900'),
+      this.pieItem('Visit', rows.filter((row) => row.nature === 'Visit').length, '#4b4b4b'),
+      this.pieItem('WO', rows.filter((row) => row.nature === 'WO').length, '#767676'),
+      this.pieItem('Curative', rows.filter((row) => row.nature === 'Curative').length, '#b5b5b5'),
+      this.pieItem('Incident', rows.filter((row) => row.nature === 'Incident').length, '#4b4b4b'),
     ];
   }
 
@@ -101,17 +101,17 @@ export class TableauDeBordPageComponent {
     const rows = this.filteredGeneratorRows;
     return [
       this.pieItem('Normal', rows.filter((row) => row.etat === 'Normal').length, '#16a34a'),
-      this.pieItem('PM urgente', rows.filter((row) => row.etat === 'PmUrgente').length, '#f59e0b'),
+      this.pieItem('PM urgente', rows.filter((row) => row.etat === 'PmUrgente').length, '#ff7900'),
       this.pieItem('PM depassee', rows.filter((row) => row.etat === 'PmDepassee').length, '#dc2626'),
-      this.pieItem('A surveiller', rows.filter((row) => row.etat === 'ASurveiller').length, '#64748b'),
+      this.pieItem('A surveiller', rows.filter((row) => row.etat === 'ASurveiller').length, '#ff7900'),
     ];
   }
 
   get problemItems(): PieItem[] {
     const rows = this.filteredProblemRows;
     return [
-      this.pieItem('Open', rows.filter((row) => row.statut === 'Open').length, '#64748b'),
-      this.pieItem('Ongoing', rows.filter((row) => row.statut === 'Ongoing').length, '#f59e0b'),
+      this.pieItem('Open', rows.filter((row) => row.statut === 'Open').length, '#ff7900'),
+      this.pieItem('Ongoing', rows.filter((row) => row.statut === 'Ongoing').length, '#767676'),
       this.pieItem('Closed', rows.filter((row) => row.statut === 'Closed').length, '#16a34a'),
     ];
   }

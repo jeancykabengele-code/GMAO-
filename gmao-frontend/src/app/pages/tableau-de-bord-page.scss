@@ -299,7 +299,7 @@
 }
 
 .pue-series {
-  stroke: #767676;
+  stroke: #ff7900;
 }
 
 .fuel-bar {
@@ -363,7 +363,7 @@
 }
 
 .pue-point {
-  fill: #767676;
+  fill: #ff7900;
 }
 
 .chart-legend {
@@ -390,10 +390,7 @@
 }
 
 .line.orange { background: #ff7900; }
-.line.blue { background: #4b4b4b; }
-.line.green { background: #767676; }
-.line.red { background: #c91400; }
-.line.yellow { background: #b5b5b5; }
+.line.comparison { background: #4b4b4b; }
 
 .problem-layout {
   display: flex;
@@ -531,11 +528,11 @@
 }
 
 .fuel-stock-axis {
-  fill: #0284c7;
+  fill: #4b4b4b;
 }
 
 .fuel-consumption-axis {
-  fill: #ea580c;
+  fill: #ff7900;
 }
 
 .axis-label.fuel-stock-axis,

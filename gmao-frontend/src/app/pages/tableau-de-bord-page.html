@@ -80,7 +80,7 @@
           }
         </svg>
       </div>
-      <div class="chart-legend">@if (showFuelStockBars) { <span><i class="line blue"></i>{{ fuelStockLegend }}</span> }<span><i class="line orange"></i>Consommation</span></div>
+      <div class="chart-legend">@if (showFuelStockBars) { <span><i class="line comparison"></i>{{ fuelStockLegend }}</span> }<span><i class="line orange"></i>Consommation</span></div>
     </article>
 
 
@@ -95,7 +95,7 @@
           @for (point of chartPoints(pueValues, pueMonths, pueAxisMinimum, pueAxisMaximum); track $index) { <circle class="pue-point" [attr.cx]="point.x" [attr.cy]="point.y" r="6"/><text class="point-label" [attr.x]="point.x" [attr.y]="point.y - 13">{{ formatDecimal(point.value) }}</text><text class="month-label" [attr.x]="point.x" y="242">{{ point.label }}</text> }
         </svg>
       </div>
-      <div class="chart-legend"><span><i class="line green"></i>PUE &le; 1,8</span><span><i class="line red"></i>PUE &gt; 1,8</span><span><i class="line yellow"></i>R&eacute;f&eacute;rence 1,8</span></div>
+      <div class="chart-legend"><span><i class="line orange"></i>PUE observ&eacute;</span><span><i class="line comparison"></i>R&eacute;f&eacute;rence 1,8</span></div>
     </article>
   </div>
 </section>
