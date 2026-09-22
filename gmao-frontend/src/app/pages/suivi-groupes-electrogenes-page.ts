@@ -91,17 +91,20 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return this.dataStore.generatorReadingRows as MonthlyReadingRow[];
   }
 
-  get readingHistory(): Array<MonthlyReadingRow & { code: string; typeGe: string }> {
+  get readingHistory(): Array<GeneratorRow & MonthlyReadingRow> {
     const generators = new Map(this.generatorRows.map((row) => [`${row.site}::${row.code}`, row]));
-    return this.generatorReadingRows
-      .map((reading) => {
-        const generator = generators.get(`${reading.site}::${reading.groupeCode}`);
-        return generator ? { ...reading, code: generator.code, typeGe: generator.typeGe } : null;
-      })
-      .filter((row): row is MonthlyReadingRow & { code: string; typeGe: string } => row !== null)
-      .sort((left, right) => `${right.periode} ${right.code}`.localeCompare(`${left.periode} ${left.code}`, 'fr'));
+    const rows: Array<GeneratorRow & MonthlyReadingRow> = [];
+    for (const reading of this.generatorReadingRows) {
+      const generator = generators.get(`${reading.site}::${reading.groupeCode}`);
+      if (!generator) continue;
+      rows.push({
+        ...generator, ...reading, id: reading.id, code: generator.code, typeGe: generator.typeGe,
+        moisReleve: reading.periode,
+        rhDepuisDernierePm: Math.max(0, Number(reading.rhActuel) - Number(generator.rhDernierePm)),
+      });
+    }
+    return rows.sort((left, right) => `${right.moisReleve} ${right.code}`.localeCompare(`${left.moisReleve} ${left.code}`, 'fr'));
   }
-
   get canUpdate(): boolean { return this.dataStore.canUpdateGenerators; }
 
   get entrySites(): string[] { return this.dataStore.allowedSites; }
@@ -151,7 +154,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
 
   get filteredRows(): GeneratorRow[] {
     const query = this.searchTerm.trim().toLocaleLowerCase('fr');
-    return this.generatorRows.filter((row) => {
+    return this.readingHistory.filter((row) => {
       const searchable = `${row.site} ${row.code} ${row.typeGe} ${row.commentaires || ''}`.toLocaleLowerCase('fr');
       return (!query || searchable.includes(query))
         && (!this.selectedSite || row.site === this.selectedSite)

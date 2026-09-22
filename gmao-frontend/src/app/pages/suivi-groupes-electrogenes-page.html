@@ -46,19 +46,6 @@
         </table>
       </div>
 
-      <section class="reading-history" aria-label="Historique des relevés RH">
-        <h2>Historique des relevés RH</h2>
-        <div class="table-wrapper">
-          <table>
-            <thead><tr><th>Site</th><th>Code</th><th>Groupe</th><th>Mois</th><th>RH relevé</th><th>Commentaire</th></tr></thead>
-            <tbody>
-              @for (reading of readingHistory; track reading.id || (reading.site + reading.code + reading.periode)) {
-                <tr><td>{{ reading.site }}</td><td>{{ reading.code }}</td><td>{{ reading.typeGe }}</td><td>{{ reading.periode }}</td><td>{{ reading.rhActuel | number:'1.0-2':'fr' }}</td><td>{{ reading.commentaires || '—' }}</td></tr>
-              } @empty { <tr><td colspan="6" class="empty-message">Aucun relevé RH enregistré.</td></tr> }
-            </tbody>
-          </table>
-        </div>
-      </section>
       <nav class="pagination" aria-label="Pagination du suivi GE">
         <button type="button" class="page-button" aria-label="Page précédente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button>
         <span>Page {{ currentPage }} / {{ pageCount }}</span>
