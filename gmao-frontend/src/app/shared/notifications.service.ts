@@ -5,13 +5,14 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AccessControlService } from '../auth/access-control.service';
 import { SupabaseClientService } from '../auth/supabase-client.service';
+import { BrowserNotificationsService } from './browser-notifications.service';
 
 export type NotificationSeverity = 'info' | 'warning' | 'critical';
 
 export interface GmaoNotification {
   id: string;
   site: string | null;
-  eventType: 'record_created' | 'generator_alert';
+  eventType: 'record_created' | 'generator_alert' | 'generator_reading_stale';
   resource: string;
   resourceId: string | null;
   title: string;
@@ -33,7 +34,10 @@ export class NotificationsService {
   private readonly supabase = inject(SupabaseClientService);
   private readonly access = inject(AccessControlService);
   private readonly router = inject(Router);
+  private readonly browserNotifications = inject(BrowserNotificationsService);
   private pollingTimer: number | null = null;
+  private knownNotificationIds = new Set<string>();
+  private initialLoadComplete = false;
 
   readonly items = signal<GmaoNotification[]>([]);
   readonly unreadCount = signal(0);
@@ -49,13 +53,18 @@ export class NotificationsService {
         this.items.set([]);
         this.unreadCount.set(0);
         this.open.set(false);
+        this.knownNotificationIds.clear();
+        this.initialLoadComplete = false;
       }
     });
   }
 
   toggle(): void {
     this.open.update((value) => !value);
-    if (this.open()) void this.refresh();
+    if (this.open()) {
+      void this.browserNotifications.requestPermission();
+      void this.refresh();
+    }
   }
 
   close(): void {
@@ -70,7 +79,15 @@ export class NotificationsService {
         `${environment.apiUrl}/api/notifications`,
         { headers: await this.authHeaders() },
       ));
-      this.items.set(response.items.filter((notification) => !notification.readAt));
+      const unreadItems = response.items.filter((notification) => !notification.readAt);
+      if (this.initialLoadComplete) {
+        unreadItems
+          .filter((notification) => !this.knownNotificationIds.has(notification.id))
+          .forEach((notification) => this.browserNotifications.show(notification));
+      }
+      this.knownNotificationIds = new Set(unreadItems.map((notification) => notification.id));
+      this.initialLoadComplete = true;
+      this.items.set(unreadItems);
       this.unreadCount.set(response.unreadCount);
     } catch {
       // Le prochain cycle de polling réessaiera sans interrompre la navigation.

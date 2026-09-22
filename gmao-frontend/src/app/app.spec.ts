@@ -74,7 +74,7 @@ describe('App routing shell', () => {
     expect(compiled.querySelector('.visual-entry')).toBeTruthy();
     expect(compiled.querySelector('.brand-header img')).toBeTruthy();
     expect(compiled.querySelector('a.login-button')?.getAttribute('href')).toBe('/connexion');
-    expect(compiled.textContent).toContain('Reporting et traçabilité des opérations sur les sites Data Center ORDC');
+    expect(compiled.textContent).toContain('Outil de Reporting et traçabilité des opérations sur les sites Data Center ORDC');
   });
 
   it('redirects direct portal access to the public home', async () => {
