@@ -154,3 +154,55 @@ tr.notification-target-row > td { animation: notification-row-pulse 5s ease-out;
 /* Les valeurs de données restent sobres et lisibles dans chaque tableau. */
 table tbody td,
 table tbody td * { color: var(--orange-black) !important; }
+/* Icônes Solaris officielles : la silhouette PNG devient une icône monochrome via son masque alpha. */
+.solaris-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 1em;
+  background-color: currentColor;
+  vertical-align: -0.125em;
+  -webkit-mask: var(--solaris-icon) center / contain no-repeat;
+  mask: var(--solaris-icon) center / contain no-repeat;
+}
+
+.solaris-redo { --solaris-icon: url('/assets/orange/icons/redo-curved-arrow.png'); }
+.solaris-forward { --solaris-icon: url('/assets/orange/icons/forward-right-arrow.png'); }
+.solaris-bar-chart { --solaris-icon: url('/assets/orange/icons/graph-bar-chart.png'); }
+.solaris-notification { --solaris-icon: url('/assets/orange/icons/notification-alert.png'); }
+.solaris-logout { --solaris-icon: url('/assets/orange/icons/exit-signs-leave-logout.png'); }
+.solaris-spare-parts { --solaris-icon: url('/assets/orange/icons/manage-equipment.png'); }
+.solaris-confirm { --solaris-icon: url('/assets/orange/icons/tick-confirmation.png'); }
+.solaris-chevron-down { --solaris-icon: url('/assets/orange/icons/form-chevron-down-small.png'); }
+.solaris-chevron-left { --solaris-icon: url('/assets/orange/icons/form-chevron-left-small.png'); }
+.solaris-chevron-right { --solaris-icon: url('/assets/orange/icons/form-chevron-right.png'); }
+.solaris-equipment { --solaris-icon: url('/assets/orange/icons/cpu.png'); }
+.solaris-email { --solaris-icon: url('/assets/orange/icons/email.png'); }
+.solaris-warning { --solaris-icon: url('/assets/orange/icons/warning-important-line.png'); }
+.solaris-warning-triangle { --solaris-icon: url('/assets/orange/icons/warning-important-triangle.png'); }
+.solaris-view { --solaris-icon: url('/assets/orange/icons/view-content.png'); }
+.solaris-hide { --solaris-icon: url('/assets/orange/icons/accessibility-hide.png'); }
+.solaris-excel { --solaris-icon: url('/assets/orange/icons/file-excel.png'); }
+.solaris-fuel { --solaris-icon: url('/assets/orange/icons/electric-fuel-pump.png'); }
+.solaris-gears { --solaris-icon: url('/assets/orange/icons/gears.png'); }
+.solaris-home { --solaris-icon: url('/assets/orange/icons/home.png'); }
+.solaris-information { --solaris-icon: url('/assets/orange/icons/information-manual.png'); }
+.solaris-documentation { --solaris-icon: url('/assets/orange/icons/identity-document.png'); }
+.solaris-sidebar-hide { --solaris-icon: url('/assets/orange/icons/side-panel-hide-chevron.png'); }
+.solaris-energy { --solaris-icon: url('/assets/orange/icons/charger.png'); }
+.solaris-menu { --solaris-icon: url('/assets/orange/icons/scroll.png'); }
+.solaris-lock { --solaris-icon: url('/assets/orange/icons/lock-closed.png'); }
+.solaris-automation { --solaris-icon: url('/assets/orange/icons/meaningful-technology.png'); }
+.solaris-edit { --solaris-icon: url('/assets/orange/icons/edit.png'); }
+.solaris-add { --solaris-icon: url('/assets/orange/icons/add-plus-round.png'); }
+.solaris-search { --solaris-icon: url('/assets/orange/icons/search.png'); }
+.solaris-security-approved { --solaris-icon: url('/assets/orange/icons/security-status-good-shield.png'); }
+.solaris-security-lock { --solaris-icon: url('/assets/orange/icons/encryption-global-online-safe-lock.png'); }
+.solaris-gauge { --solaris-icon: url('/assets/orange/icons/gauge-rate.png'); }
+.solaris-table { --solaris-icon: url('/assets/orange/icons/view-content.png'); }
+.solaris-tickets { --solaris-icon: url('/assets/orange/icons/tickets.png'); }
+.solaris-tools { --solaris-icon: url('/assets/orange/icons/repair-tools.png'); }
+.solaris-delete { --solaris-icon: url('/assets/orange/icons/delete-empty.png'); }
+.solaris-truck { --solaris-icon: url('/assets/orange/icons/logistics-truck.png'); }
+.solaris-maintenance { --solaris-icon: url('/assets/orange/icons/maintenance-spanner.png'); }
+.solaris-close { --solaris-icon: url('/assets/orange/icons/delete-cross-round.png'); }

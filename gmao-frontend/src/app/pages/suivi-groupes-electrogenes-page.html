@@ -5,9 +5,9 @@
       <h1>Suivi groupes électrogènes</h1>
     </div>
       <div class="view-actions">
-      <button type="button" class="view-button" [class.inactive]="!tableVisible" [attr.aria-pressed]="tableVisible" (click)="toggleTable()"><i class="bi bi-speedometer2"></i> Suivi des compteurs</button>
-      @if (canUpdate) { <button type="button" class="primary-button" (click)="openEntrySheet()"><i class="bi bi-plus-lg"></i> Renseigner un compteur</button> }
-      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
+      <button type="button" class="view-button" [class.inactive]="!tableVisible" [attr.aria-pressed]="tableVisible" (click)="toggleTable()"><i class="solaris-icon solaris-gauge"></i> Suivi des compteurs</button>
+      @if (canUpdate) { <button type="button" class="primary-button" (click)="openEntrySheet()"><i class="solaris-icon solaris-add"></i> Renseigner un compteur</button> }
+      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
     </div>
     </div>
 
@@ -37,7 +37,7 @@
                 <td>{{ row.rhProchainePm | number:'1.0-2':'fr' }}</td>
                 <td><span class="pm-state" [class.pm-overdue]="row.etat === 'PmDepassee'" [class.pm-urgent]="row.etat === 'PmUrgente'" [class.pm-watch]="row.etat === 'ASurveiller'" [class.pm-normal]="row.etat === 'Normal'">{{ pmStateLabel(row.etat) }}</span></td>
                 <td><span class="reading-date">{{ row.moisReleve || 'Non renseigné' }}</span></td><td><span class="reading-date">{{ formatReadingDate(row.updatedAt) }}</span></td>
-                @if (canUpdate) { <td><button type="button" class="edit-button" (click)="openSheet(row)"><i class="bi bi-pencil"></i> Mettre à jour</button></td> }
+                @if (canUpdate) { <td><button type="button" class="edit-button" (click)="openSheet(row)"><i class="solaris-icon solaris-edit"></i> Mettre à jour</button></td> }
               </tr>
             } @empty {
               <tr><td [attr.colspan]="canUpdate ? 9 : 8" class="empty-message">Aucune donnée GE ne correspond aux filtres sélectionnés.</td></tr>
@@ -47,9 +47,9 @@
       </div>
 
       <nav class="pagination" aria-label="Pagination du suivi GE">
-        <button type="button" class="page-button" aria-label="Page précédente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button>
+        <button type="button" class="page-button" aria-label="Page précédente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="solaris-icon solaris-chevron-left"></i></button>
         <span>Page {{ currentPage }} / {{ pageCount }}</span>
-        <button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="bi bi-chevron-right"></i></button>
+        <button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="solaris-icon solaris-chevron-right"></i></button>
       </nav>
     }
   </div>
@@ -58,7 +58,7 @@
 @if (sheetOpen) {
   <div class="sheet-backdrop" (click)="closeSheet()"></div>
   <aside class="generator-sheet" aria-label="Renseigner les compteurs GE">
-    <header><div><h2>{{ creatingGenerator ? 'Ajouter un groupe et son relevé' : (selectingGenerator ? 'Renseigner les compteurs' : newGenerator.code) }}</h2><p>{{ newGenerator.site }} · {{ newGenerator.typeGe }}</p></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
+    <header><div><h2>{{ creatingGenerator ? 'Ajouter un groupe et son relevé' : (selectingGenerator ? 'Renseigner les compteurs' : newGenerator.code) }}</h2><p>{{ newGenerator.site }} · {{ newGenerator.typeGe }}</p></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="solaris-icon solaris-close"></i></button></header>
     <form (ngSubmit)="saveGenerator()">
       @if (selectingGenerator) {
         <label><span>Site</span><select name="generatorSite" [(ngModel)]="newGenerator.site" (ngModelChange)="selectedGeneratorKey = ''; creatingGenerator = false"><option value="">Sélectionner un site</option>@for (site of entrySites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
@@ -82,9 +82,9 @@
 
       @if (saveError) { <p class="form-error full-width">{{ saveError }}</p> }
       <div class="sheet-actions full-width">
-        @if (canDelete && !selectingGenerator) { <button type="button" class="delete-button" [disabled]="saving || deleting" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }
+        @if (canDelete && !selectingGenerator) { <button type="button" class="delete-button" [disabled]="saving || deleting" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }
         <button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button>
-        <button type="submit" class="primary-button" [disabled]="saving || deleting"><i class="bi bi-check-lg"></i> {{ saving ? 'Enregistrement…' : 'Enregistrer' }}</button>
+        <button type="submit" class="primary-button" [disabled]="saving || deleting"><i class="solaris-icon solaris-confirm"></i> {{ saving ? 'Enregistrement…' : 'Enregistrer' }}</button>
       </div>
     </form>
   </aside>
@@ -96,7 +96,7 @@
       <p>Le groupe <strong>{{ editingRow?.code }}</strong> et son relevé seront supprimés définitivement.</p>
       <div class="confirmation-actions">
         <button type="button" class="secondary-button" [disabled]="deleting" (click)="cancelDeletion()">Annuler</button>
-        <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteGenerator()"><i class="bi bi-trash"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>
+        <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteGenerator()"><i class="solaris-icon solaris-delete"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>
       </div>
     </section>
   </div>

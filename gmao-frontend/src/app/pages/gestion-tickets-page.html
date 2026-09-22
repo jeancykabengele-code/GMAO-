@@ -10,7 +10,7 @@
         [attr.aria-pressed]="activeView === 'tickets'"
         (click)="toggleView('tickets')"
       >
-        <i class="bi bi-ticket-detailed"></i>
+        <i class="solaris-icon solaris-tickets"></i>
         File de tickets
       </button>
 
@@ -21,11 +21,11 @@
         [attr.aria-pressed]="activeView === 'sites'"
         (click)="toggleView('sites')"
       >
-        <i class="bi bi-bar-chart"></i>
+        <i class="solaris-icon solaris-bar-chart"></i>
         Répartition par site
       </button>
       @if (canExportExcel && activeView) {
-        <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button>
+        <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button>
       }
     </div>
     </div>
@@ -55,7 +55,7 @@
         <label class="filter-field search-field">
           <span>Recherche</span>
           <div class="search-control">
-            <i class="bi bi-search"></i>
+            <i class="solaris-icon solaris-search"></i>
             <input
               type="search"
               placeholder="Rechercher un ticket..."
@@ -64,14 +64,14 @@
             />
             @if (searchTerm) {
               <button type="button" aria-label="Effacer la recherche" (click)="clearSearch()">
-                <i class="bi bi-x-lg"></i>
+                <i class="solaris-icon solaris-close"></i>
               </button>
             }
           </div>
         </label>
 
         <button type="button" class="primary-button" (click)="openTicketSheet()">
-          <i class="bi bi-plus-lg"></i>
+          <i class="solaris-icon solaris-add"></i>
           Renseigner le ticket
         </button>
       </div>
@@ -117,7 +117,7 @@
           [disabled]="ticketPage === 1"
           (click)="previousPage('tickets')"
         >
-          <i class="bi bi-chevron-left"></i>
+          <i class="solaris-icon solaris-chevron-left"></i>
         </button>
         <span>Page {{ ticketPage }} / {{ ticketPageCount }}</span>
         <button
@@ -127,7 +127,7 @@
           [disabled]="ticketPage === ticketPageCount"
           (click)="nextPage('tickets')"
         >
-          <i class="bi bi-chevron-right"></i>
+          <i class="solaris-icon solaris-chevron-right"></i>
         </button>
       </div>
     }
@@ -174,7 +174,7 @@
         <h2>{{ editingTicket ? 'Mettre à jour le ticket' : 'Renseigner le ticket' }}</h2>
       </div>
       <button type="button" class="close-button" aria-label="Fermer" (click)="closeTicketSheet()">
-        <i class="bi bi-x-lg"></i>
+        <i class="solaris-icon solaris-close"></i>
       </button>
     </header>
 
@@ -241,9 +241,9 @@
 
       @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }
       <div class="sheet-actions full-width">
-        @if (editingTicket) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }
+        @if (editingTicket) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }
         <button type="button" class="secondary-button" (click)="closeTicketSheet()">Annuler</button>
-        <button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingTicket ? 'Mettre à jour' : 'Enregistrer le ticket' }}</button>
+        <button type="submit" class="primary-button"><i class="solaris-icon solaris-confirm"></i> {{ editingTicket ? 'Mettre à jour' : 'Enregistrer le ticket' }}</button>
       </div>
     </form>
   </aside>
@@ -252,7 +252,7 @@
 @if (pendingDeletion) {
   <div class="modal-backdrop" (click)="cancelDeletion()">
     <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-ticket-title" (click)="$event.stopPropagation()">
-      <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="confirm-icon"><i class="solaris-icon solaris-warning-triangle"></i></div>
       <h2 id="delete-ticket-title">Supprimer ce ticket ?</h2>
       <p>Le ticket {{ pendingDeletion.numero }} sera supprimé définitivement. Cette action est irréversible.</p>
       <div class="confirm-actions"><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div>

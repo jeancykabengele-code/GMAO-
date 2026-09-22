@@ -11,12 +11,12 @@
     <div class="report-grid">
       @for (report of reports; track report.fileName) {
         <article class="report-card">
-          <div class="report-icon"><i class="bi bi-table"></i></div>
+          <div class="report-icon"><i class="solaris-icon solaris-table"></i></div>
           <div class="report-copy">
             <h2>{{ report.title }}</h2>
           </div>
           <button type="button" class="export-excel-button" (click)="exportReport(report)">
-            <i class="bi bi-file-earmark-excel"></i>
+            <i class="solaris-icon solaris-excel"></i>
             Télécharger le fichier Excel
           </button>
         </article>

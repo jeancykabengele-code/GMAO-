@@ -59,7 +59,7 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
     @if (pendingDeletion) {
       <div class="modal-backdrop" (click)="cancelDeletion()">
         <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-site-title" (click)="$event.stopPropagation()">
-          <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+          <div class="confirm-icon"><i class="solaris-icon solaris-warning-triangle"></i></div>
           <h2 id="delete-site-title">Supprimer ce site ?</h2>
           <p>Voulez-vous supprimer définitivement le site « {{ pendingDeletion.name }} » ? Cette action est irréversible.</p>
           <div class="confirm-actions">

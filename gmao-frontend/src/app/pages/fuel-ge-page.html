@@ -6,9 +6,9 @@
         <p>Suivi mensuel du carburant, des groupes électrogènes et de la disponibilité du réseau.</p>
       </div>
       <div class="view-actions">
-        <button type="button" class="view-button" [class.inactive]="!journalOpen" [attr.aria-pressed]="journalOpen" (click)="toggleJournal()"><i class="bi bi-journal-text"></i> Journal mensuel</button>
-        <button type="button" class="primary-button" (click)="openSheet()"><i class="bi bi-plus-lg"></i> Renseigner le journal</button>
-        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
+        <button type="button" class="view-button" [class.inactive]="!journalOpen" [attr.aria-pressed]="journalOpen" (click)="toggleJournal()"><i class="solaris-icon solaris-documentation"></i> Journal mensuel</button>
+        <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner le journal</button>
+        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
       </div>
     </div>
 
@@ -34,7 +34,7 @@
         </tbody>
       </table></div>
 
-      <div class="pagination" aria-label="Pagination du journal mensuel"><button type="button" class="page-button" aria-label="Page précédente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="bi bi-chevron-right"></i></button></div>
+      <div class="pagination" aria-label="Pagination du journal mensuel"><button type="button" class="page-button" aria-label="Page précédente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="solaris-icon solaris-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="solaris-icon solaris-chevron-right"></i></button></div>
     }
   </div>
 </section>
@@ -42,17 +42,17 @@
 @if (sheetOpen) {
   <div class="sheet-backdrop" (click)="closeSheet()"></div>
   <aside class="fuel-sheet" aria-label="Renseigner le journal mensuel">
-    <header><div><h2>{{ sheetTitle }}</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
+    <header><div><h2>{{ sheetTitle }}</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="solaris-icon solaris-close"></i></button></header>
     <form (ngSubmit)="saveEntry()">
       <label><span>Site</span><select name="site" [(ngModel)]="newEntry.site" (ngModelChange)="changeSite()" required><option value="" disabled>Sélectionner un site</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
       <label><span>Mois et année</span><input name="periode" type="month" [(ngModel)]="newEntry.periode" required /></label>
       @if (isInitialFuelMonth && canSetInitialStock) {
         <label class="full-width"><span>Stock de départ du site (L)</span><input name="stockInitial" type="number" min="0" step="0.001" [(ngModel)]="newEntry.stockInitial" required /></label>
       } @else if (isInitialFuelMonth) {
-        <div class="no-grid-message full-width"><i class="bi bi-info-circle"></i><span>Le stock de départ du premier mois peut être saisi par le Chef de site, le Manager ou le Chef des opérations.</span></div>
+        <div class="no-grid-message full-width"><i class="solaris-icon solaris-information"></i><span>Le stock de départ du premier mois peut être saisi par le Chef de site, le Manager ou le Chef des opérations.</span></div>
       }
       @if (isNoGridSite(newEntry.site)) {
-        <div class="no-grid-message"><i class="bi bi-info-circle"></i><span>SNEL non applicable pour ce site.</span></div>
+        <div class="no-grid-message"><i class="solaris-icon solaris-information"></i><span>SNEL non applicable pour ce site.</span></div>
       } @else {
         <label><span>kWh SNEL</span><input name="snelKwh" type="number" min="0" step="0.01" [(ngModel)]="newEntry.snelKwh" required /></label>
       }
@@ -65,13 +65,13 @@
         <span>Stock final<strong>{{ calculatedStockFinal === null ? 'Non calculable' : (calculatedStockFinal | number:'1.0-3':'fr') + ' L' }}</strong></span>
       </div>
       @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }
-      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="isInitialFuelMonth && !canSetInitialStock"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre à jour' }}</button></div>
+      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="isInitialFuelMonth && !canSetInitialStock"><i class="solaris-icon solaris-confirm"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre à jour' }}</button></div>
     </form>
   </aside>
 }@if (pendingDeletion) {
   <div class="modal-backdrop" (click)="cancelDeletion()">
     <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-fuel-title" (click)="$event.stopPropagation()">
-      <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="confirm-icon"><i class="solaris-icon solaris-warning-triangle"></i></div>
       <h2 id="delete-fuel-title">Supprimer cette ligne Fuel-GE ?</h2>
       <p>Le journal de {{ pendingDeletion.site }} pour {{ pendingDeletion.periode }} sera supprimé. Les mois suivants seront recalculés. Cette action est irréversible.</p>
       <div class="confirm-actions"><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div>

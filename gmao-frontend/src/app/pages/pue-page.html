@@ -10,15 +10,15 @@
         [attr.aria-pressed]="tableOpen"
         (click)="toggleTable()"
       >
-        <i class="bi bi-lightning-charge"></i>
+        <i class="solaris-icon solaris-energy"></i>
         Tableau PUE
       </button>
 
       <button type="button" class="primary-button" (click)="openSheet()">
-        <i class="bi bi-plus-lg"></i>
+        <i class="solaris-icon solaris-add"></i>
         Renseigner le PUE
       </button>
-      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
+      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
 
     </div>
     </div>
@@ -92,7 +92,7 @@
           [disabled]="currentPage === 1"
           (click)="previousPage()"
         >
-          <i class="bi bi-chevron-left"></i>
+          <i class="solaris-icon solaris-chevron-left"></i>
         </button>
         <span>Page {{ currentPage }} / {{ pageCount }}</span>
         <button
@@ -102,7 +102,7 @@
           [disabled]="currentPage === pageCount"
           (click)="nextPage()"
         >
-          <i class="bi bi-chevron-right"></i>
+          <i class="solaris-icon solaris-chevron-right"></i>
         </button>
       </div>
     }
@@ -118,7 +118,7 @@
         <h2>{{ sheetTitle }}</h2>
       </div>
       <button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()">
-        <i class="bi bi-x-lg"></i>
+        <i class="solaris-icon solaris-close"></i>
       </button>
     </header>
 
@@ -170,10 +170,10 @@
       </label>
 
       <div class="sheet-actions full-width">
-        @if (editingIndex !== null) { <button type="button" class="delete-button" [disabled]="deleting" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }
+        @if (editingIndex !== null) { <button type="button" class="delete-button" [disabled]="deleting" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }
         <button type="button" class="secondary-button" [disabled]="deleting" (click)="closeSheet()">Annuler</button>
         <button type="submit" class="primary-button" [disabled]="deleting">
-          <i class="bi bi-check-lg"></i>
+          <i class="solaris-icon solaris-confirm"></i>
           {{ editingIndex === null ? 'Enregistrer' : 'Mettre &agrave; jour' }}
         </button>
       </div>
@@ -187,7 +187,7 @@
       <p>La mesure PUE de <strong>{{ newEntry.site }}</strong> pour <strong>{{ newEntry.mois }}</strong> sera supprimée définitivement.</p>
       <div class="confirmation-actions">
         <button type="button" class="secondary-button" [disabled]="deleting" (click)="cancelDeletion()">Annuler</button>
-        <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteEntry()"><i class="bi bi-trash"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>
+        <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteEntry()"><i class="solaris-icon solaris-delete"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>
       </div>
     </section>
   </div>

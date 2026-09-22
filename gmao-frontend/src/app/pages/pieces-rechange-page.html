@@ -7,12 +7,12 @@
     </div>
       <div class="view-actions">
       <button type="button" class="view-button" [class.inactive]="!tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()">
-        <i class="bi bi-box-seam"></i> Journal des pi&egrave;ces
+        <i class="solaris-icon solaris-spare-parts"></i> Journal des pi&egrave;ces
       </button>
       <button type="button" class="primary-button" (click)="openSheet()">
-        <i class="bi bi-plus-lg"></i> Renseigner l'op&eacute;ration
+        <i class="solaris-icon solaris-add"></i> Renseigner l'op&eacute;ration
       </button>
-      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
+      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
 
     </div>
     </div>
@@ -39,7 +39,7 @@
         </table>
       </div>
 
-      <div class="pagination" aria-label="Pagination des operations"><button type="button" class="page-button" aria-label="Page precedente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="bi bi-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="bi bi-chevron-right"></i></button></div>
+      <div class="pagination" aria-label="Pagination des operations"><button type="button" class="page-button" aria-label="Page precedente" [disabled]="currentPage === 1" (click)="previousPage()"><i class="solaris-icon solaris-chevron-left"></i></button><span>Page {{ currentPage }} / {{ pageCount }}</span><button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()"><i class="solaris-icon solaris-chevron-right"></i></button></div>
     }
   </div>
 </section>
@@ -47,7 +47,7 @@
 @if (sheetOpen) {
   <div class="sheet-backdrop" (click)="closeSheet()"></div>
   <aside class="spare-sheet" aria-label="Renseigner une operation de piece de rechange">
-    <header><div><h2>{{ sheetTitle }}</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="bi bi-x-lg"></i></button></header>
+    <header><div><h2>{{ sheetTitle }}</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="solaris-icon solaris-close"></i></button></header>
     <form (ngSubmit)="saveOperation()">
       <label><span>Site</span><select name="site" [(ngModel)]="newOperation.site" (ngModelChange)="changeOperationSite()" required><option value="" disabled>S&eacute;lectionner un site</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
       <label><span>Date</span><input name="date" type="date" [(ngModel)]="newOperation.date" required /></label>
@@ -62,13 +62,13 @@
       <label><span>Quantit&eacute;</span><input name="quantite" type="number" min="1" step="1" [(ngModel)]="newOperation.quantite" required /></label>
       <label><span>Agent</span><input name="agent" type="text" [(ngModel)]="newOperation.agent" required /></label>
       <label><span>Statut</span><select name="statut" [(ngModel)]="newOperation.statut" required>@for (status of statuses; track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select></label>
-      @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }<div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="bi bi-trash"></i> Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="bi bi-check-lg"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre a jour' }}</button></div>
+      @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }<div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button"><i class="solaris-icon solaris-confirm"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre a jour' }}</button></div>
     </form>
   </aside>
 }@if (pendingDeletion) {
   <div class="modal-backdrop" (click)="cancelDeletion()">
     <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-spare-part-title" (click)="$event.stopPropagation()">
-      <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="confirm-icon"><i class="solaris-icon solaris-warning-triangle"></i></div>
       <h2 id="delete-spare-part-title">Supprimer cette opération ?</h2>
       <p>La ligne « {{ pendingDeletion.designation }} » sera supprimée définitivement. Cette action est irréversible.</p>
       <div class="confirm-actions"><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()">Supprimer</button></div>

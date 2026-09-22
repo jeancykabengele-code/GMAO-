@@ -18,7 +18,7 @@
           aria-label="Afficher les notifications"
           (click)="notifications.toggle()"
         >
-          <i class="bi bi-bell"></i>
+          <i class="solaris-icon solaris-notification"></i>
           <span>Notifications</span>
           @if (notifications.unreadCount() > 0) {
             <strong class="notification-count">
@@ -71,17 +71,17 @@
     }
 
     <nav aria-label="Navigation principale">
-      <a routerLink="/accueil" routerLinkActive="active"><i class="bi bi-house-door"></i><span>Accueil</span></a>
+      <a routerLink="/accueil" routerLinkActive="active"><i class="solaris-icon solaris-home"></i><span>Accueil</span></a>
 
       <p class="nav-section-title">Analyse</p>
       @if (access.canAccessGlobalPages) {
-        <a routerLink="/tableau-de-bord" routerLinkActive="active"><i class="bi bi-speedometer2"></i><span>Tableau de bord</span></a>
+        <a routerLink="/tableau-de-bord" routerLinkActive="active"><i class="solaris-icon solaris-gauge"></i><span>Tableau de bord</span></a>
       }
 
       <p class="nav-section-title">Opérations</p>
       <button type="button" class="nav-parent" (click)="maintenanceOpen = !maintenanceOpen">
-        <i class="bi bi-tools"></i><span>Maintenance</span>
-        <i class="bi chevron" [class.bi-chevron-down]="maintenanceOpen" [class.bi-chevron-right]="!maintenanceOpen"></i>
+        <i class="solaris-icon solaris-tools"></i><span>Maintenance</span>
+        <i class="solaris-icon chevron" [class.solaris-chevron-down]="maintenanceOpen" [class.solaris-chevron-right]="!maintenanceOpen"></i>
       </button>
       @if (maintenanceOpen) {
         <div class="subnav">
@@ -89,27 +89,27 @@
           <a routerLink="/maintenance/suivi-groupes-electrogenes" routerLinkActive="active">Suivi groupes électrogènes</a>
         </div>
       }
-      <a routerLink="/gestion-tickets" routerLinkActive="active"><i class="bi bi-ticket-detailed"></i><span>Gestion des tickets</span></a>
+      <a routerLink="/gestion-tickets" routerLinkActive="active"><i class="solaris-icon solaris-tickets"></i><span>Gestion des tickets</span></a>
 
       <p class="nav-section-title">Ressources</p>
-      <a routerLink="/equipements" routerLinkActive="active"><i class="bi bi-cpu"></i><span>Équipements</span></a>
-      <a routerLink="/pieces-rechange" routerLinkActive="active"><i class="bi bi-box-seam"></i><span>Pièces de rechange</span></a>
+      <a routerLink="/equipements" routerLinkActive="active"><i class="solaris-icon solaris-equipment"></i><span>Équipements</span></a>
+      <a routerLink="/pieces-rechange" routerLinkActive="active"><i class="solaris-icon solaris-spare-parts"></i><span>Pièces de rechange</span></a>
 
       <p class="nav-section-title">Suivis spécifiques</p>
-      <a routerLink="/fuel-ge" routerLinkActive="active"><i class="bi bi-fuel-pump"></i><span>Fuel-GE</span></a>
-      <a routerLink="/consommation-groupes-ge" routerLinkActive="active"><i class="bi bi-speedometer2"></i><span>Consommation par GE</span></a>
-      <a routerLink="/ravitaillement-fuel" routerLinkActive="active"><i class="bi bi-truck"></i><span>Ravitaillement Fuel</span></a>
-      <a routerLink="/pue" routerLinkActive="active"><i class="bi bi-lightning-charge"></i><span>PUE</span></a>
-      <a routerLink="/problemes-datacenter" routerLinkActive="active"><i class="bi bi-exclamation-triangle"></i><span>Problèmes Data Center</span></a>
+      <a routerLink="/fuel-ge" routerLinkActive="active"><i class="solaris-icon solaris-fuel"></i><span>Fuel-GE</span></a>
+      <a routerLink="/consommation-groupes-ge" routerLinkActive="active"><i class="solaris-icon solaris-gauge"></i><span>Consommation par GE</span></a>
+      <a routerLink="/ravitaillement-fuel" routerLinkActive="active"><i class="solaris-icon solaris-truck"></i><span>Ravitaillement Fuel</span></a>
+      <a routerLink="/pue" routerLinkActive="active"><i class="solaris-icon solaris-energy"></i><span>PUE</span></a>
+      <a routerLink="/problemes-datacenter" routerLinkActive="active"><i class="solaris-icon solaris-warning-triangle"></i><span>Problèmes Data Center</span></a>
 
       <p class="nav-section-title">Informations</p>
       @if (access.canAccessGlobalPages) {
-        <a routerLink="/documentations" routerLinkActive="active"><i class="bi bi-journal-text"></i><span>Documentations</span></a>
-        <a routerLink="/administration" routerLinkActive="active"><i class="bi bi-shield-check"></i><span>Administration</span></a>
+        <a routerLink="/documentations" routerLinkActive="active"><i class="solaris-icon solaris-documentation"></i><span>Documentations</span></a>
+        <a routerLink="/administration" routerLinkActive="active"><i class="solaris-icon solaris-security-approved"></i><span>Administration</span></a>
       }
-      <a routerLink="/a-propos" routerLinkActive="active"><i class="bi bi-info-circle"></i><span>À propos</span></a>
+      <a routerLink="/a-propos" routerLinkActive="active"><i class="solaris-icon solaris-information"></i><span>À propos</span></a>
       <button type="button" class="nav-parent logout-button" [disabled]="loggingOut" (click)="logout()">
-        <i class="bi bi-box-arrow-right"></i>
+        <i class="solaris-icon solaris-logout"></i>
         <span>{{ loggingOut ? 'Déconnexion…' : 'Déconnexion' }}</span>
       </button>
     </nav>
@@ -124,7 +124,7 @@
     [title]="sidebarHidden ? 'Afficher le menu' : 'Masquer le menu'"
     (click)="toggleSidebar()"
   >
-    <i class="bi" [class.bi-list]="sidebarHidden" [class.bi-layout-sidebar-inset]="!sidebarHidden"></i>
+    <i class="solaris-icon" [class.solaris-menu]="sidebarHidden" [class.solaris-sidebar-hide]="!sidebarHidden"></i>
   </button>
   }
 

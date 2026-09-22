@@ -10,15 +10,15 @@
         [attr.aria-pressed]="journalOpen"
         (click)="toggleJournal()"
       >
-        <i class="bi bi-journal-text"></i>
+        <i class="solaris-icon solaris-documentation"></i>
         Journal de problème
       </button>
 
       <button type="button" class="primary-button" (click)="openProblemSheet()">
-        <i class="bi bi-plus-lg"></i>
+        <i class="solaris-icon solaris-add"></i>
         Renseigner le problème
       </button>
-      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exporter en Excel</button> }
+      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
 
     </div>
     </div>
@@ -58,7 +58,7 @@
         <label class="filter-field search-field">
           <span>Recherche</span>
           <div class="search-control">
-            <i class="bi bi-search"></i>
+            <i class="solaris-icon solaris-search"></i>
             <input
               type="search"
               placeholder="Rechercher un problème..."
@@ -67,7 +67,7 @@
             />
             @if (searchTerm) {
               <button type="button" aria-label="Effacer la recherche" (click)="clearSearch()">
-                <i class="bi bi-x-lg"></i>
+                <i class="solaris-icon solaris-close"></i>
               </button>
             }
           </div>
@@ -129,7 +129,7 @@
                 @if (canModify) {
                   <td class="action-cell">
                     @if (problem) {
-                      <button type="button" class="row-action" (click)="editProblem(problem)"><i class="bi bi-pencil"></i> Modifier</button>
+                      <button type="button" class="row-action" (click)="editProblem(problem)"><i class="solaris-icon solaris-edit"></i> Modifier</button>
                     }
                   </td>
                 }
@@ -147,7 +147,7 @@
           [disabled]="currentPage === 1"
           (click)="previousPage()"
         >
-          <i class="bi bi-chevron-left"></i>
+          <i class="solaris-icon solaris-chevron-left"></i>
         </button>
         <span>Page {{ currentPage }} / {{ pageCount }}</span>
         <button
@@ -157,7 +157,7 @@
           [disabled]="currentPage === pageCount"
           (click)="nextPage()"
         >
-          <i class="bi bi-chevron-right"></i>
+          <i class="solaris-icon solaris-chevron-right"></i>
         </button>
       </div>
     }
@@ -173,7 +173,7 @@
         <h2>{{ editingProblem ? 'Modifier le problème' : 'Renseigner le problème' }}</h2>
       </div>
       <button type="button" class="close-button" aria-label="Fermer" (click)="closeProblemSheet()">
-        <i class="bi bi-x-lg"></i>
+        <i class="solaris-icon solaris-close"></i>
       </button>
     </header>
 
@@ -253,12 +253,12 @@
       </label>
 
       <div class="sheet-actions full-width">
-        @if (editingProblem) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="bi bi-trash"></i> Effacer</button> }<button type="button" class="secondary-button" (click)="closeProblemSheet()">Annuler</button>
+        @if (editingProblem) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Effacer</button> }<button type="button" class="secondary-button" (click)="closeProblemSheet()">Annuler</button>
         <button type="submit" class="primary-button">
-          <i class="bi bi-check-lg"></i>
+          <i class="solaris-icon solaris-confirm"></i>
           {{ editingProblem ? 'Mettre à jour' : 'Enregistrer le problème' }}
         </button>
       </div>
     </form>
   </aside>
-}@if (pendingDeletion) { <div class="delete-modal-backdrop" (click)="cancelDeletion()"><section class="delete-confirm-modal" (click)="$event.stopPropagation()"><h2>Effacer ce problème ?</h2><p>Cette action est irréversible.</p><div><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()"><i class="bi bi-trash"></i> Effacer</button></div></section></div> }
+}@if (pendingDeletion) { <div class="delete-modal-backdrop" (click)="cancelDeletion()"><section class="delete-confirm-modal" (click)="$event.stopPropagation()"><h2>Effacer ce problème ?</h2><p>Cette action est irréversible.</p><div><button type="button" class="secondary-button" (click)="cancelDeletion()">Annuler</button><button type="button" class="danger-button" (click)="confirmDeletion()"><i class="solaris-icon solaris-delete"></i> Effacer</button></div></section></div> }
