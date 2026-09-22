@@ -10,6 +10,15 @@ import { NotificationRecordFocusService } from '../shared/notification-record-fo
 
 type PmState = 'PmDepassee' | 'PmUrgente' | 'ASurveiller' | 'Normal';
 
+interface MonthlyReadingRow {
+  id?: string;
+  site: string;
+  groupeCode: string;
+  periode: string;
+  rhActuel: number;
+  commentaires: string;
+}
+
 interface EquipmentRow {
   id?: string;
   site: string;
@@ -76,6 +85,21 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
 
   set generatorRows(value: GeneratorRow[]) {
     this.dataStore.generatorRows = value;
+  }
+
+  get generatorReadingRows(): MonthlyReadingRow[] {
+    return this.dataStore.generatorReadingRows as MonthlyReadingRow[];
+  }
+
+  get readingHistory(): Array<MonthlyReadingRow & { code: string; typeGe: string }> {
+    const generators = new Map(this.generatorRows.map((row) => [`${row.site}::${row.code}`, row]));
+    return this.generatorReadingRows
+      .map((reading) => {
+        const generator = generators.get(`${reading.site}::${reading.groupeCode}`);
+        return generator ? { ...reading, code: generator.code, typeGe: generator.typeGe } : null;
+      })
+      .filter((row): row is MonthlyReadingRow & { code: string; typeGe: string } => row !== null)
+      .sort((left, right) => `${right.periode} ${right.code}`.localeCompare(`${left.periode} ${left.code}`, 'fr'));
   }
 
   get canUpdate(): boolean { return this.dataStore.canUpdateGenerators; }
