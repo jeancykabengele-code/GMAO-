@@ -1,14 +1,19 @@
 <section class="visual-entry" aria-label="Accueil GMAO ORDC">
-  <a class="login-button" routerLink="/connexion" [queryParams]="loginQueryParams" (click)="allowPortalEntry()">
-    <span>Se connecter</span>
-    <i class="solaris-icon solaris-forward"></i>
-  </a>
+  <header class="brand-header">
+    <img src="/assets/orange/logo/orange-master-logo.png" alt="Orange" width="72" height="72">
+    <span>GMAO ORDC</span>
+  </header>
 
-  <div class="identity-block">
-    <p class="identity-title"><strong>DC SiteOps Reporting</strong></p>
-    <div class="logo-blend">
-      <img src="/images/orange-logo.png" alt="Orange">
+  <main class="identity-block">
+    <div class="identity-content">
+      <p class="eyebrow">Data Center ORDC</p>
+      <h1>DC SiteOps<br>Reporting</h1>
+      <span class="orange-line" aria-hidden="true"></span>
+      <p class="identity-subtitle">Reporting et traçabilité des opérations sur les sites Data Center ORDC.</p>
+      <a class="login-button" routerLink="/connexion" [queryParams]="loginQueryParams" (click)="allowPortalEntry()">
+        <span>Se connecter</span>
+        <i class="solaris-icon solaris-forward"></i>
+      </a>
     </div>
-    <p class="identity-subtitle">Reporting et traçabilité des opérations sur les sites Data Center ORDC</p>
-  </div>
+  </main>
 </section>
