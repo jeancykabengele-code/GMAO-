@@ -7,7 +7,8 @@
   --success: #087a46;
   --danger: #c91400;
   --info: #4b4b4b;
-  --sidebar: #f2f2f2;  display: block;
+  --sidebar: #f2f2f2;
+  display: block;
   height: 100vh;
   overflow: hidden;
   color: #1f1f1d;
@@ -76,7 +77,7 @@
 .notification-trigger:hover,
 .notification-trigger[aria-expanded='true'] {
   border-color: var(--orange);
-  background: rgba(249, 115, 22, 0.1);
+  background: rgba(255, 121, 0, 0.1);
 }
 
 .notification-trigger > i {

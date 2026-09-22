@@ -163,7 +163,7 @@ textarea {
 select:focus,
 input:focus,
 textarea:focus {
-  outline: 3px solid rgba(249, 115, 22, 0.22);
+  outline: 3px solid rgba(255, 121, 0, 0.24);
   border-color: var(--orange);
 }
 
@@ -256,7 +256,7 @@ td:nth-child(8) {
 
 .pm-normal { color: #166534; }
 .pm-watch { color: #a16207; }
-.pm-urgent { color: #c2410c; }
+.pm-urgent { color: #c91400; }
 .pm-overdue { color: #b91c1c; }
 
 

@@ -88,7 +88,7 @@
 
 .filter-fields select:focus,
 .filter-fields input:focus {
-  outline: 3px solid rgba(249, 115, 22, 0.22);
+  outline: 3px solid rgba(255, 121, 0, 0.24);
   border-color: var(--orange);
 }
 
@@ -272,11 +272,11 @@
 }
 
 .grid-area {
-  fill: rgba(249, 115, 22, 0.22);
+  fill: rgba(255, 121, 0, 0.24);
 }
 
 .fuel-area {
-  fill: rgba(249, 115, 22, 0.24);
+  fill: rgba(255, 121, 0, 0.24);
 }
 
 .grid-series,
@@ -291,15 +291,15 @@
 
 .grid-series,
 .fuel-series {
-  stroke: #f97316;
+  stroke: #ff7900;
 }
 
 .stock-series {
-  stroke: #0ea5e9;
+  stroke: #4b4b4b;
 }
 
 .pue-series {
-  stroke: #16a34a;
+  stroke: #767676;
 }
 
 .fuel-bar {
@@ -315,11 +315,11 @@
 }
 
 .stock-bar {
-  fill: #0ea5e9;
+  fill: #4b4b4b;
 }
 
 .consumption-bar {
-  fill: #f97316;
+  fill: #ff7900;
 }
 
 .bar-value {
@@ -329,20 +329,20 @@
 }
 
 .stock-label {
-  fill: #0369a1;
+  fill: #4b4b4b;
 }
 
 .consumption-label {
-  fill: #c2410c;
+  fill: #ff7900;
 }
 
 .reference-series {
-  stroke: #eab308;
+  stroke: #b5b5b5;
   stroke-width: 4;
 }
 
 .reference-label {
-  fill: #ca8a04;
+  fill: #4b4b4b;
 }
 
 .grid-point,
@@ -355,15 +355,15 @@
 
 .grid-point,
 .fuel-point {
-  fill: #f97316;
+  fill: #ff7900;
 }
 
 .stock-point {
-  fill: #0ea5e9;
+  fill: #4b4b4b;
 }
 
 .pue-point {
-  fill: #16a34a;
+  fill: #767676;
 }
 
 .chart-legend {
@@ -389,11 +389,11 @@
   vertical-align: middle;
 }
 
-.line.orange { background: #f97316; }
-.line.blue { background: #0ea5e9; }
-.line.green { background: #16a34a; }
-.line.red { background: #dc2626; }
-.line.yellow { background: #eab308; }
+.line.orange { background: #ff7900; }
+.line.blue { background: #4b4b4b; }
+.line.green { background: #767676; }
+.line.red { background: #c91400; }
+.line.yellow { background: #b5b5b5; }
 
 .problem-layout {
   display: flex;

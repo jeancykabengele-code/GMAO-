@@ -206,3 +206,87 @@ table tbody td * { color: var(--orange-black) !important; }
 .solaris-truck { --solaris-icon: url('/assets/orange/icons/logistics-truck.png'); }
 .solaris-maintenance { --solaris-icon: url('/assets/orange/icons/maintenance-spanner.png'); }
 .solaris-close { --solaris-icon: url('/assets/orange/icons/delete-cross-round.png'); }
+/* Système visuel Orange : surfaces neutres, action Orange, texte noir et gris numérique. */
+.page-content {
+  color: var(--orange-black);
+  background: var(--orange-off-white);
+}
+
+.page-content :is(.primary-button, .view-button.active, .reset-button) {
+  border-color: var(--orange) !important;
+  color: var(--orange-white) !important;
+  background: var(--orange) !important;
+}
+
+.page-content :is(.primary-button, .view-button.active, .reset-button):hover:not(:disabled) {
+  border-color: var(--orange-black) !important;
+  color: var(--orange-white) !important;
+  background: var(--orange-black) !important;
+}
+
+.page-content :is(.secondary-button, .view-button.inactive, .clear-button) {
+  border: 1px solid var(--orange-black) !important;
+  color: var(--orange-black) !important;
+  background: var(--orange-white) !important;
+}
+
+.page-content :is(.secondary-button, .view-button.inactive, .clear-button):hover:not(:disabled) {
+  border-color: var(--orange) !important;
+  color: var(--orange) !important;
+  background: var(--orange-white) !important;
+}
+
+.page-content :is(input, select, textarea) {
+  border-color: var(--orange-medium-gray) !important;
+  color: var(--orange-black) !important;
+  background: var(--orange-white) !important;
+}
+
+.page-content :is(input, select, textarea):focus {
+  outline: 3px solid var(--orange-focus) !important;
+  border-color: var(--orange) !important;
+}
+
+.page-content :is(.table-wrapper, .summary-table-wrapper, .chart-wrap, .kpi-card, .confirm-modal, .confirmation-dialog, .delete-confirm-modal) {
+  border-color: var(--orange-black);
+  background: var(--orange-white);
+}
+
+.page-content table th {
+  color: var(--orange-white) !important;
+  background: var(--orange-black) !important;
+}
+
+.page-content :is(.page-button, .close-button) {
+  border-color: var(--orange-black) !important;
+  color: var(--orange-white) !important;
+  background: var(--orange-black) !important;
+}
+
+.page-content :is(.page-button, .close-button):hover:not(:disabled) {
+  color: var(--orange-black) !important;
+  background: var(--orange) !important;
+}
+
+.page-content :is(.sheet-backdrop, .modal-backdrop, .confirmation-backdrop, .delete-modal-backdrop) {
+  background: rgba(0, 0, 0, 0.62) !important;
+}
+
+/* Les états restent distincts uniquement lorsqu’ils portent une information métier. */
+.page-content :is(.danger-button, .delete-button) {
+  border-color: #c91400 !important;
+  color: var(--orange-white) !important;
+  background: #c91400 !important;
+}
+
+.page-content :is(.danger-button, .delete-button):hover:not(:disabled) {
+  border-color: var(--orange-black) !important;
+  background: var(--orange-black) !important;
+}
+
+.page-content :is(.form-error, .state-alert, .state-critical) {
+  color: #8b1600 !important;
+  background: #fff1ed !important;
+}
+
+.page-content .state-critical { color: var(--orange-white) !important; background: #c91400 !important; }
