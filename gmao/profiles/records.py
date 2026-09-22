@@ -283,7 +283,11 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
 
     hours_ge = _generator_hours_total(site, periode)
     if hours_ge is None:
-        raise ValidationError("Les relevés RH du mois et du mois précédent sont nécessaires pour calculer les heures GE.")
+        # Le premier journal peut définir le stock de départ avant qu'un mois RH précédent existe.
+        if record is None and previous_stock is None and sortie == 0:
+            hours_ge = Decimal("0")
+        else:
+            raise ValidationError("Les relevés RH du mois et du mois précédent sont nécessaires pour calculer les heures GE.")
 
     entree = _fuel_deliveries_total(site, periode)
     stock_final = stock_initial + entree - sortie

@@ -241,8 +241,9 @@ export class FuelGePageComponent {
       this.journalOpen = true;
       this.closeSheet();
       this.cdr?.markForCheck();
-    } catch {
-      this.formError = 'Enregistrement impossible. Vérifiez les relevés RH et les données du mois.';
+    } catch (error) {
+      const apiError = error as { error?: { detail?: string; message?: string }; message?: string };
+      this.formError = apiError?.error?.detail || apiError?.error?.message || apiError?.message || 'Enregistrement impossible. Vérifiez les relevés RH et les données du mois.';
     }
   }
   editEntry(row: MonthlyJournalRow): void {
