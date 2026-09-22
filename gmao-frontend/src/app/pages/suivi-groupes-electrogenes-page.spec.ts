@@ -47,6 +47,10 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
       ...row(), id: `ge-${index}`, code: `DC-GOM-GE-${String(index + 1).padStart(3, '0')}`,
       site: index === 20 ? 'Bukavu' : 'Goma',
     }));
+    (component as any).dataStore.generatorReadingRows = component.generatorRows.map((generator: any, index: number) => ({
+      id: `reading-${index}`, site: generator.site, groupeCode: generator.code, periode: '2026-08',
+      rhActuel: generator.rhActuel, commentaires: '',
+    }));
 
     expect(component.visibleRows).toHaveLength(20);
     expect(component.pageCount).toBe(2);
