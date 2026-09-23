@@ -26,3 +26,6 @@ gmao-frontend/src/environments/environment.production.ts
 .DS_Store
 Thumbs.db
 
+
+# Données de sauvegarde locales (contiennent des informations métier et utilisateurs)
+gmao/backups/
