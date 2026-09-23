@@ -82,7 +82,7 @@ export class TableauDeBordPageComponent {
       this.pieItem('En service', rows.filter((row) => row.etat === 'En service').length, '#16a34a'),
       this.pieItem('En panne', rows.filter((row) => row.etat === 'En panne').length, '#dc2626'),
       this.pieItem('En maintenance', rows.filter((row) => row.etat === 'En maintenance').length, '#ff7900'),
-      this.pieItem('Hors service', rows.filter((row) => row.etat === 'Hors service').length, '#c91400'),
+      this.pieItem('Hors service', rows.filter((row) => row.etat === 'Hors service').length, '#4b4b4b'),
     ];
   }
 
