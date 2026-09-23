@@ -45,3 +45,11 @@ Supabase assure actuellement PostgreSQL, Supabase Auth (identité, mots de passe
 3. Comparer les nombres de lignes exportés avec ceux lus directement dans Supabase, dans la même transaction.
 4. Conserver la sauvegarde hors Git et hors du répertoire publié.
 5. Ne créer la base Aiven/MySQL qu’après validation de ce manifeste.
+
+## Étape 2 validée — Aiven MySQL
+
+- Service : `gmao-ordc-mysql`, MySQL 8.4.8, plan Free, état Running.
+- Base initiale : `defaultdb` ; accès chiffré TLS obligatoire.
+- Connexion de lecture validée le 23 septembre 2026 avec vérification stricte du certificat d’autorité Aiven.
+- Le mot de passe et le certificat sont uniquement stockés dans `gmao/.env` et `gmao/.runtime/` : ces emplacements sont ignorés par Git.
+- Aucun schéma, aucune donnée et aucune configuration de production n’ont encore été basculés vers Aiven.
