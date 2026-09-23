@@ -27,7 +27,10 @@ describe('TableauDeBordPageComponent', () => {
     expect(component.ticketTotal).toBe(3);
 expect(component.ticketItems.find((item) => item.label === 'PM')?.value).toBe(2);
     expect(component.equipmentItems.find((item) => item.label === 'En panne')?.color).toBe('#dc2626');
-    expect(component.equipmentItems.find((item) => item.label === 'Hors service')?.color).toBe('#4b4b4b');
+expect(component.equipmentItems.find((item) => item.label === 'Hors service')?.color).toBe('#4b4b4b');
+    expect(component.ticketItems.find((item) => item.label === 'Incident')?.color).toBe('#c91400');
+    expect(component.generatorItems.find((item) => item.label === 'PM urgente')?.color).toBe('#ff7900');
+    expect(component.generatorItems.find((item) => item.label === 'A surveiller')?.color).toBe('#767676');
     expect(component.generatorTotal).toBe(2);
     expect(component.problemTotal).toBe(2);
   });

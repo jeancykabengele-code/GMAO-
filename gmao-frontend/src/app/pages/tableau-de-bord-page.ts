@@ -93,7 +93,7 @@ export class TableauDeBordPageComponent {
       this.pieItem('Visit', rows.filter((row) => row.nature === 'Visit').length, '#4b4b4b'),
       this.pieItem('WO', rows.filter((row) => row.nature === 'WO').length, '#767676'),
       this.pieItem('Curative', rows.filter((row) => row.nature === 'Curative').length, '#b5b5b5'),
-      this.pieItem('Incident', rows.filter((row) => row.nature === 'Incident').length, '#4b4b4b'),
+      this.pieItem('Incident', rows.filter((row) => row.nature === 'Incident').length, '#c91400'),
     ];
   }
 
@@ -103,7 +103,7 @@ export class TableauDeBordPageComponent {
       this.pieItem('Normal', rows.filter((row) => row.etat === 'Normal').length, '#16a34a'),
       this.pieItem('PM urgente', rows.filter((row) => row.etat === 'PmUrgente').length, '#ff7900'),
       this.pieItem('PM depassee', rows.filter((row) => row.etat === 'PmDepassee').length, '#dc2626'),
-      this.pieItem('A surveiller', rows.filter((row) => row.etat === 'ASurveiller').length, '#ff7900'),
+      this.pieItem('A surveiller', rows.filter((row) => row.etat === 'ASurveiller').length, '#767676'),
     ];
   }
 
