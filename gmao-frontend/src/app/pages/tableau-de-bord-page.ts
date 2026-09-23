@@ -91,8 +91,8 @@ export class TableauDeBordPageComponent {
     return [
       this.pieItem('PM', rows.filter((row) => row.nature === 'PM').length, '#ff7900'),
       this.pieItem('Visit', rows.filter((row) => row.nature === 'Visit').length, '#4b4b4b'),
-      this.pieItem('WO', rows.filter((row) => row.nature === 'WO').length, '#767676'),
-      this.pieItem('Curative', rows.filter((row) => row.nature === 'Curative').length, '#b5b5b5'),
+      this.pieItem('WO', rows.filter((row) => row.nature === 'WO').length, '#000000'),
+      this.pieItem('Curative', rows.filter((row) => row.nature === 'Curative').length, '#087a46'),
       this.pieItem('Incident', rows.filter((row) => row.nature === 'Incident').length, '#c91400'),
     ];
   }
