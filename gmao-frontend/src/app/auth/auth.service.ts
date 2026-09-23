@@ -5,6 +5,8 @@ import { TimeoutError, firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { SupabaseClientService } from './supabase-client.service';
 
+const LOCAL_TOKEN_KEY = 'gmao-local-access-token';
+
 export type UserRole = 'manager' | 'charge_operations' | 'chef_site';
 
 export interface GmaoPermissions {
@@ -56,19 +58,23 @@ export class AuthService {
   private initialization: Promise<void> | null = null;
 
   readonly session = signal<Session | null>(null);
+  readonly mustChangePassword = signal(false);
+  get usesLocalAuth(): boolean { return (environment.authProvider as string) === 'django'; }
   readonly profile = signal<UserProfile | null>(null);
   readonly authenticated = computed(() => Boolean(this.session() && this.profile()?.active));
 
   initialize(): Promise<void> {
+    if (this.usesLocalAuth) { this.initialization ??= this.initializeLocal(); return this.initialization; }
     if (!this.supabase.configured) {
       return Promise.resolve();
     }
 
-    this.initialization ??= this.initializeSupabase();
+    this.initialization ??= this.usesLocalAuth ? this.initializeLocal() : this.initializeSupabase();
     return this.initialization;
   }
 
   async signIn(email: string, password: string, remember: boolean): Promise<UserProfile> {
+    if (this.usesLocalAuth) return this.signInLocal(email, password, remember);
     if (!this.supabase.configured) {
       throw new GmaoAuthError('not_configured', 'La connexion Supabase n’est pas encore configurée.');
     }
@@ -106,6 +112,40 @@ export class AuthService {
     }
   }
 
+  accessToken(): string | null { return this.session()?.access_token ?? null; }
+
+  private async signInLocal(email: string, password: string, remember: boolean): Promise<UserProfile> {
+    try {
+      const result = await firstValueFrom(this.http.post<{ accessToken: string; profile: BackendUserProfile; mustChangePassword: boolean }>(`${environment.apiUrl}/api/auth/local/login`, { email, password }).pipe(timeout({ first: 15_000 })));
+      const storage = remember ? localStorage : sessionStorage;
+      const other = remember ? sessionStorage : localStorage;
+      storage.setItem(LOCAL_TOKEN_KEY, result.accessToken); other.removeItem(LOCAL_TOKEN_KEY);
+      this.session.set({ access_token: result.accessToken } as Session);
+      this.mustChangePassword.set(result.mustChangePassword);
+      return this.applyLocalProfile(result.profile);
+    } catch (error) { throw this.mapBackendError(error); }
+  }
+
+  private async initializeLocal(): Promise<void> {
+    const token = localStorage.getItem(LOCAL_TOKEN_KEY) ?? sessionStorage.getItem(LOCAL_TOKEN_KEY);
+    if (!token) return;
+    this.session.set({ access_token: token } as Session);
+    try { await this.loadProfile({ access_token: token } as Session); }
+    catch { this.clearState(); localStorage.removeItem(LOCAL_TOKEN_KEY); sessionStorage.removeItem(LOCAL_TOKEN_KEY); }
+  }
+
+  async changeLocalPassword(currentPassword: string, newPassword: string): Promise<void> {
+    const token = this.accessToken();
+    if (!this.usesLocalAuth || !token) throw new GmaoAuthError('invalid_session', 'Votre session n’est plus valide.');
+    await firstValueFrom(this.http.post(`${environment.apiUrl}/api/auth/local/change-password`, { currentPassword, newPassword }, { headers: { Authorization: `Bearer ${token}` } }).pipe(timeout({ first: 10_000 })));
+    this.mustChangePassword.set(false);
+  }
+
+  private applyLocalProfile(data: BackendUserProfile): UserProfile {
+    if (!data.active || !this.isKnownRole(data.role)) throw new GmaoAuthError('invalid_profile', 'Votre profil n’est pas autorisé.');
+    const profile: UserProfile = { id: data.id, email: data.email, full_name: data.fullName, role: data.role, site: data.site, active: data.active, created_at: data.createdAt, permissions: data.permissions };
+    this.profile.set(profile); return profile;
+  }
   isAuthenticated(): boolean {
     return this.authenticated();
   }

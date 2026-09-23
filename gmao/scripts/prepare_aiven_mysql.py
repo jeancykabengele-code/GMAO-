@@ -49,6 +49,8 @@ def create_schema(connection, manifest):
             definitions.append(f"PRIMARY KEY (`{key}`)")
             if target in UNIQUE_KEYS: definitions.append("UNIQUE KEY `uq_%s` (%s)" % (target, ",".join(f"`{item}`" for item in UNIQUE_KEYS[target])))
             cursor.execute(f"CREATE TABLE IF NOT EXISTS `{target}` ({','.join(definitions)}) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci")
+    with connection.cursor() as cursor:
+        cursor.execute("CREATE TABLE IF NOT EXISTS `gmao_local_credentials` (`profile_id` CHAR(32) NOT NULL, `password_hash` VARCHAR(255) NOT NULL, `must_change_password` TINYINT(1) NOT NULL DEFAULT 1, `password_changed_at` DATETIME(6) NULL, `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), PRIMARY KEY (`profile_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci")
     connection.commit()
 
 def value(raw, column):
@@ -78,12 +80,15 @@ def import_data(connection, backup, manifest):
     connection.commit(); return report
 
 def main():
-    parser = argparse.ArgumentParser(); parser.add_argument("--backup", type=Path); args = parser.parse_args()
+    parser = argparse.ArgumentParser(); parser.add_argument("--backup", type=Path); parser.add_argument("--schema-only", action="store_true"); args = parser.parse_args()
     backup = args.backup or max((ROOT / "backups").iterdir(), key=lambda item: item.name)
     manifest = json.loads((backup / "manifest.json").read_text(encoding="utf-8"))
     if manifest["failures"]: raise RuntimeError("La sauvegarde source est incomplète.")
     with connect() as connection:
-        create_schema(connection, manifest); report = import_data(connection, backup, manifest)
+        create_schema(connection, manifest)
+        if args.schema_only:
+            print("Schéma Aiven préparé."); return
+        report = import_data(connection, backup, manifest)
     output = ROOT / ".runtime" / "aiven-import-report.json"; output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Import Aiven valide : {len(report['tables'])} tables, rapport {output}")
 if __name__ == "__main__": main()

@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 
+from .local_auth import set_temporary_password
 from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_global_page_access
 from .services import ALLOWED_ROLES
@@ -200,3 +201,21 @@ def profile_detail(request, profile_id):
         detail = error.messages[0] if isinstance(error, ValidationError) else str(error)
         status = 503 if isinstance(error, RuntimeError) else 400
         return JsonResponse({"status": status, "code": "profile_rejected", "detail": detail}, status=status)
+@require_supabase_user
+def profile_temporary_password(request, profile_id):
+    denied = _deny_or_none(request)
+    if denied:
+        return denied
+    if settings.GMAO_AUTH_PROVIDER != "django":
+        return JsonResponse({"status": 409, "detail": "Les mots de passe temporaires seront actifs après la bascule Django."}, status=409)
+    if request.method != "POST":
+        return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
+    try:
+        profile = UserProfile.objects.get(id=profile_id, active=True)
+        data = _payload(request)
+        set_temporary_password(profile.id, data.get("temporaryPassword"))
+        return JsonResponse({"status": "temporary_password_set", "profileId": str(profile.id)})
+    except UserProfile.DoesNotExist:
+        return JsonResponse({"detail": "Utilisateur introuvable ou inactif."}, status=404)
+    except ValidationError as error:
+        return JsonResponse({"status": 400, "code": "temporary_password_rejected", "detail": error.messages[0]}, status=400)

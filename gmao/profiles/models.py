@@ -17,6 +17,18 @@ class UserProfile(models.Model):
         db_table = "user_profiles"
 
 
+class LocalCredential(models.Model):
+    """Mot de passe local, séparé du profil métier et jamais sérialisé."""
+    profile_id = models.UUIDField(primary_key=True)
+    password_hash = models.CharField(max_length=255)
+    must_change_password = models.BooleanField(default=True)
+    password_changed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "gmao_local_credentials"
+
 class Site(models.Model):
     name = models.TextField(primary_key=True)
     code = models.TextField()

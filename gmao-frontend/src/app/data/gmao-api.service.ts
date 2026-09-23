@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { SupabaseClientService } from '../auth/supabase-client.service';
+import { AuthService } from '../auth/auth.service';
 
 export type GmaoResource =
   | 'equipements'
@@ -25,7 +25,7 @@ export interface ProfileRecord { id: string; email: string; fullName: string; ro
 @Injectable({ providedIn: 'root' })
 export class GmaoApiService {
   private readonly http = inject(HttpClient);
-  private readonly supabase = inject(SupabaseClientService);
+  private readonly auth = inject(AuthService);
 
   async list(resource: GmaoResource): Promise<PersistedRow[]> {
     return firstValueFrom(this.http.get<PersistedRow[]>(this.url(resource), {
@@ -113,8 +113,8 @@ export class GmaoApiService {
   }
 
   private async authHeaders(): Promise<Record<string, string>> {
-    const { data } = await this.supabase.client.auth.getSession();
-    if (!data.session?.access_token) throw new Error('Session Supabase absente.');
-    return { Authorization: `Bearer ${data.session.access_token}` };
+    const token = this.auth.accessToken();
+    if (!token) throw new Error("Session absente.");
+    return { Authorization: `Bearer ${token}` };
   }
 }

@@ -59,3 +59,10 @@ Supabase assure actuellement PostgreSQL, Supabase Auth (identité, mots de passe
 - Chaque table cible a le même nombre de lignes que son CSV source. Django lit correctement MySQL en TLS strict (`manage.py check` sans erreur).
 - Les données d'identité nécessaires à la liaison (`id`, e-mail et dates) sont conservées dans `gmao_legacy_auth_users` ; les mots de passe chiffrés, jetons et sessions Supabase ne sont volontairement pas réutilisés. La phase d'authentification créera un parcours de réinitialisation de mot de passe.
 - Supabase et la production actuelle restent actifs et inchangés ; Aiven est encore une copie de préparation.
+## Étape 4 préparée — Authentification Django/MySQL
+
+- Le fournisseur actif reste `supabase`. Le fournisseur `django` est activable uniquement par la variable `GMAO_AUTH_PROVIDER=django` sur le backend et `authProvider: 'django'` dans le frontend construit pour la bascule.
+- Les mots de passe temporaires sont hachés avec le mécanisme de Django dans `gmao_local_credentials`. Ils ne sont jamais retournés par une API, stockés dans Git ni importés depuis Supabase.
+- Un mot de passe temporaire doit contenir au moins 12 caractères et doit être remplacé par son titulaire lors de sa première connexion.
+- La commande `manage.py set_temporary_password <email>` demande le mot de passe de façon masquée. Elle sera utilisée d'abord pour le Manager de bascule, puis le Manager attribuera les mots de passe temporaires des autres comptes.
+- La restriction de saisie est contrôlée par le serveur : seuls les Chefs de site peuvent créer des fiches.

@@ -93,6 +93,9 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 APPEND_SLASH = False
 
+GMAO_AUTH_PROVIDER = os.getenv("GMAO_AUTH_PROVIDER", "supabase")
+GMAO_LOCAL_TOKEN_MAX_AGE = int(os.getenv("GMAO_LOCAL_TOKEN_MAX_AGE", "43200"))
+
 SUPABASE_AUTH_URL = os.getenv("SUPABASE_AUTH_URL", "https://rgujwidwlqesukqwgnib.supabase.co")
 SUPABASE_PUBLISHABLE_KEY = os.getenv(
     "SUPABASE_PUBLISHABLE_KEY",
