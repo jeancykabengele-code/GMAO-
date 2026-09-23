@@ -43,7 +43,7 @@ def build_permissions(profile: UserProfile) -> GmaoPermissions:
         global_scope=is_global,
         view_dashboard=is_global,
         view_documentation=is_global,
-        create_records=True,
+        create_records=profile.role == "chef_site",
         modify_existing=is_global,
         delete_records=is_global,
         allowed_sites=[site for site in allowed_sites if site],
@@ -56,6 +56,8 @@ def assert_site_access(profile: UserProfile, site: str) -> None:
 
 
 def assert_can_create(profile: UserProfile, site: str) -> None:
+    if profile.role != "chef_site":
+        raise PermissionDeniedError("Seuls les Chefs de site peuvent renseigner une nouvelle fiche.")
     assert_site_access(profile, site)
 
 

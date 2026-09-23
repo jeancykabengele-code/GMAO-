@@ -53,7 +53,7 @@ class PermissionPolicyTests(SimpleTestCase):
             assert_global_page_access(chef)
 
     @patch("profiles.permissions.Site.objects")
-    def test_global_roles_can_view_all_sites_create_and_modify(self, site_objects):
+    def test_global_roles_can_view_all_sites_but_cannot_create_and_can_modify(self, site_objects):
         site_objects.filter.return_value.order_by.return_value.values_list.return_value = ["Bukavu", "Goma"]
         for role in ("manager", "charge_operations"):
             profile = SimpleNamespace(role=role, site=None)
@@ -64,11 +64,12 @@ class PermissionPolicyTests(SimpleTestCase):
             self.assertTrue(permissions.global_scope)
             self.assertTrue(permissions.view_dashboard)
             self.assertTrue(permissions.view_documentation)
-            self.assertTrue(permissions.create_records)
+            self.assertFalse(permissions.create_records)
             self.assertTrue(permissions.modify_existing)
             self.assertTrue(permissions.delete_records)
             assert_site_access(profile, "Utex")
-            assert_can_create(profile, "Utex")
+            with self.assertRaises(PermissionDeniedError):
+                assert_can_create(profile, "Utex")
             assert_can_modify(profile, "Utex")
             assert_global_page_access(profile)
 
