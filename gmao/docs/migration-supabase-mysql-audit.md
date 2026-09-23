@@ -53,3 +53,9 @@ Supabase assure actuellement PostgreSQL, Supabase Auth (identité, mots de passe
 - Connexion de lecture validée le 23 septembre 2026 avec vérification stricte du certificat d’autorité Aiven.
 - Le mot de passe et le certificat sont uniquement stockés dans `gmao/.env` et `gmao/.runtime/` : ces emplacements sont ignorés par Git.
 - Aucun schéma, aucune donnée et aucune configuration de production n’ont encore été basculés vers Aiven.
+## Étape 3 validée — Schéma et import à blanc
+
+- Les 16 jeux de données ont été importés dans Aiven MySQL depuis la sauvegarde vérifiée : 303 lignes au total.
+- Chaque table cible a le même nombre de lignes que son CSV source. Django lit correctement MySQL en TLS strict (`manage.py check` sans erreur).
+- Les données d'identité nécessaires à la liaison (`id`, e-mail et dates) sont conservées dans `gmao_legacy_auth_users` ; les mots de passe chiffrés, jetons et sessions Supabase ne sont volontairement pas réutilisés. La phase d'authentification créera un parcours de réinitialisation de mot de passe.
+- Supabase et la production actuelle restent actifs et inchangés ; Aiven est encore une copie de préparation.

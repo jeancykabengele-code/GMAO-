@@ -37,7 +37,23 @@ TEMPLATES = []
 WSGI_APPLICATION = "gmao_backend.wsgi.application"
 ASGI_APPLICATION = "gmao_backend.asgi.application"
 
-if os.getenv("SUPABASE_DB_PASSWORD"):
+if os.getenv("GMAO_DATABASE_ENGINE") == "mysql":
+    mysql_ca_path = os.getenv("AIVEN_MYSQL_CA_PATH")
+    if not mysql_ca_path:
+        raise RuntimeError("AIVEN_MYSQL_CA_PATH est requis pour MySQL.")
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.getenv("AIVEN_MYSQL_DATABASE", "defaultdb"),
+            "USER": os.getenv("AIVEN_MYSQL_USER", "avnadmin"),
+            "PASSWORD": os.environ["AIVEN_MYSQL_PASSWORD"],
+            "HOST": os.environ["AIVEN_MYSQL_HOST"],
+            "PORT": os.getenv("AIVEN_MYSQL_PORT", "3306"),
+            "CONN_MAX_AGE": 0,
+            "OPTIONS": {"charset": "utf8mb4", "ssl": {"ca": mysql_ca_path, "check_hostname": True}},
+        }
+    }
+elif os.getenv("SUPABASE_DB_PASSWORD"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
