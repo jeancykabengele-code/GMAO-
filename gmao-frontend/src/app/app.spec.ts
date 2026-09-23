@@ -90,7 +90,7 @@ describe('App routing shell', () => {
     expect(compiled.querySelector('app-connexion-page form')).toBeTruthy();
     expect(compiled.querySelector('.sidebar')).toBeNull();
     expect(compiled.querySelector('.sidebar-toggle')).toBeNull();
-    expect(compiled.textContent).toContain('Connexion');
+    expect(compiled.textContent).toContain('Portail de connexion');
   });
 
   it('sends an unauthenticated internal request through the public home first', async () => {

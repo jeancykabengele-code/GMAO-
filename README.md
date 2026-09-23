@@ -471,6 +471,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - Une même étape n’est notifiée qu’une fois par groupe, destinataire et cycle de maintenance.
 - Le badge **Notifications** affiche le nombre total d’éléments non lus.
 - Le frontend charge les notifications à la connexion, à l’ouverture du panneau, puis toutes les 30 secondes.
+- À la première ouverture du centre **Notifications**, le navigateur peut demander l’autorisation d’afficher des alertes Windows. Les nouvelles alertes apparaissent même lorsque GMAO est ouverte dans un autre onglet ; un clic ramène à l’application et ouvre la fiche concernée. Le navigateur doit rester ouvert.
 - Un clic marque la notification comme lue, la retire du panneau et ouvre exactement la ligne du tableau concerné.
 - L’action **Tout lire** vide la liste des notifications non lues.
 - Les Chefs de site ne voient pas le centre de notifications global.
