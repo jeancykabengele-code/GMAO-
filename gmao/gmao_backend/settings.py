@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from tempfile import gettempdir
 
 
 
@@ -39,8 +40,13 @@ ASGI_APPLICATION = "gmao_backend.asgi.application"
 
 if os.getenv("GMAO_DATABASE_ENGINE") == "mysql":
     mysql_ca_path = os.getenv("AIVEN_MYSQL_CA_PATH")
+    mysql_ca_pem = os.getenv("AIVEN_MYSQL_CA_PEM")
+    if not mysql_ca_path and mysql_ca_pem:
+        ca_file = Path(gettempdir()) / "aiven-mysql-ca.pem"
+        ca_file.write_text(mysql_ca_pem.replace("\\n", "\n"), encoding="utf-8")
+        mysql_ca_path = str(ca_file)
     if not mysql_ca_path:
-        raise RuntimeError("AIVEN_MYSQL_CA_PATH est requis pour MySQL.")
+        raise RuntimeError("AIVEN_MYSQL_CA_PATH ou AIVEN_MYSQL_CA_PEM est requis pour MySQL.")
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",

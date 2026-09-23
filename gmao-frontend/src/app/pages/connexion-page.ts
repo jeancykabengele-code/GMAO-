@@ -19,6 +19,15 @@ export class ConnexionPageComponent implements OnInit {
   submitted = false;
   loading = false;
   loginError = '';
+  passwordChangeError = '';
+  changingPassword = false;
+
+  get mustChangePassword(): boolean { return this.auth.mustChangePassword(); }
+
+  readonly passwordChangeForm = new FormGroup({
+    newPassword: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(12)] }),
+    confirmation: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+  });
 
   readonly loginForm = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
@@ -29,7 +38,7 @@ export class ConnexionPageComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     await this.auth.initialize();
     const profile = this.auth.profile();
-    if (this.auth.isAuthenticated() && profile) {
+    if (this.auth.isAuthenticated() && profile && !this.mustChangePassword) {
       await this.router.navigateByUrl(this.auth.destinationFor(profile.role));
     }
   }
@@ -48,6 +57,7 @@ export class ConnexionPageComponent implements OnInit {
 
     try {
       const profile = await this.auth.signIn(email.trim(), password, rememberMe);
+      if (this.mustChangePassword) return;
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
       const destination = this.isSafeInternalUrl(returnUrl)
         ? returnUrl
@@ -65,4 +75,20 @@ export class ConnexionPageComponent implements OnInit {
   private isSafeInternalUrl(url: string | null): url is string {
     return Boolean(url && url.startsWith('/') && !url.startsWith('//') && url !== '/connexion');
   }
-}
+
+  async changePassword(): Promise<void> {
+    this.passwordChangeError = '';
+    const { newPassword, confirmation } = this.passwordChangeForm.getRawValue();
+    if (this.passwordChangeForm.invalid || newPassword !== confirmation || this.changingPassword) {
+      if (newPassword !== confirmation) this.passwordChangeError = 'Les deux mots de passe ne correspondent pas.';
+      return;
+    }
+    this.changingPassword = true;
+    try {
+      const profile = this.auth.profile();
+      await this.auth.changeLocalPassword(this.loginForm.controls.password.value, newPassword);
+      if (profile) await this.router.navigateByUrl(this.auth.destinationFor(profile.role));
+    } catch (error) {
+      this.passwordChangeError = error instanceof GmaoAuthError ? error.message : 'Impossible de changer le mot de passe.';
+    } finally { this.changingPassword = false; }
+  }}

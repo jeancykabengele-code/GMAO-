@@ -2,14 +2,14 @@ import json
 import os
 import urllib.error
 import urllib.request
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 
 from .local_auth import set_temporary_password
-from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
+from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, LocalCredential, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_global_page_access
 from .services import ALLOWED_ROLES
 from .views import require_supabase_user
@@ -115,6 +115,13 @@ def profile_collection(request):
         if UserProfile.objects.filter(email__iexact=email).exists():
             raise ValidationError("Un profil utilise déjà cette adresse e-mail.")
 
+        if settings.GMAO_AUTH_PROVIDER == "django":
+            profile = UserProfile.objects.create(
+                id=uuid4(), email=email, full_name=full_name,
+                role=role, site=site_name, active=True,
+            )
+            return JsonResponse(_serialize(profile), status=201)
+
         invited_user = _admin_request("POST", "/invite", {"email": email, "data": {"full_name": full_name}})
         auth_user_id = invited_user.get("id")
         if not auth_user_id:
@@ -150,7 +157,10 @@ def profile_delete(request, profile_id):
             raise ValidationError("Ce profil est encore affecté à un site. Désaffectez-le avant suppression.")
         if _profile_has_business_history(profile.id):
             raise ValidationError("Ce profil possède un historique métier. Désactivez-le plutôt que de le supprimer.")
-        _admin_request("DELETE", f"/admin/users/{profile.id}")
+        if settings.GMAO_AUTH_PROVIDER == "django":
+            LocalCredential.objects.filter(profile_id=profile.id).delete()
+        else:
+            _admin_request("DELETE", f"/admin/users/{profile.id}")
         profile.delete()
         return JsonResponse({"status": "deleted", "id": str(profile.id)})
     except UserProfile.DoesNotExist:

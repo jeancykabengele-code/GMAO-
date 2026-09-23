@@ -30,4 +30,20 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: FRONTEND_ORIGINS
-        value: https://gmao-ordc.vercel.app
+        value: https://gmao-ordc.vercel.app      # Préparation bascule Django/Aiven : conserver "supabase" jusqu’au jour de bascule.
+      - key: GMAO_AUTH_PROVIDER
+        value: supabase
+      - key: GMAO_DATABASE_ENGINE
+        sync: false
+      - key: AIVEN_MYSQL_HOST
+        sync: false
+      - key: AIVEN_MYSQL_PORT
+        sync: false
+      - key: AIVEN_MYSQL_DATABASE
+        sync: false
+      - key: AIVEN_MYSQL_USER
+        sync: false
+      - key: AIVEN_MYSQL_PASSWORD
+        sync: false
+      - key: AIVEN_MYSQL_CA_PEM
+        sync: false

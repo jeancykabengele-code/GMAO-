@@ -2,11 +2,11 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const requiredVariables = [
-  'GMAO_API_URL',
-  'SUPABASE_URL',
-  'SUPABASE_PUBLISHABLE_KEY',
-];
+const authProvider = process.env.GMAO_AUTH_PROVIDER?.trim() || 'supabase';
+const requiredVariables = ['GMAO_API_URL'];
+if (authProvider === 'supabase') {
+  requiredVariables.push('SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY');
+}
 
 const missingVariables = requiredVariables.filter((name) => !process.env[name]?.trim());
 if (missingVariables.length) {
@@ -17,9 +17,10 @@ if (missingVariables.length) {
 const normalizeUrl = (value) => value.trim().replace(/\/+$/, '');
 const environment = {
   production: true,
+  authProvider,
   apiUrl: normalizeUrl(process.env.GMAO_API_URL),
-  supabaseUrl: normalizeUrl(process.env.SUPABASE_URL),
-  supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY.trim(),
+  supabaseUrl: process.env.SUPABASE_URL ? normalizeUrl(process.env.SUPABASE_URL) : '',
+  supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY?.trim() || '',
 };
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));

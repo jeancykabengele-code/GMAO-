@@ -40,6 +40,7 @@ interface BackendUserProfile {
   active: boolean;
   createdAt?: string | null;
   permissions: GmaoPermissions;
+  mustChangePassword?: boolean;
 }
 
 export class GmaoAuthError extends Error {
@@ -103,6 +104,9 @@ export class AuthService {
 
   async signOut(): Promise<void> {
     this.clearState();
+    localStorage.removeItem(LOCAL_TOKEN_KEY);
+    sessionStorage.removeItem(LOCAL_TOKEN_KEY);
+    if (this.usesLocalAuth) return;
     if (this.supabase.configured) {
       await this.withTimeout(
         this.supabase.client.auth.signOut(),
@@ -206,6 +210,7 @@ export class AuthService {
       created_at: data.createdAt,
       permissions: data.permissions,
     };
+    this.mustChangePassword.set(Boolean(data.mustChangePassword));
     this.profile.set(profile);
     return profile;
   }
@@ -246,6 +251,7 @@ export class AuthService {
   private clearState(): void {
     this.session.set(null);
     this.profile.set(null);
+    this.mustChangePassword.set(false);
   }
 
   private withTimeout<T>(promise: PromiseLike<T>, milliseconds: number, timeoutError: Error): Promise<T> {

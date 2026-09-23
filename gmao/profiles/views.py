@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .authentication import SupabaseAuthenticationError, verify_supabase_token
 from .local_auth import LocalAuthenticationError, authenticate, change_password, issue_token, parse_payload, profile_from_token
+from .models import LocalCredential
 from .permissions import build_permissions
 from .services import ProfileAccessError, load_active_profile
 
@@ -41,6 +42,8 @@ def require_supabase_user(view):
         try:
             if settings.GMAO_AUTH_PROVIDER == "django":
                 request.gmao_profile = profile_from_token(token.strip())
+                if not request.path.endswith("/auth/local/change-password") and LocalCredential.objects.filter(profile_id=request.gmao_profile.id, must_change_password=True).exists():
+                    return JsonResponse({"status": 403, "code": "password_change_required", "detail": "Vous devez remplacer votre mot de passe temporaire avant de continuer."}, status=403)
             else:
                 request.supabase_claims = verify_supabase_token(token.strip())
                 request.gmao_profile = load_active_profile(request.supabase_claims["sub"])
@@ -54,18 +57,23 @@ def require_supabase_user(view):
 
 def _serialize_profile(profile):
     permissions = build_permissions(profile)
-    return {
+    response = {
         "id": str(profile.id), "email": profile.email, "fullName": profile.full_name,
         "role": profile.role, "site": profile.site, "active": profile.active,
         "createdAt": profile.created_at.isoformat() if profile.created_at else None,
         "permissions": permissions.as_dict(),
     }
+    if settings.GMAO_AUTH_PROVIDER == "django":
+        response["mustChangePassword"] = LocalCredential.objects.filter(profile_id=profile.id, must_change_password=True).exists()
+    return response
 
 
 @csrf_exempt
 def local_login(request):
     if request.method != "POST":
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
+    if settings.GMAO_AUTH_PROVIDER != "django":
+        return JsonResponse({"status": 409, "detail": "La connexion locale sera disponible après la bascule Django."}, status=409)
     try:
         data = parse_payload(request)
         profile, credential = authenticate(data.get("email"), data.get("password"))
