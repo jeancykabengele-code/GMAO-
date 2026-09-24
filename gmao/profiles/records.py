@@ -1,5 +1,6 @@
 import calendar
 import json
+import logging
 import re
 import unicodedata
 from datetime import date, datetime
@@ -37,6 +38,9 @@ from .permissions import (
     assert_site_access,
 )
 from .views import require_authenticated_user
+
+
+logger = logging.getLogger(__name__)
 
 
 RESOURCE_MODELS = {
@@ -509,10 +513,17 @@ def record_collection(request, resource):
     profile = request.gmao_profile
 
     if request.method == "GET":
-        rows = model_class.objects.all()
-        if profile.role not in GLOBAL_ROLES:
-            rows = rows.filter(site=profile.site)
-        return JsonResponse([_serialize(row) for row in rows.order_by("-created_at")], safe=False)
+        try:
+            rows = model_class.objects.all()
+            if profile.role not in GLOBAL_ROLES:
+                rows = rows.filter(site=profile.site)
+            return JsonResponse([_serialize(row) for row in rows.order_by("-created_at")], safe=False)
+        except Exception:
+            logger.exception("Lecture MySQL impossible pour la ressource %s", resource)
+            return JsonResponse(
+                {"status": 500, "code": "record_read_failed", "detail": f"Lecture impossible : {resource}."},
+                status=500,
+            )
 
     if request.method == "POST":
         try:
