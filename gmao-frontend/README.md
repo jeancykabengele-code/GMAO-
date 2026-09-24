@@ -1,6 +1,6 @@
 # Frontend GMAO ORDC
 
-Interface Angular 22 de la plateforme DC SiteOps Reporting.
+Interface Angular 22 de la plateforme GMAO.
 
 ## Charte Orange
 

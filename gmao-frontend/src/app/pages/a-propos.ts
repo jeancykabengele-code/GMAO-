@@ -6,7 +6,7 @@ import { Component } from '@angular/core';
   template: `
     <section class="about-page">
       <p>
-        La plateforme DC SiteOps Reporting centralise le suivi des équipements, des interventions, des tickets,
+        La plateforme GMAO centralise le suivi des équipements, des interventions, des tickets,
         des pièces de rechange et des indicateurs techniques des différents sites. Elle permet aux
         équipes de disposer d’informations fiables et à jour, de mieux planifier les opérations de
         maintenance, d’améliorer la traçabilité des actions et de faciliter la prise de décision afin
