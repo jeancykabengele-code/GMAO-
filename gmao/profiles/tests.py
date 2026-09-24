@@ -128,7 +128,7 @@ class ProfileDeletionSafetyTests(SimpleTestCase):
         has_history.assert_called_once_with(target.id)
         admin_request.assert_not_called()
 class ApiTests(TestCase):
-    def test_supabase_bearer_routes_are_csrf_exempt(self):
+    def test_authenticated_routes_are_csrf_exempt(self):
         self.assertTrue(current_user.csrf_exempt)
 
     def test_health(self):
@@ -142,13 +142,11 @@ class ApiTests(TestCase):
         self.assertEqual(response.json()["code"], "missing_bearer_token")
 
     @patch("profiles.views.build_permissions")
-    @patch("profiles.views.load_active_profile")
-    @patch("profiles.views.verify_supabase_token")
-    def test_me_returns_profile_and_server_permissions(self, verify_token, load_profile, permissions):
+    @patch("profiles.views.profile_from_token")
+    def test_me_returns_profile_and_server_permissions(self, profile_from_token, permissions):
         user_id = uuid4()
         created_at = datetime(2026, 8, 19, tzinfo=timezone.utc)
-        verify_token.return_value = {"sub": str(user_id)}
-        load_profile.return_value = SimpleNamespace(
+        profile_from_token.return_value = SimpleNamespace(
             id=user_id,
             email="manager@example.com",
             full_name="Manager GMAO",
@@ -587,12 +585,10 @@ class NotificationRulesTests(SimpleTestCase):
 
 class NotificationApiTests(TestCase):
     @patch("profiles.notifications.Notification.objects")
-    @patch("profiles.views.load_active_profile")
-    @patch("profiles.views.verify_supabase_token")
-    def test_global_user_can_list_personal_notifications(self, verify_token, load_profile, notification_objects):
+    @patch("profiles.views.profile_from_token")
+    def test_global_user_can_list_personal_notifications(self, profile_from_token, notification_objects):
         user_id = uuid4()
-        verify_token.return_value = {"sub": str(user_id)}
-        load_profile.return_value = SimpleNamespace(
+        profile_from_token.return_value = SimpleNamespace(
             id=user_id,
             role="manager",
             site=None,

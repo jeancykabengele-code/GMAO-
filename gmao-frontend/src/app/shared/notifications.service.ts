@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AccessControlService } from '../auth/access-control.service';
-import { SupabaseClientService } from '../auth/supabase-client.service';
+import { AuthService } from '../auth/auth.service';
 import { BrowserNotificationsService } from './browser-notifications.service';
 
 export type NotificationSeverity = 'info' | 'warning' | 'critical';
@@ -31,7 +31,7 @@ interface NotificationResponse {
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
   private readonly http = inject(HttpClient);
-  private readonly supabase = inject(SupabaseClientService);
+  private readonly auth = inject(AuthService);
   private readonly access = inject(AccessControlService);
   private readonly router = inject(Router);
   private readonly browserNotifications = inject(BrowserNotificationsService);
@@ -158,8 +158,8 @@ export class NotificationsService {
   }
 
   private async authHeaders(): Promise<Record<string, string>> {
-    const { data } = await this.supabase.client.auth.getSession();
-    if (!data.session?.access_token) throw new Error('Session Supabase absente.');
-    return { Authorization: `Bearer ${data.session.access_token}` };
+    const token = this.auth.accessToken();
+    if (!token) throw new Error('Session GMAO absente.');
+    return { Authorization: `Bearer ${token}` };
   }
 }

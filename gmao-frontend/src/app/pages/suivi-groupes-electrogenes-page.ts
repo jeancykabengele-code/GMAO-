@@ -2,8 +2,6 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, Optional } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { SupabaseClientService } from '../auth/supabase-client.service';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
@@ -55,12 +53,10 @@ interface GeneratorRow {
   styleUrls: ['./suivi-groupes-electrogenes-page.scss'],
 })
 export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy {
-  private realtimeChannel: RealtimeChannel | null = null;
   readonly pageSize = 20;
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
-    private readonly supabase: SupabaseClientService = new SupabaseClientService(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
     @Optional() route: ActivatedRoute | null = null,
     @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
@@ -176,21 +172,8 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     return this.filteredRows.slice(start, start + this.pageSize);
   }
 
-  ngOnInit(): void {
-    if (!this.supabase.configured) return;
-    this.realtimeChannel = this.supabase.client
-      .channel('gmao-ge-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'gmao_groupes_electrogenes' },
-        () => void this.dataStore.refreshResource('groupes-electrogenes'),
-      )
-      .subscribe();
-  }
-
-  ngOnDestroy(): void {
-    if (this.realtimeChannel) void this.supabase.client.removeChannel(this.realtimeChannel);
-  }
+  ngOnInit(): void {}
+  ngOnDestroy(): void {}
 
   exportExcel(): void {
     if (!this.canExportExcel) return;

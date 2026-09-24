@@ -9,7 +9,6 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .authentication import SupabaseAuthenticationError, verify_supabase_token
 from .local_auth import LocalAuthenticationError, authenticate, change_password, issue_token, parse_payload, profile_from_token
-from .models import LocalCredential
 from .permissions import build_permissions
 from .services import ProfileAccessError, load_active_profile
 
@@ -30,30 +29,23 @@ def database_health(request):
     return JsonResponse({"status": "UP", "database": "UP", "responseTimeMs": elapsed_ms})
 
 
-def require_supabase_user(view):
-    """Compatibilité transitoire : Supabase par défaut, jeton Django en mode local."""
+def require_authenticated_user(view):
+    """Authentifie toutes les routes API avec un jeton Django signé."""
     @csrf_exempt
     @wraps(view)
     def wrapped(request, *args, **kwargs):
-        authorization = request.headers.get("Authorization", "")
-        scheme, separator, token = authorization.partition(" ")
+        scheme, separator, token = request.headers.get("Authorization", "").partition(" ")
         if not separator or scheme.lower() != "bearer" or not token.strip():
             return JsonResponse({"status": 401, "code": "missing_bearer_token", "detail": "Jeton de session manquant."}, status=401)
         try:
-            if settings.GMAO_AUTH_PROVIDER == "django":
-                request.gmao_profile = profile_from_token(token.strip())
-                if not request.path.endswith("/auth/local/change-password") and LocalCredential.objects.filter(profile_id=request.gmao_profile.id, must_change_password=True).exists():
-                    return JsonResponse({"status": 403, "code": "password_change_required", "detail": "Vous devez remplacer votre mot de passe temporaire avant de continuer."}, status=403)
-            else:
-                request.supabase_claims = verify_supabase_token(token.strip())
-                request.gmao_profile = load_active_profile(request.supabase_claims["sub"])
-        except (SupabaseAuthenticationError, LocalAuthenticationError) as error:
+            request.gmao_profile = profile_from_token(token.strip())
+        except LocalAuthenticationError as error:
             return JsonResponse({"status": 401, "code": "invalid_session", "detail": str(error)}, status=401)
-        except ProfileAccessError as error:
-            return JsonResponse({"status": 403, "code": "profile_access_denied", "detail": str(error)}, status=403)
         return view(request, *args, **kwargs)
     return wrapped
 
+# Alias transitoire : les modules existants gardent leur décorateur, désormais Django uniquement.
+require_supabase_user = require_authenticated_user
 
 def _serialize_profile(profile):
     permissions = build_permissions(profile)
@@ -64,7 +56,7 @@ def _serialize_profile(profile):
         "permissions": permissions.as_dict(),
     }
     if settings.GMAO_AUTH_PROVIDER == "django":
-        response["mustChangePassword"] = LocalCredential.objects.filter(profile_id=profile.id, must_change_password=True).exists()
+        response["mustChangePassword"] = False
     return response
 
 
@@ -77,7 +69,7 @@ def local_login(request):
     try:
         data = parse_payload(request)
         profile, credential = authenticate(data.get("email"), data.get("password"))
-        return JsonResponse({"accessToken": issue_token(profile), "profile": _serialize_profile(profile), "mustChangePassword": credential.must_change_password})
+        return JsonResponse({"accessToken": issue_token(profile), "profile": _serialize_profile(profile), "mustChangePassword": False})
     except (ValidationError, LocalAuthenticationError) as error:
         detail = error.messages[0] if isinstance(error, ValidationError) else str(error)
         return JsonResponse({"status": 401, "code": "local_login_rejected", "detail": detail}, status=401)

@@ -1,7 +1,4 @@
 export const environment = {
-  "production": true,
-  "authProvider": "django",
-  "apiUrl": "https://gmao-ordc-api.onrender.com",
-  "supabaseUrl": "",
-  "supabasePublishableKey": ""
+  production: true,
+  apiUrl: 'https://gmao-ordc-api.onrender.com',
 } as const;

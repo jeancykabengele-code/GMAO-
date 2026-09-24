@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 
-from .local_auth import set_temporary_password
+from .local_auth import set_local_password, validate_temporary_password
 from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, LocalCredential, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_global_page_access
 from .services import ALLOWED_ROLES
@@ -116,10 +116,12 @@ def profile_collection(request):
             raise ValidationError("Un profil utilise déjà cette adresse e-mail.")
 
         if settings.GMAO_AUTH_PROVIDER == "django":
+            password = validate_temporary_password(data.get("password"))
             profile = UserProfile.objects.create(
                 id=uuid4(), email=email, full_name=full_name,
                 role=role, site=site_name, active=True,
             )
+            set_local_password(profile.id, password)
             return JsonResponse(_serialize(profile), status=201)
 
         invited_user = _admin_request("POST", "/invite", {"email": email, "data": {"full_name": full_name}})
@@ -217,14 +219,14 @@ def profile_temporary_password(request, profile_id):
     if denied:
         return denied
     if settings.GMAO_AUTH_PROVIDER != "django":
-        return JsonResponse({"status": 409, "detail": "Les mots de passe temporaires seront actifs après la bascule Django."}, status=409)
+        return JsonResponse({"status": 409, "detail": "La gestion des mots de passe locaux sera active après la bascule Django."}, status=409)
     if request.method != "POST":
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
     try:
         profile = UserProfile.objects.get(id=profile_id, active=True)
         data = _payload(request)
-        set_temporary_password(profile.id, data.get("temporaryPassword"))
-        return JsonResponse({"status": "temporary_password_set", "profileId": str(profile.id)})
+        set_local_password(profile.id, data.get("temporaryPassword"))
+        return JsonResponse({"status": "password_set", "profileId": str(profile.id)})
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable ou inactif."}, status=404)
     except ValidationError as error:
