@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const authProvider = process.env.GMAO_AUTH_PROVIDER?.trim() || 'supabase';
+const authProvider = process.env.GMAO_AUTH_PROVIDER?.trim() || 'django';
 const requiredVariables = ['GMAO_API_URL'];
 if (authProvider === 'supabase') {
   requiredVariables.push('SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY');
