@@ -71,10 +71,12 @@ export class GmaoDataStore {
       try {
         this.setRaw(resource, await this.api!.list(resource));
       } catch (error) {
+        const httpError = error as { status?: unknown; error?: { detail?: unknown } };
         const status = typeof error === 'object' && error !== null && 'status' in error
-          ? `HTTP ${String((error as { status: unknown }).status)}`
+          ? `HTTP ${String(httpError.status)}`
           : 'réseau';
-        failedResources.push(`${resource} (${status})`);
+        const detail = typeof httpError.error?.detail === 'string' ? httpError.error.detail : status;
+        failedResources.push(`${resource} (${detail})`);
         this.setRaw(resource, []);
       }
     }));
