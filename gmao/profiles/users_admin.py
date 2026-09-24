@@ -4,7 +4,7 @@ from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 
-from .local_auth import set_local_password, validate_temporary_password
+from .local_auth import set_local_password, validate_password
 from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, LocalCredential, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_global_page_access
 from .services import ALLOWED_ROLES
@@ -81,7 +81,7 @@ def profile_collection(request):
         if UserProfile.objects.filter(email__iexact=email).exists():
             raise ValidationError("Un profil utilise déjà cette adresse e-mail.")
 
-        password = validate_temporary_password(data.get("password"))
+        password = validate_password(data.get("password"))
         profile = UserProfile.objects.create(id=uuid4(), email=email, full_name=full_name, role=role, site=site_name, active=True)
         set_local_password(profile.id, password)
         return JsonResponse(_serialize(profile), status=201)
@@ -158,7 +158,7 @@ def profile_detail(request, profile_id):
         status = 400
         return JsonResponse({"status": status, "code": "profile_rejected", "detail": detail}, status=status)
 @require_authenticated_user
-def profile_temporary_password(request, profile_id):
+def profile_password(request, profile_id):
     denied = _deny_or_none(request)
     if denied:
         return denied
@@ -167,9 +167,9 @@ def profile_temporary_password(request, profile_id):
     try:
         profile = UserProfile.objects.get(id=profile_id, active=True)
         data = _payload(request)
-        set_local_password(profile.id, data.get("temporaryPassword"))
+        set_local_password(profile.id, data.get("password"))
         return JsonResponse({"status": "password_set", "profileId": str(profile.id)})
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable ou inactif."}, status=404)
     except ValidationError as error:
-        return JsonResponse({"status": 400, "code": "temporary_password_rejected", "detail": error.messages[0]}, status=400)
+        return JsonResponse({"status": 400, "code": "password_rejected", "detail": error.messages[0]}, status=400)

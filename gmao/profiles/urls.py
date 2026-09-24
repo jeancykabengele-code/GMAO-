@@ -3,7 +3,7 @@ from django.urls import path
 from .notifications import mark_all_notifications_read, mark_notification_read, notification_collection
 from .records import record_collection, record_detail
 from .sites import site_collection, site_detail
-from .users_admin import profile_collection, profile_delete, profile_detail, profile_temporary_password
+from .users_admin import profile_collection, profile_delete, profile_detail, profile_password
 from .views import current_user, local_change_password, local_login
 
 
@@ -19,7 +19,7 @@ urlpatterns = [
     path('profiles', profile_collection),
     path('profiles/<uuid:profile_id>', profile_detail),
     path('profiles/<uuid:profile_id>/delete', profile_delete),
-    path('profiles/<uuid:profile_id>/temporary-password', profile_temporary_password),
+    path('profiles/<uuid:profile_id>/password', profile_password),
     path("records/<slug:resource>", record_collection),
     path("records/<slug:resource>/<uuid:record_id>", record_detail),
 ]

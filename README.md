@@ -124,7 +124,6 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - Les rôles globaux peuvent ouvrir **Administration → Gestion des utilisateurs**.
 - Le formulaire permet de saisir le nom complet, l’adresse e-mail, le rôle et le site du chef de site.
 
-- La clé `service_role` doit être configurée uniquement comme variable secrète Render ; elle ne doit jamais être exposée dans Angular.
 - La désactivation conserve le compte et son historique ; elle est recommandée dès qu’un profil possède des données métier.
 
 ### Modification des profils

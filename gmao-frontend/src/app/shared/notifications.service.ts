@@ -90,7 +90,6 @@ export class NotificationsService {
       this.items.set(unreadItems);
       this.unreadCount.set(response.unreadCount);
     } catch {
-      // Le prochain cycle de polling réessaiera sans interrompre la navigation.
     } finally {
       this.loading.set(false);
     }

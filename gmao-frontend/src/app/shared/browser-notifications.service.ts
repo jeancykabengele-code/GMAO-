@@ -11,7 +11,6 @@ export class BrowserNotificationsService {
     try {
       await Notification.requestPermission();
     } catch {
-      // Le centre de notifications GMAO reste disponible si le navigateur refuse la demande.
     }
   }
 
@@ -35,7 +34,6 @@ export class BrowserNotificationsService {
         }
       };
     } catch {
-      // Une notification Windows indisponible ne doit jamais interrompre GMAO.
     }
   }
 

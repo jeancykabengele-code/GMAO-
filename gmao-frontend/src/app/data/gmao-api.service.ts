@@ -80,8 +80,8 @@ export class GmaoApiService {
     }));
   }
 
-  async setTemporaryPassword(id: string, temporaryPassword: string): Promise<void> {
-    await firstValueFrom(this.http.post(`${environment.apiUrl}/api/profiles/${id}/temporary-password`, { temporaryPassword }, {
+  async setPassword(id: string, password: string): Promise<void> {
+    await firstValueFrom(this.http.post(`${environment.apiUrl}/api/profiles/${id}/password`, { password }, {
       headers: await this.authHeaders(),
     }));
   }

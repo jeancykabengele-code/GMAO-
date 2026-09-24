@@ -284,8 +284,6 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
 
     hours_ge = _generator_hours_total(site, periode)
     if hours_ge is None:
-        # Le premier journal peut définir le stock de départ avant qu'un mois RH précédent existe,
-        # y compris lors du recalcul automatique déclenché après sa création.
         if previous_stock is None and sortie == 0:
             hours_ge = Decimal("0")
         else:
@@ -518,7 +516,7 @@ def record_collection(request, resource):
         except Exception:
             logger.exception("Lecture MySQL impossible pour la ressource %s", resource)
             return JsonResponse(
-                {"status": 500, "code": "record_read_failed", "detail": f"Lecture impossible : {resource} ({type(error).__name__}: {error})."},
+                {"status": 500, "code": "record_read_failed", "detail": "Les données ne sont pas disponibles pour le moment."},
                 status=500,
             )
 

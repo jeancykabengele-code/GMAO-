@@ -27,7 +27,7 @@ def parse_payload(request):
     return value
 
 
-def validate_temporary_password(value: object) -> str:
+def validate_password(value: object) -> str:
     password = str(value or "")
     if len(password) < 12:
         raise ValidationError("Le mot de passe doit contenir au moins 12 caractères.")
@@ -35,16 +35,13 @@ def validate_temporary_password(value: object) -> str:
 
 
 def set_local_password(profile_id, password: object) -> None:
-    password = validate_temporary_password(password)
+    password = validate_password(password)
     LocalCredential.objects.update_or_create(
         profile_id=profile_id,
         defaults={"password_hash": make_password(password), "must_change_password": False, "password_changed_at": datetime.now(timezone.utc)},
     )
 
 
-def set_temporary_password(profile_id, password: object) -> None:
-    """Compatibilité avec la commande existante ; les nouveaux comptes utilisent un mot de passe durable."""
-    set_local_password(profile_id, password)
 
 
 def authenticate(email: object, password: object):
@@ -75,7 +72,7 @@ def profile_from_token(token: str) -> UserProfile:
 
 
 def change_password(profile: UserProfile, current_password: object, new_password: object) -> None:
-    new_password = validate_temporary_password(new_password)
+    new_password = validate_password(new_password)
     try:
         credential = LocalCredential.objects.get(profile_id=profile.id)
     except LocalCredential.DoesNotExist as error:

@@ -4,7 +4,7 @@ from getpass import getpass
 
 from django.core.management.base import BaseCommand, CommandError
 
-from profiles.local_auth import set_local_password, validate_temporary_password
+from profiles.local_auth import set_local_password, validate_password
 from profiles.models import UserProfile
 
 
@@ -25,6 +25,6 @@ class Command(BaseCommand):
         confirmation = getpass("Confirmer le mot de passe : ")
         if password != confirmation:
             raise CommandError("Les deux mots de passe ne correspondent pas.")
-        validate_temporary_password(password)
+        validate_password(password)
         set_local_password(profile.id, password)
         self.stdout.write(self.style.SUCCESS("Mot de passe local défini pour ce profil."))

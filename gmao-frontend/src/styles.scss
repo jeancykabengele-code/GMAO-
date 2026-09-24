@@ -57,7 +57,6 @@ h1, h2, h3, h4, h5, h6 {
 button, input, select, textarea { font: inherit; }
 button, label, th { font-family: 'Helvetica Neue Orange', Arial, sans-serif; font-weight: 600; }
 
-/* En-tête compact commun aux pages métier : contexte à gauche, actions à droite. */
 .page-toolbar {
   display: flex;
   align-items: center;
@@ -116,7 +115,6 @@ body .page-toolbar > .view-actions {
   body .page-toolbar > .view-actions { justify-content: flex-start; }
 }
 
-/* Typographie uniforme du contenu de tous les tableaux. */
 table tbody td,
 table tbody td > span,
 table tbody td > button,
@@ -151,10 +149,8 @@ table tbody td > strong {
 
 tr.notification-target-row > td { animation: notification-row-pulse 5s ease-out; }
 
-/* Les valeurs de données restent sobres et lisibles dans chaque tableau. */
 table tbody td,
 table tbody td * { color: var(--orange-black) !important; }
-/* Icônes Solaris officielles : la silhouette PNG devient une icône monochrome via son masque alpha. */
 .solaris-icon {
   display: inline-block;
   width: 1em;
@@ -206,7 +202,6 @@ table tbody td * { color: var(--orange-black) !important; }
 .solaris-truck { --solaris-icon: url('/assets/orange/icons/logistics-truck.png'); }
 .solaris-maintenance { --solaris-icon: url('/assets/orange/icons/maintenance-spanner.png'); }
 .solaris-close { --solaris-icon: url('/assets/orange/icons/delete-cross-round.png'); }
-/* Système visuel Orange : surfaces neutres, action Orange, texte noir et gris numérique. */
 .page-content {
   color: var(--orange-black);
   background: var(--orange-off-white);
@@ -272,7 +267,6 @@ table tbody td * { color: var(--orange-black) !important; }
   background: rgba(0, 0, 0, 0.62) !important;
 }
 
-/* Les états restent distincts uniquement lorsqu’ils portent une information métier. */
 .page-content :is(.danger-button, .delete-button) {
   border-color: #c91400 !important;
   color: var(--orange-white) !important;
@@ -290,7 +284,6 @@ table tbody td * { color: var(--orange-black) !important; }
 }
 
 .page-content .state-critical { color: var(--orange-white) !important; background: #c91400 !important; }
-/* États métier : couleurs secondaires réservées aux informations utiles. */
 :root {
   --orange-success: #087a46;
   --orange-success-tint: #e6f4ea;
@@ -299,20 +292,17 @@ table tbody td * { color: var(--orange-black) !important; }
   --orange-warning-tint: #fff2e5;
 }
 
-/* Validation : seule la réussite utilise le vert. */
 .page-content :is(.state-good, .state-normal, .state-service, .pm-normal, .status-closed, .status-used, .message.success, .success, .status:not(.off)) {
   color: var(--orange-success) !important;
   background: var(--orange-success-tint) !important;
 }
 
-/* Attention : Orange, la couleur principale, signale une action ou un suivi nécessaire. */
 .page-content :is(.state-alert, .state-maintenance, .pm-watch, .status-open, .status-progress, .status-received, .status-returned, .criticality-medium, .criticality-high, .priority-p2) {
   color: var(--orange-black) !important;
   background: var(--orange-warning-tint) !important;
   border-color: var(--orange) !important;
 }
 
-/* Critique : le rouge est réservé au danger, à l’erreur et aux opérations irréversibles. */
 .page-content :is(.state-critical, .state-down, .pm-urgent, .pm-overdue, .criticality-critical, .priority-p1, .message.error, .error, .form-error) {
   color: var(--orange-critical) !important;
   background: var(--orange-critical-tint) !important;
@@ -328,7 +318,6 @@ table tbody td * { color: var(--orange-black) !important; }
   border-color: var(--orange-critical) !important;
 }
 
-/* Les états descriptifs ne créent pas de nouvelle couleur de marque. */
 .page-content :is(.status-ongoing, .criticality-low, .priority-p3) {
   color: var(--orange-dark-gray) !important;
   background: var(--orange-light-gray) !important;
