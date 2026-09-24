@@ -370,3 +370,11 @@ nav > a.active i { color: #ffffff; }
     animation: none;
   }
 }
+.data-load-error {
+  margin: 14px 20px 0;
+  padding: 12px 16px;
+  border-left: 4px solid var(--orange);
+  color: #1f1f1d;
+  background: #fff7ed;
+  font-weight: 700;
+}

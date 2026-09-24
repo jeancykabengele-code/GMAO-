@@ -23,8 +23,11 @@ export class AuthService {
   async signIn(email: string, password: string, remember: boolean): Promise<UserProfile> {
     try {
       const result = await firstValueFrom(this.http.post<{ accessToken: string; profile: BackendUserProfile }>(`${environment.apiUrl}/api/auth/local/login`, { email, password }).pipe(timeout({ first: 15_000 })));
-      const storage = remember ? localStorage : sessionStorage; const other = remember ? sessionStorage : localStorage;
-      storage.setItem(LOCAL_TOKEN_KEY, result.accessToken); other.removeItem(LOCAL_TOKEN_KEY); this.session.set({ access_token: result.accessToken });
+      // Une session locale doit survivre à un simple rafraîchissement de navigateur.
+      // Le jeton reste supprimé explicitement à la déconnexion.
+      localStorage.setItem(LOCAL_TOKEN_KEY, result.accessToken);
+      sessionStorage.removeItem(LOCAL_TOKEN_KEY);
+      this.session.set({ access_token: result.accessToken });
       return this.applyProfile(result.profile);
     } catch (error) { throw this.mapError(error); }
   }

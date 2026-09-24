@@ -20,13 +20,12 @@ export class GmaoDataStore {
   private readonly interventionData = signal<unknown[]>([]);
   private readonly sparePartData = signal<unknown[]>([]);
   private loadingStarted = false;
+  readonly loadError = signal<string | null>(null);
 
   constructor(
     @Optional() private readonly access: AccessControlService | null = null,
     @Optional() private readonly api: GmaoApiService | null = null,
-  ) {
-    if (this.api) void this.loadAll();
-  }
+  ) {}
 
   get allowedSites(): string[] { return this.access?.allowedSites ?? [...ORANGE_RDC_SITES]; }
   get canModifyExisting(): boolean { return this.access?.canModifyExisting ?? true; }
@@ -62,17 +61,23 @@ export class GmaoDataStore {
   async loadAll(force = false): Promise<void> {
     if (!this.api || (this.loadingStarted && !force)) return;
     this.loadingStarted = true;
+    this.loadError.set(null);
     const resources: GmaoResource[] = [
       'equipements', 'tickets', 'groupes-electrogenes', 'releves-rh-ge', 'fuel-ge', 'consommations-groupes-ge', 'fuel-ravitaillements', 'fuel-summary',
       'pue', 'problemes-datacenter', 'interventions', 'pieces-rechange',
     ];
+    const failedResources: string[] = [];
     await Promise.all(resources.map(async (resource) => {
       try {
         this.setRaw(resource, await this.api!.list(resource));
       } catch {
+        failedResources.push(resource);
         this.setRaw(resource, []);
       }
     }));
+    if (failedResources.length) {
+      this.loadError.set('Certaines données ne peuvent pas être chargées. Vérifiez la connexion au serveur puis actualisez la page.');
+    }
   }
 
   async refreshResource(resource: GmaoResource): Promise<void> {

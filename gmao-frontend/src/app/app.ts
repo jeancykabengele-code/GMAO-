@@ -18,7 +18,7 @@ export class AppComponent {
   readonly access = inject(AccessControlService);
   readonly notifications = inject(NotificationsService);
   private readonly auth = inject(AuthService);
-  private readonly dataStore = inject(GmaoDataStore);
+  readonly dataStore = inject(GmaoDataStore);
 
   maintenanceOpen = true;
   loggingOut = false;

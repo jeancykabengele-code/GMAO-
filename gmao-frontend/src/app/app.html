@@ -132,5 +132,8 @@
     class="page-content"
     [class.public-content]="isPublicRoute"
     [class.has-page-background]="!isPublicRoute && !isAccueil"
-  ><router-outlet></router-outlet></main>
+  >@if (!isPublicRoute && dataStore.loadError()) {
+      <p class="data-load-error" role="alert">{{ dataStore.loadError() }}</p>
+    }
+    <router-outlet></router-outlet></main>
 </div>
