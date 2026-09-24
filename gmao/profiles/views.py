@@ -25,9 +25,12 @@ def database_health(request):
             cursor.execute("select 1")
             cursor.fetchone()
             table_names = (
-                "user_profiles", "sites", "gmao_equipements", "gmao_tickets",
+                "user_profiles", "sites", "gmao_local_credentials",
+                "gmao_equipements", "gmao_tickets",
                 "gmao_groupes_electrogenes", "gmao_releves_rh_ge", "gmao_fuel_ge",
-                "gmao_fuel_ravitaillements", "gmao_pue", "gmao_notifications",
+                "gmao_fuel_ravitaillements", "gmao_consommations_groupes_ge",
+                "gmao_fuel_monthly_summary", "gmao_pue", "gmao_problemes_datacenter",
+                "gmao_interventions", "gmao_pieces_rechange", "gmao_notifications",
             )
             records = {}
             table_errors = {}

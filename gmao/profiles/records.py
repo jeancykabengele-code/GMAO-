@@ -120,9 +120,6 @@ def _next_equipment_code(site_code, existing_codes):
 def _generate_equipment_code(site):
     site_code = _equipment_site_code(site)
     prefix = f"EQ-{site_code}-"
-    if connection.vendor == "postgresql":
-        with connection.cursor() as cursor:
-            cursor.execute("select pg_advisory_xact_lock(hashtext(%s))", [f"gmao-equipment:{site}"])
     existing_codes = Equipment.objects.filter(site=site, code__startswith=prefix).values_list("code", flat=True)
     return _next_equipment_code(site_code, existing_codes)
 
@@ -521,7 +518,7 @@ def record_collection(request, resource):
         except Exception:
             logger.exception("Lecture MySQL impossible pour la ressource %s", resource)
             return JsonResponse(
-                {"status": 500, "code": "record_read_failed", "detail": f"Lecture impossible : {resource}."},
+                {"status": 500, "code": "record_read_failed", "detail": f"Lecture impossible : {resource} ({type(error).__name__}: {error})."},
                 status=500,
             )
 
