@@ -59,8 +59,8 @@ export class GmaoDataStore {
   get sparePartRows(): unknown[] { return this.read(this.sparePartData()); }
   set sparePartRows(value: unknown[]) { this.sparePartData.set(this.write(this.sparePartData(), value)); }
 
-  async loadAll(): Promise<void> {
-    if (!this.api || this.loadingStarted) return;
+  async loadAll(force = false): Promise<void> {
+    if (!this.api || (this.loadingStarted && !force)) return;
     this.loadingStarted = true;
     const resources: GmaoResource[] = [
       'equipements', 'tickets', 'groupes-electrogenes', 'releves-rh-ge', 'fuel-ge', 'consommations-groupes-ge', 'fuel-ravitaillements', 'fuel-summary',
