@@ -26,13 +26,18 @@ def database_health(request):
                 "gmao_fuel_ravitaillements", "gmao_pue", "gmao_notifications",
             )
             records = {}
+            table_errors = {}
             for table_name in table_names:
-                cursor.execute(f"SELECT COUNT(*) FROM {connection.ops.quote_name(table_name)}")
-                records[table_name] = cursor.fetchone()[0]
+                try:
+                    cursor.execute(f"SELECT COUNT(*) FROM {connection.ops.quote_name(table_name)}")
+                    records[table_name] = cursor.fetchone()[0]
+                except Exception as error:
+                    table_errors[table_name] = str(error)
     except Exception:
         return JsonResponse({"status": "DOWN", "database": "DOWN"}, status=503)
     elapsed_ms = round((perf_counter() - started_at) * 1000)
-    return JsonResponse({"status": "UP", "database": "UP", "responseTimeMs": elapsed_ms, "records": records})
+    status = "UP" if not table_errors else "DEGRADED"
+    return JsonResponse({"status": status, "database": "UP", "responseTimeMs": elapsed_ms, "records": records, "tableErrors": table_errors})
 
 
 def require_authenticated_user(view):
