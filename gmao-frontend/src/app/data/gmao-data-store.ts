@@ -70,13 +70,16 @@ export class GmaoDataStore {
     await Promise.all(resources.map(async (resource) => {
       try {
         this.setRaw(resource, await this.api!.list(resource));
-      } catch {
-        failedResources.push(resource);
+      } catch (error) {
+        const status = typeof error === 'object' && error !== null && 'status' in error
+          ? `HTTP ${String((error as { status: unknown }).status)}`
+          : 'réseau';
+        failedResources.push(`${resource} (${status})`);
         this.setRaw(resource, []);
       }
     }));
     if (failedResources.length) {
-      this.loadError.set('Certaines données ne peuvent pas être chargées. Vérifiez la connexion au serveur puis actualisez la page.');
+      this.loadError.set(`Chargement impossible : ${failedResources.join(', ')}.`);
     }
   }
 
