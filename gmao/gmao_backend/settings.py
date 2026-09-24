@@ -59,31 +59,6 @@ if os.getenv("GMAO_DATABASE_ENGINE") == "mysql":
             "OPTIONS": {"charset": "utf8mb4", "ssl": {"ca": mysql_ca_path, "check_hostname": True}},
         }
     }
-elif os.getenv("SUPABASE_DB_PASSWORD"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("SUPABASE_DB_NAME", "postgres"),
-            "USER": os.getenv("SUPABASE_DB_USERNAME", "postgres.rgujwidwlqesukqwgnib"),
-            "PASSWORD": os.environ["SUPABASE_DB_PASSWORD"],
-            "HOST": os.getenv("SUPABASE_DB_HOST", "aws-0-eu-central-1.pooler.supabase.com"),
-            "PORT": os.getenv("SUPABASE_DB_PORT", "5432"),
-            # Supabase fournit deja le pool de sessions. Un second pool local
-            # psycopg peut conserver une connexion distante fermee et bloquer
-            # le chargement du profil. Django reutilise plutot une connexion
-            # courte et la controle avant chaque requete.
-            "CONN_MAX_AGE": 0,
-            "CONN_HEALTH_CHECKS": True,
-            "OPTIONS": {
-                "sslmode": "require",
-                "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "5")),
-                "keepalives": 1,
-                "keepalives_idle": 30,
-                "keepalives_interval": 10,
-                "keepalives_count": 3,
-            },
-        }
-    }
 else:
     DATABASES = {
         "default": {
@@ -99,20 +74,6 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 APPEND_SLASH = False
 
-GMAO_AUTH_PROVIDER = os.getenv("GMAO_AUTH_PROVIDER", "supabase")
-GMAO_LOCAL_TOKEN_MAX_AGE = int(os.getenv("GMAO_LOCAL_TOKEN_MAX_AGE", "43200"))
-
-SUPABASE_AUTH_URL = os.getenv("SUPABASE_AUTH_URL", "https://rgujwidwlqesukqwgnib.supabase.co")
-SUPABASE_PUBLISHABLE_KEY = os.getenv(
-    "SUPABASE_PUBLISHABLE_KEY",
-    "sb_publishable_aenZtHUAj0SEUjBTgs2EBg_ZRpqzahr",
-)
-SUPABASE_AUTH_ISSUER = os.getenv("SUPABASE_AUTH_ISSUER", f"{SUPABASE_AUTH_URL}/auth/v1")
-SUPABASE_JWKS_URL = os.getenv(
-    "SUPABASE_JWKS_URL",
-    f"{SUPABASE_AUTH_URL}/auth/v1/.well-known/jwks.json",
-)
-SUPABASE_AUTH_AUDIENCE = os.getenv("SUPABASE_AUTH_AUDIENCE", "authenticated")
 FRONTEND_ORIGINS = env_list(
     "FRONTEND_ORIGINS",
     "http://localhost:4200,http://127.0.0.1:4200",

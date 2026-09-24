@@ -1,6 +1,6 @@
-# Backend Django — GMAO ORDC
+# Backend Django — GMAO
 
-Ce backend Django valide les sessions Supabase Auth et lit les profils dans la table PostgreSQL `public.user_profiles`.
+Ce backend assure l’authentification locale Django, applique les permissions métier et utilise Aiven MySQL en production.
 
 ## Installation locale
 
@@ -11,10 +11,8 @@ python -m venv .venv
 .\start-django.ps1
 ```
 
-Le serveur écoute sur `http://localhost:8080`.
+Le serveur écoute sur `http://localhost:8080`. Sans variables Aiven, le développement local utilise SQLite.
 
 - Santé : `GET /health`
-- Profil connecté : `GET /api/me` avec `Authorization: Bearer <access_token>`
-
-Le mot de passe PostgreSQL n'est jamais enregistré dans le dépôt.
-
+- Base : `GET /health/database`
+- Profil connecté : `GET /api/me` avec `Authorization: Bearer <jeton_de_session_django>`

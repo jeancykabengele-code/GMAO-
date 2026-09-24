@@ -1,16 +1,13 @@
 from functools import wraps
 from time import perf_counter
 
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .authentication import SupabaseAuthenticationError, verify_supabase_token
 from .local_auth import LocalAuthenticationError, authenticate, change_password, issue_token, parse_payload, profile_from_token
 from .permissions import build_permissions
-from .services import ProfileAccessError, load_active_profile
 
 
 def health(request):
@@ -44,9 +41,6 @@ def require_authenticated_user(view):
         return view(request, *args, **kwargs)
     return wrapped
 
-# Alias transitoire : les modules existants gardent leur décorateur, désormais Django uniquement.
-require_supabase_user = require_authenticated_user
-
 def _serialize_profile(profile):
     permissions = build_permissions(profile)
     response = {
@@ -55,8 +49,7 @@ def _serialize_profile(profile):
         "createdAt": profile.created_at.isoformat() if profile.created_at else None,
         "permissions": permissions.as_dict(),
     }
-    if settings.GMAO_AUTH_PROVIDER == "django":
-        response["mustChangePassword"] = False
+    response["mustChangePassword"] = False
     return response
 
 
@@ -64,8 +57,6 @@ def _serialize_profile(profile):
 def local_login(request):
     if request.method != "POST":
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
-    if settings.GMAO_AUTH_PROVIDER != "django":
-        return JsonResponse({"status": 409, "detail": "La connexion locale sera disponible après la bascule Django."}, status=409)
     try:
         data = parse_payload(request)
         profile, credential = authenticate(data.get("email"), data.get("password"))
@@ -75,10 +66,8 @@ def local_login(request):
         return JsonResponse({"status": 401, "code": "local_login_rejected", "detail": detail}, status=401)
 
 
-@require_supabase_user
+@require_authenticated_user
 def local_change_password(request):
-    if settings.GMAO_AUTH_PROVIDER != "django":
-        return JsonResponse({"status": 409, "detail": "Le changement de mot de passe local sera disponible après la bascule Django."}, status=409)
     if request.method != "POST":
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
     try:
@@ -90,6 +79,6 @@ def local_change_password(request):
         return JsonResponse({"status": 400, "code": "password_change_rejected", "detail": detail}, status=400)
 
 
-@require_supabase_user
+@require_authenticated_user
 def current_user(request):
     return JsonResponse(_serialize_profile(request.gmao_profile))

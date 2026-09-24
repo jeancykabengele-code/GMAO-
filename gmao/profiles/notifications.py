@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from .models import GeneratorRecord, Notification, UserProfile
 from .permissions import GLOBAL_ROLES, PermissionDeniedError, assert_global_page_access
-from .views import require_supabase_user
+from .views import require_authenticated_user
 
 
 RESOURCE_LABELS = {
@@ -166,7 +166,7 @@ def _forbidden(error):
     return JsonResponse({"status": 403, "code": "notifications_forbidden", "detail": str(error)}, status=403)
 
 
-@require_supabase_user
+@require_authenticated_user
 def notification_collection(request):
     try:
         assert_global_page_access(request.gmao_profile)
@@ -191,7 +191,7 @@ def notification_collection(request):
     })
 
 
-@require_supabase_user
+@require_authenticated_user
 def mark_notification_read(request, notification_id):
     try:
         assert_global_page_access(request.gmao_profile)
@@ -212,7 +212,7 @@ def mark_notification_read(request, notification_id):
     return JsonResponse(_serialize(notification))
 
 
-@require_supabase_user
+@require_authenticated_user
 def mark_all_notifications_read(request):
     try:
         assert_global_page_access(request.gmao_profile)

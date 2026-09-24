@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { AccessControlService } from '../auth/access-control.service';
-import { SupabaseClientService } from '../auth/supabase-client.service';
+import { AuthService } from '../auth/auth.service';
 import { GmaoNotification, NotificationsService } from './notifications.service';
 
 describe('NotificationsService', () => {
@@ -14,7 +14,7 @@ describe('NotificationsService', () => {
         provideHttpClient(),
         NotificationsService,
         { provide: AccessControlService, useValue: { isGlobalRole: false } },
-        { provide: SupabaseClientService, useValue: { client: { auth: { getSession: vi.fn() } } } },
+        { provide: AuthService, useValue: { accessToken: () => 'test-token' } },
         { provide: Router, useValue: { navigateByUrl } },
       ],
     });

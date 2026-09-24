@@ -6,7 +6,7 @@ from django.http import HttpResponse, JsonResponse
 
 from .models import (DatacenterProblem, Equipment, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_global_page_access
-from .views import require_supabase_user
+from .views import require_authenticated_user
 
 
 def _payload(request):
@@ -27,7 +27,7 @@ def _error(message, status=400):
     return JsonResponse({"status": status, "code": "site_rejected", "detail": message}, status=status)
 
 
-@require_supabase_user
+@require_authenticated_user
 def site_collection(request):
     try:
         assert_global_page_access(request.gmao_profile)
@@ -61,7 +61,7 @@ def site_collection(request):
         return _error("Un site avec ce nom existe déjà.", 409)
 
 
-@require_supabase_user
+@require_authenticated_user
 def site_detail(request, site_name):
     try:
         assert_global_page_access(request.gmao_profile)

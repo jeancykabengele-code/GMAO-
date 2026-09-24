@@ -1,17 +1,8 @@
-# Bascule de production : Django + Aiven MySQL
+# Exploitation de production — Django + Aiven MySQL
 
-## Préconditions
+## Configuration Render
 
-- La sauvegarde Supabase vérifiée est conservée hors Git.
-- Les tables métier et les profils ont été importés dans Aiven MySQL.
-- Le compte `manager@gmail.com` dispose d’un mot de passe temporaire créé dans Aiven. Il devra être remplacé dès sa première connexion.
-- Les adresses e-mail restent des identifiants de connexion : aucune boîte e-mail n’est nécessaire.
-
-## Ordre de bascule
-
-### 1. Render — données MySQL, authentification Supabase encore active
-
-Dans le service Render `gmao-ordc-api`, ajouter les variables suivantes depuis les informations de connexion Aiven, sans les publier dans Git :
+Le service `gmao-ordc-api` utilise exclusivement Aiven MySQL. Conserver uniquement les variables suivantes :
 
 - `GMAO_DATABASE_ENGINE=mysql`
 - `AIVEN_MYSQL_HOST`
@@ -19,43 +10,33 @@ Dans le service Render `gmao-ordc-api`, ajouter les variables suivantes depuis l
 - `AIVEN_MYSQL_DATABASE`
 - `AIVEN_MYSQL_USER`
 - `AIVEN_MYSQL_PASSWORD`
-- `AIVEN_MYSQL_CA_PEM` : contenu complet du fichier `ca.pem`, y compris les lignes BEGIN/END.
+- `AIVEN_MYSQL_CA_PEM`
+- `DJANGO_SECRET_KEY`
+- `DJANGO_DEBUG=false`
+- `FRONTEND_ORIGINS=https://gmao-ordc.vercel.app`
 
-Conserver `GMAO_AUTH_PROVIDER=supabase`, déployer, puis vérifier :
+Après un déploiement, vérifier :
 
 - `https://gmao-ordc-api.onrender.com/health`
-- connexion avec un compte Supabase existant ;
-- consultation des données, profils et sites.
+- `https://gmao-ordc-api.onrender.com/health/database`
 
-Cette étape fait utiliser MySQL sans modifier le mode de connexion des utilisateurs.
+Les deux routes doivent répondre avec `UP`.
 
-### 2. Render — authentification Django locale
+## Configuration Vercel
 
-Après validation de l’étape 1, remplacer :
+Le frontend utilise uniquement :
 
-- `GMAO_AUTH_PROVIDER=django`
+- `GMAO_API_URL=https://gmao-ordc-api.onrender.com`
 
-Déployer Render. Les jetons Supabase ne seront alors plus acceptés. Les comptes doivent se connecter avec leur identifiant et leur mot de passe temporaire ou personnel.
+La racine du projet est `gmao-frontend` et la commande de build est `npm run vercel-build`. Publier le déploiement en **Production**.
 
-### 3. Vercel — interface de connexion locale
+## Comptes locaux
 
-Dans les variables d’environnement du projet Vercel, ajouter :
+Les identifiants e-mail sont des noms de connexion, sans obligation de boîte e-mail. Le Manager crée ou réinitialise les mots de passe depuis **Administration → Gestion des utilisateurs**. Les mots de passe sont enregistrés sous forme de hachage dans MySQL.
 
-- `GMAO_AUTH_PROVIDER=django`
+## Contrôles après déploiement
 
-Conserver `GMAO_API_URL` avec l’URL de l’API Render. Les variables Supabase peuvent rester présentes, mais ne seront plus exigées ni utilisées par le build Django.
-
-Redéployer Vercel après le déploiement Render de l’étape 2.
-
-## Vérifications après bascule
-
-1. Se connecter avec `manager@gmail.com` et son mot de passe temporaire.
-2. Vérifier l’obligation de changement du mot de passe à la première connexion.
-3. Créer un compte depuis **Gestion des utilisateurs**, puis lui définir un mot de passe temporaire.
-4. Vérifier que les managers et chefs des opérations ne peuvent pas créer de données métier ; seuls les chefs de site le peuvent.
-5. Vérifier l’affichage des équipements, tickets, GE, PUE, fuel et notifications.
-6. Vérifier les pages mobile et les actions de déconnexion.
-
-## Retour arrière
-
-En cas d’incident avant validation : remettre `GMAO_AUTH_PROVIDER=supabase` sur Render et retirer/mettre `GMAO_AUTH_PROVIDER=supabase` sur Vercel, puis redéployer les deux services. La sauvegarde Supabase reste intacte.
+1. Connexion avec un compte Manager.
+2. Consultation des profils et des sites.
+3. Connexion avec un Chef de site et vérification que lui seul peut créer des données métier.
+4. Contrôle des équipements, PUE, GE, fuel et notifications.

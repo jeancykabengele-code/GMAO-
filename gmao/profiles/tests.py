@@ -100,9 +100,8 @@ class ProfileDeletionSafetyTests(SimpleTestCase):
         request.gmao_profile = actor
         return request
 
-    @patch('profiles.users_admin._admin_request')
     @patch('profiles.users_admin.UserProfile.objects')
-    def test_chef_site_with_active_assignment_is_rejected(self, profile_objects, admin_request):
+    def test_chef_site_with_active_assignment_is_rejected(self, profile_objects):
         target = SimpleNamespace(id=uuid4(), site='Goma')
         profile_objects.get.return_value = target
         actor = SimpleNamespace(id=uuid4(), role='manager', site=None)
@@ -111,12 +110,10 @@ class ProfileDeletionSafetyTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 409)
         self.assertIn('affecté', json.loads(response.content)['detail'])
-        admin_request.assert_not_called()
 
     @patch('profiles.users_admin._profile_has_business_history', return_value=True)
-    @patch('profiles.users_admin._admin_request')
     @patch('profiles.users_admin.UserProfile.objects')
-    def test_profile_with_business_history_is_rejected(self, profile_objects, admin_request, has_history):
+    def test_profile_with_business_history_is_rejected(self, profile_objects, has_history):
         target = SimpleNamespace(id=uuid4(), site=None)
         profile_objects.get.return_value = target
         actor = SimpleNamespace(id=uuid4(), role='charge_operations', site=None)
@@ -126,7 +123,6 @@ class ProfileDeletionSafetyTests(SimpleTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertIn('historique', json.loads(response.content)['detail'])
         has_history.assert_called_once_with(target.id)
-        admin_request.assert_not_called()
 class ApiTests(TestCase):
     def test_authenticated_routes_are_csrf_exempt(self):
         self.assertTrue(current_user.csrf_exempt)

@@ -92,7 +92,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
 - Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs.
 - Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
-- La table Supabase est définie dans `gmao/sql/009_generator_fuel_consumption.sql`.
+- La table correspondante a été migrée vers Aiven MySQL.
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site.
@@ -123,15 +123,14 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 
 - Les rôles globaux peuvent ouvrir **Administration → Gestion des utilisateurs**.
 - Le formulaire permet de saisir le nom complet, l’adresse e-mail, le rôle et le site du chef de site.
-- Django appelle Supabase Auth avec `SUPABASE_SERVICE_ROLE_KEY`, puis crée automatiquement le profil dans `user_profiles`.
-- Une invitation de connexion est envoyée par Supabase Auth.
+
 - La clé `service_role` doit être configurée uniquement comme variable secrète Render ; elle ne doit jamais être exposée dans Angular.
 - La désactivation conserve le compte et son historique ; elle est recommandée dès qu’un profil possède des données métier.
 
 ### Modification des profils
 
 - Le manager et le chef des opérations peuvent modifier le nom complet, le rôle, le site associé et le statut actif/inactif.
-- L’adresse e-mail reste non modifiable depuis cette feuille afin de préserver l’identifiant Supabase Auth.
+
 - Un chef de site doit toujours être associé à un site actif.
 - Un administrateur ne peut pas désactiver son propre compte depuis cette interface.
 - La désactivation conserve le profil, les fiches métier et l historique ; le backend refuse ensuite le chargement du profil à la connexion.
@@ -141,8 +140,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - Le bouton **Supprimer définitivement** ouvre une confirmation intégrée à l’application, sans boîte de dialogue du navigateur.
 - La suppression est refusée pour son propre compte, pour un profil encore affecté à un site, ou dès qu’une donnée métier a été créée ou modifiée par ce profil.
 - Dans ces cas, il faut désactiver le compte afin de conserver l’historique et empêcher toute nouvelle connexion.
-- Si aucun historique ni affectation active n’existe, Django supprime le compte dans Supabase Auth puis la ligne correspondante dans `user_profiles`.
-- La clé `SUPABASE_SERVICE_ROLE_KEY` est nécessaire côté Render uniquement ; elle ne doit jamais être exposée au frontend ni versionnée dans Git.
+
 
 ### Documentation et exports Excel XLSX
 
@@ -176,24 +174,24 @@ La fonctionnalité utilisateur actuelle couvre les exports Excel XLSX. Aucun imp
 ```mermaid
 flowchart LR
     U[Utilisateur] --> F[Frontend Angular]
-    F -->|Connexion| A[Supabase Auth]
+
     F -->|Bearer access token| B[API Django]
     B -->|Validation JWT / profil| A
-    B -->|Lecture et écriture| D[(PostgreSQL Supabase)]
+
     D --> P[user_profiles et sites]
     D --> M[Tables métier GMAO]
 ```
 
-Le frontend gère l’interface, les filtres et la génération des fichiers Excel XLSX. Supabase Auth fournit les sessions utilisateur. Chaque appel métier envoie le jeton Supabase à Django. Le backend valide ce jeton, charge le profil actif, applique les droits du rôle et accède ensuite à PostgreSQL.
+
 
 ## Technologies
 
 | Couche | Technologies |
 |---|---|
 | Frontend | Angular 22, TypeScript 6, RxJS, Bootstrap 5, icônes Solaris |
-| Authentification | Supabase Auth |
+| Authentification | Django locale, jetons signés |
 | Backend | Python 3.14, Django 6 |
-| Base de données | PostgreSQL Supabase, SQLite comme repli local |
+| Base de données | Aiven MySQL, SQLite pour le développement local |
 | Excel XLSX | write-excel-file |
 | Tests frontend | Vitest |
 | Serveur de production | Gunicorn |
@@ -253,8 +251,8 @@ GMAO-Web/
 │   │   ├── data/                   # API, store et liste des sites
 │   │   ├── pages/                  # Pages métier
 │   │   └── shared/                 # Service d’export Excel XLSX
-│   ├── src/environments/           # URL API et configuration Supabase
-│   ├── supabase/                   # Politiques d’accès des profils
+
+
 │   ├── angular.json
 │   └── package.json
 └── gmao/
@@ -275,7 +273,7 @@ GMAO-Web/
 - Node.js compatible avec Angular 22.
 - npm.
 - Python 3.14.
-- Un projet Supabase avec Auth et PostgreSQL.
+
 - PowerShell sous Windows pour utiliser les scripts fournis.
 
 ### 1. Installer le frontend
@@ -297,7 +295,7 @@ python -m venv .venv
 .\start-django.ps1
 ```
 
-Au premier lancement, le script demande le mot de passe PostgreSQL Supabase, le confirme, puis le conserve sous forme chiffrée dans `gmao/.runtime/`. Ce répertoire est exclu du dépôt.
+
 
 Le backend est disponible sur [http://localhost:8080](http://localhost:8080).
 
@@ -328,12 +326,10 @@ La configuration locale se trouve dans `gmao-frontend/src/environments/environme
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:8080',
-  supabaseUrl: 'https://VOTRE-PROJET.supabase.co',
-  supabasePublishableKey: 'VOTRE_CLE_PUBLIQUE',
 };
 ```
 
-La clé publique Supabase peut être exposée au navigateur. Elle ne doit toutefois jamais être remplacée par une clé `service_role`.
+La connexion est assurée par l’API Django ; le navigateur ne reçoit aucune clé de base de données.
 
 ### Backend
 
@@ -341,23 +337,18 @@ La clé publique Supabase peut être exposée au navigateur. Elle ne doit toutef
 |---|---|---|
 | `DJANGO_SECRET_KEY` | Clé cryptographique Django | Valeur de développement uniquement |
 | `DJANGO_DEBUG` | Active le mode debug | `true` |
-| `DJANGO_ALLOWED_HOSTS` | Hôtes autorisés, séparés par des virgules | `localhost,127.0.0.1` |
+| `DJANGO_ALLOWED_HOSTS` | Hôtes autorisés | `localhost,127.0.0.1` |
 | `FRONTEND_ORIGINS` | Origines CORS autorisées | Ports Angular locaux |
-| `SUPABASE_DB_HOST` | Hôte PostgreSQL | Pooler du projet |
-| `SUPABASE_DB_PORT` | Port PostgreSQL | `5432` |
-| `SUPABASE_DB_NAME` | Nom de la base | `postgres` |
-| `SUPABASE_DB_USERNAME` | Utilisateur PostgreSQL | Utilisateur du projet |
-| `SUPABASE_DB_PASSWORD` | Mot de passe PostgreSQL | Aucun |
-| `DB_CONNECT_TIMEOUT` | Délai de connexion en secondes | `5` |
-| `SUPABASE_AUTH_URL` | URL du projet Supabase | Projet configuré |
-| `SUPABASE_PUBLISHABLE_KEY` | Clé publique utilisée pour Auth | Projet configuré |
-| `SUPABASE_AUTH_ISSUER` | Émetteur attendu du JWT | `<URL>/auth/v1` |
-| `SUPABASE_JWKS_URL` | Clés publiques de validation JWT | Endpoint JWKS Supabase |
-| `SUPABASE_AUTH_AUDIENCE` | Audience attendue | `authenticated` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clé serveur pour invitations Auth | Obligatoire sur Render, jamais dans le frontend |
+| `GMAO_DATABASE_ENGINE` | Moteur de production | `mysql` |
+| `AIVEN_MYSQL_HOST` | Hôte Aiven MySQL | Aucun |
+| `AIVEN_MYSQL_PORT` | Port Aiven MySQL | `27355` |
+| `AIVEN_MYSQL_DATABASE` | Base Aiven MySQL | `defaultdb` |
+| `AIVEN_MYSQL_USER` | Utilisateur Aiven | `avnadmin` |
+| `AIVEN_MYSQL_PASSWORD` | Mot de passe Aiven | Aucun |
+| `AIVEN_MYSQL_CA_PEM` | Certificat CA Aiven | Aucun |
+| `GMAO_LOCAL_TOKEN_MAX_AGE` | Durée de session locale en secondes | `43200` |
 
-Si `SUPABASE_DB_PASSWORD` est absent, Django utilise `gmao/db.sqlite3`. Les modèles métier étant liés à des tables gérées en dehors de Django, PostgreSQL Supabase reste la configuration normale pour utiliser toute l’application.
-
+Sans `GMAO_DATABASE_ENGINE=mysql`, Django utilise SQLite uniquement pour le développement local.
 ## Base de données
 
 Les scripts SQL se trouvent dans `gmao/sql/` et doivent être appliqués dans l’ordre numérique :
@@ -371,7 +362,6 @@ Les scripts SQL se trouvent dans `gmao/sql/` et doivent être appliqués dans l�
 7. `007_notifications.sql` : notifications persistantes, index, RLS et publication Realtime.
 8. `008_fuel_deliveries.sql` : ravitaillements Fuel, calcul du stock et écarts.
 
-Le fichier `gmao-frontend/supabase/role-access-policies.sql` configure les contraintes et politiques d’accès de `user_profiles`.
 
 ### Tables principales
 
@@ -392,21 +382,17 @@ Les modèles Django utilisent `managed = False` : Django ne crée pas ces tables
 
 ### Création d’un utilisateur
 
-1. Créer le compte dans Supabase Auth.
-2. Copier son UUID.
-3. Ajouter une ligne correspondante dans `public.user_profiles`.
-4. Choisir un rôle valide : `manager`, `charge_operations` ou `chef_site`.
-5. Pour un chef de site, renseigner obligatoirement un site existant.
-6. Définir `active = true`.
-
-L’UUID du profil doit être identique à l’UUID Supabase Auth.
-
+1. Ouvrir **Administration → Gestion des utilisateurs** avec un rôle global.
+2. Saisir le nom, l’identifiant e-mail, le rôle, le site si nécessaire et un mot de passe initial d’au moins 12 caractères.
+3. Django crée le profil dans MySQL et enregistre uniquement le hachage du mot de passe.
+4. Les adresses e-mail servent d’identifiants : aucune boîte e-mail n’est requise.
+5. Le Manager peut réinitialiser ultérieurement un mot de passe depuis la même administration.
 ## API
 
 Toutes les routes métier, sauf les routes de santé, exigent :
 
 ```http
-Authorization: Bearer <access_token_supabase>
+Authorization: Bearer <jeton_de_session_django>
 ```
 
 ### Routes générales
@@ -500,7 +486,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
 - Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs.
 - Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
-- La table Supabase est définie dans `gmao/sql/009_generator_fuel_consumption.sql`.
+- La table correspondante a été migrée vers Aiven MySQL.
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site.
@@ -558,41 +544,18 @@ Avant une livraison, vérifier au minimum :
 
 ## Déploiement
 
-Appliquer impérativement `gmao/sql/007_notifications.sql` puis `gmao/sql/008_fuel_deliveries.sql` dans Supabase avant de déployer les versions qui activent les notifications et le ravitaillement Fuel. Les modèles Django sont non gérés : un déploiement Render ne crée pas cette table automatiquement.
+- Backend Render : `https://gmao-ordc-api.onrender.com`
+- Frontend Vercel : `https://gmao-ordc.vercel.app`
+- Branche de déploiement : `main`
 
-Le fichier `render.yaml` décrit le service backend Render :
+Render utilise Aiven MySQL avec les variables `AIVEN_MYSQL_*` et `AIVEN_MYSQL_CA_PEM`. Le contrôle `GET /health/database` doit répondre `{"status":"UP","database":"UP"}` après chaque déploiement.
 
-- service web Docker nommé `gmao-ordc-api` ;
-- plan gratuit ;
-- région Frankfurt ;
-- contrôle de santé sur `/health` ;
-- déploiement automatique à chaque commit ;
-- Gunicorn avec deux workers et quatre threads.
-
-Le backend est construit à partir de `gmao/Dockerfile`. Sur Render, renseigner au minimum :
-
-- `SUPABASE_DB_PASSWORD` ;
-- `FRONTEND_ORIGINS` avec l’URL HTTPS exacte du frontend ;
-- une valeur forte pour `DJANGO_SECRET_KEY` si elle n’est pas générée automatiquement.
-
-Pour le frontend, effectuer un build Angular et publier le contenu généré sur l’hébergeur choisi. Avant le build de production, remplacer `apiUrl` par l’URL HTTPS du backend et vérifier la configuration Supabase.
-
-### Environnements de production actuels
-
-- Frontend Vercel : https://gmao-ordc.vercel.app
-- Backend Render : https://gmao-ordc-api.onrender.com
-- Branche de déploiement : main
-- Render et Vercel suivent le dépôt GitHub et redéploient les commits publiés.
-
-Dans Vercel, la racine du projet est gmao-frontend, la commande de build est npm run vercel-build et le dossier publié est dist/gmao-frontend/browser. Le fichier gmao-frontend/vercel.json réécrit les routes Angular vers index.html.
-
-Le build Vercel exige GMAO_API_URL, SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY. La valeur de l’API de production est https://gmao-ordc-api.onrender.com.
-
+Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-build`, et la seule variable requise est `GMAO_API_URL=https://gmao-ordc-api.onrender.com`. Publier le déploiement en **Production**.
 ## Dépannage
 
 ### L’enregistrement réussit mais la feuille reste visible
 
-- Vérifier dans Supabase ou via l’API si la fiche a bien été créée.
+
 - Vérifier la console du navigateur et la réponse de la requête.
 - Le frontend Angular fonctionne sans Zone.js : les composants notifient explicitement le changement de vue après les opérations asynchrones.
 - Dans la version actuelle, le formulaire se ferme uniquement après une réponse réussie et reste ouvert en cas d’erreur.
@@ -608,7 +571,7 @@ Le build Vercel exige GMAO_API_URL, SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY. La
 
 - Vérifier que Django répond sur `http://localhost:8080/health`.
 - Vérifier `environment.apiUrl`.
-- Contrôler la session Supabase dans le navigateur.
+
 - Vérifier que le compte possède un profil actif dans `user_profiles`.
 - Tester `/health/database`.
 
@@ -633,7 +596,7 @@ Le build Vercel exige GMAO_API_URL, SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY. La
 
 ### La base distante ne se connecte pas
 
-- Vérifier le mot de passe et les paramètres du pooler Supabase.
+
 - Vérifier que le port 5432 est accessible.
 - Relancer `start-django.ps1` si l’identifiant chiffré local doit être recréé.
 
@@ -655,7 +618,7 @@ La réévaluation globale du projet a porté sur le code, les droits, la base de
 | Tests frontend | 48 tests réussis dans 14 fichiers |
 | Tests backend Django | 21 tests réussis, vérification Django sans problème |
 | API Render /health | HTTP 200, statut UP |
-| Base Supabase via /health/database | HTTP 200, base UP |
+
 | Frontend Vercel | HTTP 200 |
 | npm audit production | Aucune vulnérabilité détectée |
 | pip-audit | Aucune vulnérabilité connue détectée |
@@ -665,13 +628,13 @@ La réévaluation globale du projet a porté sur le code, les droits, la base de
 - Le plan Render gratuit peut provoquer un délai de réveil après inactivité.
 - Les budgets Angular/SCSS sont dépassés sans bloquer le build ; une réduction des bundles reste recommandée.
 Les suppressions de sites et équipements utilisent une confirmation intégrée à l application, sans boîte de dialogue du navigateur.
-- Le mode SQLite sert au développement local ; la production doit utiliser PostgreSQL Supabase et les scripts SQL jusqu’à 008_fuel_deliveries.sql.
+
 - L’import massif XLSX et les e-mails d’alerte ne sont pas encore activés ; les notifications internes persistantes sont opérationnelles.
 
 ## Sécurité
 
 - Ne jamais versionner le mot de passe PostgreSQL, une clé `service_role`, un JWT ou un fichier `.env`.
-- Conserver uniquement la clé publique Supabase dans le frontend.
+
 - Utiliser HTTPS en production.
 - Désactiver `DJANGO_DEBUG` en production.
 - Restreindre `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS`.

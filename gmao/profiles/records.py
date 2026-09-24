@@ -36,7 +36,7 @@ from .permissions import (
     assert_can_modify,
     assert_site_access,
 )
-from .views import require_supabase_user
+from .views import require_authenticated_user
 
 
 RESOURCE_MODELS = {
@@ -501,7 +501,7 @@ def _error(error, status=400):
     return JsonResponse({"status": status, "code": "record_rejected", "detail": detail}, status=status)
 
 
-@require_supabase_user
+@require_authenticated_user
 def record_collection(request, resource):
     model_class = _resource_model(resource)
     if not model_class:
@@ -565,7 +565,7 @@ def record_collection(request, resource):
     return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
 
 
-@require_supabase_user
+@require_authenticated_user
 def record_detail(request, resource, record_id):
     model_class = _resource_model(resource)
     if not model_class:

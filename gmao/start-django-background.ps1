@@ -1,9 +1,4 @@
 $ErrorActionPreference = 'Stop'
-$credentialPath = Join-Path $PSScriptRoot '.runtime\supabase-db-password.xml'
-if (-not (Test-Path -LiteralPath $credentialPath)) {
-    throw 'Initialisation requise : lancez start-django.ps1 une seule fois pour enregistrer le mot de passe chiffre.'
-}
-
 $existing = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue
 if ($existing) {
     Write-Output 'Django est deja actif sur http://localhost:8080'

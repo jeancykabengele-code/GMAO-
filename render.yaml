@@ -17,24 +17,10 @@ services:
         value: "true"
       - key: DJANGO_SECURE_HSTS_SECONDS
         value: "3600"
-      - key: SUPABASE_DB_HOST
-        value: aws-0-eu-central-1.pooler.supabase.com
-      - key: SUPABASE_DB_PORT
-        value: "5432"
-      - key: SUPABASE_DB_NAME
-        value: postgres
-      - key: SUPABASE_DB_USERNAME
-        value: postgres.rgujwidwlqesukqwgnib
-      - key: SUPABASE_DB_PASSWORD
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
       - key: FRONTEND_ORIGINS
-        value: https://gmao-ordc.vercel.app      # Préparation bascule Django/Aiven : conserver "supabase" jusqu’au jour de bascule.
-      - key: GMAO_AUTH_PROVIDER
-        value: supabase
+        value: https://gmao-ordc.vercel.app
       - key: GMAO_DATABASE_ENGINE
-        sync: false
+        value: mysql
       - key: AIVEN_MYSQL_HOST
         sync: false
       - key: AIVEN_MYSQL_PORT
