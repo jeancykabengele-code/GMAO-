@@ -1,4 +1,5 @@
 from functools import wraps
+import logging
 from time import perf_counter
 
 from django.core.exceptions import ValidationError
@@ -8,6 +9,9 @@ from django.views.decorators.csrf import csrf_exempt
 
 from .local_auth import LocalAuthenticationError, authenticate, change_password, issue_token, parse_payload, profile_from_token
 from .permissions import build_permissions
+
+
+logger = logging.getLogger(__name__)
 
 
 def health(request):
@@ -34,6 +38,7 @@ def database_health(request):
                 except Exception as error:
                     table_errors[table_name] = str(error)
     except Exception:
+        logger.exception("Le controle de connexion MySQL a echoue")
         return JsonResponse({"status": "DOWN", "database": "DOWN"}, status=503)
     elapsed_ms = round((perf_counter() - started_at) * 1000)
     status = "UP" if not table_errors else "DEGRADED"
