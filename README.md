@@ -83,7 +83,7 @@ Les données sont reliées par le **site**, le **mois (`AAAA-MM`)** et, pour les
 3. **Ravitaillement Fuel** enregistre chaque livraison datée. Sa quantité est additionnée automatiquement dans le mois concerné ; les stocks avant/après servent de contrôle physique de la livraison et ne remplacent pas les calculs Fuel-GE.
 4. **Fuel-GE** est la synthèse mensuelle du site : `stock final = stock initial + somme des ravitaillements − somme des consommations`. Il additionne également les heures de tous les groupes et calcule la moyenne `L/h`. Dès le deuxième mois, le stock initial reprend le stock final du mois précédent.
 
-Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans PostgreSQL, puis l’interface est rafraîchie.
+Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans Aiven MySQL, puis l’interface est rafraîchie.
 ### Consommation par groupe GE
 
 - Suivi mensuel de la consommation Fuel de chaque groupe électrogène.
@@ -100,7 +100,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
 - Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
-- Le schéma PostgreSQL correspondant se trouve dans `gmao/sql/008_fuel_deliveries.sql`.
+- Le schéma et les données sont gérés dans Aiven MySQL par Django.
 
 ### PUE
 
@@ -258,7 +258,6 @@ GMAO-Web/
 └── gmao/
     ├── gmao_backend/               # Configuration et routes Django
     ├── profiles/                   # Authentification, modèles, API et permissions
-    ├── sql/                        # Schéma et données PostgreSQL
     ├── scripts/                    # Scripts de contrôle/import
     ├── Dockerfile
     ├── manage.py
@@ -351,18 +350,7 @@ La connexion est assurée par l’API Django ; le navigateur ne reçoit aucune c
 Sans `GMAO_DATABASE_ENGINE=mysql`, Django utilise SQLite uniquement pour le développement local.
 ## Base de données
 
-Les scripts SQL se trouvent dans `gmao/sql/` et doivent être appliqués dans l’ordre numérique :
-
-1. `001_business_tables.sql` : tables métier, index et activation de RLS.
-2. `002_import_ge_tanks.sql` : adaptation et import des équipements GE/réservoirs.
-3. `003_ge_tracking.sql` : champs et données de suivi des groupes électrogènes.
-4. `004_fuel_ge_2026.sql` : journal Fuel-GE et synthèses mensuelles.
-5. `005_pue_2026.sql` : suivi PUE.
-6. `006_fuel_site_stocks_2026.sql` : stocks de carburant par site.
-7. `007_notifications.sql` : notifications persistantes, index, RLS et publication Realtime.
-8. `008_fuel_deliveries.sql` : ravitaillements Fuel, calcul du stock et écarts.
-
-
+La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et écrivent les tables métier existantes ; aucune étape SQL manuelle ni service externe d’authentification n’est requis.
 ### Tables principales
 
 - `user_profiles` : profil, rôle, site et état actif de l’utilisateur.
@@ -400,7 +388,7 @@ Authorization: Bearer <jeton_de_session_django>
 | Méthode | Route | Description |
 |---|---|---|
 | `GET` | `/health` | Santé du serveur |
-| `GET` | `/health/database` | Santé et temps de réponse PostgreSQL |
+| `GET` | `/health/database` | Santé et temps de réponse Aiven MySQL |
 | `GET` | `/api/me` | Profil connecté et permissions calculées |
 | `GET` | `/api/notifications` | Notifications personnelles du rôle global connecté |
 | `PATCH` | `/api/notifications/<uuid>/read` | Marquer une notification comme lue |
@@ -494,7 +482,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
 - Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
-- Le schéma PostgreSQL correspondant se trouve dans `gmao/sql/008_fuel_deliveries.sql`.
+- Le schéma et les données sont gérés dans Aiven MySQL par Django.
 
 ### PUE
 
@@ -504,7 +492,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 ### Sites
 
-Les libellés doivent correspondre exactement aux données PostgreSQL, notamment `Mbuji mayi`, `MTC` et `New MTC`, car les filtres utilisent les noms des sites.
+Les libellés doivent correspondre exactement aux données Aiven MySQL, notamment `Mbuji mayi`, `MTC` et `New MTC`, car les filtres utilisent les noms des sites.
 
 ## Tests et compilation
 
@@ -564,7 +552,7 @@ Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-buil
 
 - Ouvrir d’abord /health.
 - Une instance Render gratuite peut être en veille et nécessiter un redémarrage à froid.
-- Tester ensuite /health/database pour distinguer le réveil Render d’un problème PostgreSQL.
+- Tester ensuite /health/database pour distinguer le réveil Render d’un problème Aiven MySQL.
 - Éviter de cliquer plusieurs fois sur **Enregistrer** pendant le réveil.
 
 ### Le frontend ne charge aucune donnée
@@ -597,7 +585,7 @@ Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-buil
 ### La base distante ne se connecte pas
 
 
-- Vérifier que le port 5432 est accessible.
+- Vérifier dans Aiven que le service MySQL est `Running`, que son hôte est résolu et que le port fourni par Aiven est utilisé.
 - Relancer `start-django.ps1` si l’identifiant chiffré local doit être recréé.
 
 ## Évolutions prévues
@@ -633,13 +621,13 @@ Les suppressions de sites et équipements utilisent une confirmation intégrée 
 
 ## Sécurité
 
-- Ne jamais versionner le mot de passe PostgreSQL, une clé `service_role`, un JWT ou un fichier `.env`.
+- Ne jamais versionner le mot de passe Aiven MySQL, un jeton de session ou un fichier `.env`.
 
 - Utiliser HTTPS en production.
 - Désactiver `DJANGO_DEBUG` en production.
 - Restreindre `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS`.
 - Maintenir les contrôles d’autorisation côté Django, même si l’interface masque déjà les actions interdites.
-- Sauvegarder régulièrement la base PostgreSQL et tester la restauration.
+- Sauvegarder régulièrement la base Aiven MySQL et tester la restauration.
 
 ---
 
