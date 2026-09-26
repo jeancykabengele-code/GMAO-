@@ -25,6 +25,8 @@ Render lit `render.yaml` et construit `gmao/Dockerfile`. Dans **Environment**, d
 
 Le contrôle automatique Render reste `/health`, public et indépendant de MySQL.
 
+Le debug Django est désactivé par défaut, même si `DJANGO_DEBUG` est omis. Conserver néanmoins `DJANGO_DEBUG=false` explicitement dans Render et une `DJANGO_SECRET_KEY` secrète propre à l'environnement. Sans clé configurée, le démarrage est refusé en mode sans debug. Le debug est activé uniquement par les lanceurs de développement local.
+
 Le diagnostic `/health/database` exige un secret dédié `GMAO_HEALTH_TOKEN` dans **Environment**. Le blueprint prévoit sa génération ; pour un service existant, vérifier sa présence et, si nécessaire, ajouter une valeur aléatoire d'au moins 32 octets avant de redéployer. Ne pas réutiliser `DJANGO_SECRET_KEY` ni un jeton utilisateur. Ne jamais placer ce secret dans Angular, une URL, le dépôt ou les journaux.
 
 Depuis un poste de supervision où le secret est chargé dans l'environnement :

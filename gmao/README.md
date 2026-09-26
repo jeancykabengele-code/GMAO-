@@ -13,6 +13,8 @@ python -m venv .venv
 
 Le serveur écoute sur `http://localhost:8080`. Sans variables Aiven, le développement local utilise SQLite.
 
+`DJANGO_DEBUG` vaut `false` si la variable est absente. Le lanceur local `start-django.ps1` active explicitement le debug ; le lanceur en arrière-plan utilise ce même script. Ne pas utiliser ces lanceurs pour la production. Django ne charge pas automatiquement les fichiers `.env` : pour lancer directement `manage.py` en développement, définir `$env:DJANGO_DEBUG = 'true'` dans le terminal local. En production, conserver `DJANGO_DEBUG=false` et fournir une véritable `DJANGO_SECRET_KEY` ; la clé de développement est refusée. La CI utilise le mode sans debug et une clé réservée aux tests.
+
 - Santé : `GET /health`
 - Base : `GET /health/database` avec `Authorization: Bearer <GMAO_HEALTH_TOKEN>` (secret de supervision distinct des sessions, refus HTTP 401 s'il est absent ou incorrect). La sonde vérifie uniquement la connexion ; aucun volume de table ni détail SQL n'est exposé. Voir [la procédure de configuration et de vérification](../DEPLOIEMENT.md#render--api-django).
 - Profil connecté : `GET /api/me` avec `Authorization: Bearer <jeton_de_session_django>`

@@ -33,6 +33,9 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: ci-only-secret-key-with-more-than-fifty-unique-characters-123456789
     defaults:
       run:
         working-directory: gmao
@@ -47,8 +50,5 @@ jobs:
       - run: python manage.py test
       - run: python manage.py check --deploy
         env:
-          DJANGO_DEBUG: "false"
-          DJANGO_SECRET_KEY: ci-only-secret-key-with-more-than-fifty-unique-characters-123456789
           DJANGO_SECURE_SSL_REDIRECT: "true"
           DJANGO_SECURE_HSTS_SECONDS: "3600"
-

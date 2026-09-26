@@ -333,8 +333,8 @@ La connexion est assurée par l’API Django ; le navigateur ne reçoit aucune c
 
 | Variable | Utilité | Valeur locale par défaut |
 |---|---|---|
-| `DJANGO_SECRET_KEY` | Clé cryptographique Django | Valeur de développement uniquement |
-| `DJANGO_DEBUG` | Active le mode debug | `true` |
+| `DJANGO_SECRET_KEY` | Clé cryptographique Django | Obligatoire avec `DEBUG=false` ; clé de secours réservée au debug local |
+| `DJANGO_DEBUG` | Active le mode debug | `false` ; activé explicitement par `start-django.ps1` en développement local |
 | `DJANGO_ALLOWED_HOSTS` | Hôtes autorisés | `localhost,127.0.0.1` |
 | `FRONTEND_ORIGINS` | Origines CORS autorisées | Ports Angular locaux |
 | `GMAO_DATABASE_ENGINE` | Moteur de production | `mysql` |
@@ -516,6 +516,7 @@ Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 
 ```powershell
 cd gmao
+$env:DJANGO_DEBUG = 'true' # Uniquement pour les tests en développement local
 .\.venv\Scripts\python.exe manage.py test
 ```
 

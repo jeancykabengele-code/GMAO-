@@ -15,7 +15,7 @@ def env_list(name: str, default: str = "") -> list[str]:
     return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
 
 
-DEBUG = env_bool("DJANGO_DEBUG", True)
+DEBUG = env_bool("DJANGO_DEBUG", False)
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-development-only")
 if not DEBUG and SECRET_KEY == "django-insecure-development-only":
     raise RuntimeError("DJANGO_SECRET_KEY est requis lorsque DJANGO_DEBUG=false.")
