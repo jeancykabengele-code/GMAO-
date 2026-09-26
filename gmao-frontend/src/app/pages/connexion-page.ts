@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, GmaoAuthError } from '../auth/auth.service';
+import { PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT } from '../auth/password-policy';
 
 @Component({
   selector: 'app-connexion-page',
@@ -21,11 +22,13 @@ export class ConnexionPageComponent implements OnInit {
   loginError = '';
   passwordChangeError = '';
   changingPassword = false;
+  readonly passwordMinLength = PASSWORD_MIN_LENGTH;
+  readonly passwordPolicyHint = PASSWORD_POLICY_HINT;
 
   get mustChangePassword(): boolean { return this.auth.mustChangePassword(); }
 
   readonly passwordChangeForm = new FormGroup({
-    newPassword: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(12)] }),
+    newPassword: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(PASSWORD_MIN_LENGTH)] }),
     confirmation: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   });
 

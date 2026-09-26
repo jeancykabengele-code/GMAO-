@@ -60,6 +60,7 @@ jobs:
     env:
       DJANGO_DEBUG: "false"
       DJANGO_SECRET_KEY: ci-only-secret-key-with-more-than-fifty-unique-characters-123456789
+      GMAO_PWNED_PASSWORD_CHECK: "false"
     defaults:
       run:
         working-directory: gmao
@@ -75,7 +76,7 @@ jobs:
         run: python -m unittest discover -s ../ops -p "test_*.py" -v
       - run: python manage.py test
       - name: Vérifier les compteurs concurrents sur MySQL
-        run: python manage.py test login_guard --settings=gmao_backend.mysql_test_settings --verbosity 2
+        run: python manage.py test login_guard profiles.test_password_policy.PasswordHistoryTests --settings=gmao_backend.mysql_test_settings --verbosity 2
         env:
           GMAO_MYSQL_TESTS: "1"
       - name: Répéter les scénarios de concurrence MySQL

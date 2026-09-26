@@ -13,7 +13,7 @@ from django.views.decorators.http import require_GET
 
 from login_guard.limiter import reserve_attempt
 
-from .local_auth import LocalAuthenticationError, authenticate, change_password, issue_token, parse_payload, profile_from_token
+from .local_auth import LocalAuthenticationError, PasswordCompromiseCheckUnavailable, authenticate, change_password, issue_token, parse_payload, profile_from_token
 from .permissions import build_permissions
 
 
@@ -112,6 +112,8 @@ def local_change_password(request):
     except (ValidationError, LocalAuthenticationError) as error:
         detail = error.messages[0] if isinstance(error, ValidationError) else str(error)
         return JsonResponse({"status": 400, "code": "password_change_rejected", "detail": detail}, status=400)
+    except PasswordCompromiseCheckUnavailable as error:
+        return JsonResponse({"status": 503, "code": "password_check_unavailable", "detail": str(error)}, status=503)
 
 
 @require_authenticated_user

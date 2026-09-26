@@ -82,6 +82,10 @@ FRONTEND_ORIGINS = env_list(
     "http://localhost:4200,http://127.0.0.1:4200",
 )
 GMAO_LOCAL_TOKEN_MAX_AGE = int(os.getenv("GMAO_LOCAL_TOKEN_MAX_AGE", "43200"))
+# Passwords are checked by k-anonymity in production. Tests and local debug may
+# disable the network lookup explicitly without weakening the other validators.
+GMAO_PWNED_PASSWORD_CHECK = env_bool("GMAO_PWNED_PASSWORD_CHECK", not DEBUG)
+GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS = float(os.getenv("GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS", "3"))
 # Dedicated monitoring secret; an empty value disables the database probe.
 GMAO_HEALTH_TOKEN = os.getenv("GMAO_HEALTH_TOKEN", "").strip()
 # Only Render's public Cloudflare ingress may supply the client address.
@@ -95,3 +99,12 @@ SECURE_HSTS_PRELOAD = env_bool("DJANGO_SECURE_HSTS_PRELOAD", False)
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 X_FRAME_OPTIONS = "DENY"
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 14},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]

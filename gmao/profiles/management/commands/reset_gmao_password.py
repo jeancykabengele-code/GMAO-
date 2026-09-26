@@ -2,9 +2,10 @@
 
 from getpass import getpass
 
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 
-from profiles.local_auth import set_local_password, validate_password
+from profiles.local_auth import PasswordCompromiseCheckUnavailable, set_local_password
 from profiles.models import UserProfile
 
 
@@ -21,10 +22,14 @@ class Command(BaseCommand):
         except UserProfile.DoesNotExist as error:
             raise CommandError("Profil actif introuvable pour cet identifiant.") from error
 
-        password = getpass("Nouveau mot de passe (12 caractères minimum) : ")
+        password = getpass("Nouveau mot de passe (14 caractères minimum) : ")
         confirmation = getpass("Confirmer le mot de passe : ")
         if password != confirmation:
             raise CommandError("Les deux mots de passe ne correspondent pas.")
-        validate_password(password)
-        set_local_password(profile.id, password)
+        try:
+            set_local_password(profile.id, password)
+        except ValidationError as error:
+            raise CommandError(error.messages[0]) from error
+        except PasswordCompromiseCheckUnavailable as error:
+            raise CommandError(str(error)) from error
         self.stdout.write(self.style.SUCCESS("Mot de passe local défini pour ce profil."))

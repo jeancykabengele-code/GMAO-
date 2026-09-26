@@ -47,7 +47,8 @@
           <h2>Choisissez votre mot de passe</h2>
           <p>Votre mot de passe temporaire doit être remplacé avant d’accéder à la GMAO.</p>
           <label for="new-password">Nouveau mot de passe</label>
-          <input id="new-password" type="password" formControlName="newPassword" autocomplete="new-password" placeholder="12 caractères minimum">
+          <input id="new-password" type="password" formControlName="newPassword" autocomplete="new-password" [attr.minlength]="passwordMinLength" placeholder="14 caractères minimum">
+          <p class="password-policy-hint">{{ passwordPolicyHint }}</p>
           <label for="password-confirmation">Confirmer le mot de passe</label>
           <input id="password-confirmation" type="password" formControlName="confirmation" autocomplete="new-password">
           <button class="submit-button" type="submit" [disabled]="changingPassword">{{ changingPassword ? 'Enregistrement…' : 'Enregistrer le mot de passe' }}</button>

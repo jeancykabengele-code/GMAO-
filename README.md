@@ -345,11 +345,13 @@ La connexion est assurée par l’API Django ; le navigateur ne reçoit aucune c
 | `AIVEN_MYSQL_PASSWORD` | Mot de passe Aiven | Aucun |
 | `AIVEN_MYSQL_CA_PEM` | Certificat CA Aiven | Aucun |
 | `GMAO_LOCAL_TOKEN_MAX_AGE` | Durée de session locale en secondes | `43200` |
+| `GMAO_PWNED_PASSWORD_CHECK` | Contrôle anonymisé des mots de passe compromis | `true` hors debug ; `false` en développement local |
+| `GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS` | Délai maximal du contrôle de compromission | `3` |
 
 Sans `GMAO_DATABASE_ENGINE=mysql`, Django utilise SQLite uniquement pour le développement local.
 ## Base de données
 
-La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et écrivent les tables métier existantes ; aucune étape SQL manuelle ni service externe d’authentification n’est requis.
+La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et écrivent les tables métier existantes ; aucune étape SQL manuelle ni service externe d’authentification n’est requis. La vérification Pwned Passwords intervient uniquement lors de la définition d’un nouveau mot de passe.
 ### Tables principales
 
 - `user_profiles` : profil, rôle, site et état actif de l’utilisateur.
@@ -364,14 +366,16 @@ La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et 
 - `gmao_interventions`
 - `gmao_pieces_rechange`
 - `gmao_notifications` : alertes et notifications personnelles du Manager et du Chef des opérations.
+- `gmao_login_buckets` : compteurs techniques de limitation des connexions.
+- `gmao_password_history` : cinq anciens hachages au maximum par profil, utilisés uniquement contre la réutilisation.
 
-Les modèles Django utilisent `managed = False` : Django ne crée pas ces tables. Le schéma est administré avec les scripts SQL.
+Les tables métier existantes utilisent `managed = False`. Les deux tables techniques sont créées par les migrations versionnées de l’application `login_guard` au démarrage.
 
 ### Création d’un utilisateur
 
 1. Ouvrir **Administration → Gestion des utilisateurs** avec un rôle global.
-2. Saisir le nom, l’identifiant e-mail, le rôle, le site si nécessaire et un mot de passe initial d’au moins 12 caractères.
-3. Django crée le profil dans MySQL et enregistre uniquement le hachage du mot de passe.
+2. Saisir le nom, l’identifiant e-mail, le rôle, le site si nécessaire et une phrase de passe unique d’au moins 14 caractères.
+3. Django refuse les valeurs courantes, numériques, compromises ou récemment utilisées, puis enregistre uniquement le hachage du mot de passe.
 4. Les adresses e-mail servent d’identifiants : aucune boîte e-mail n’est requise.
 5. Le Manager peut réinitialiser ultérieurement un mot de passe depuis la même administration.
 ## API
