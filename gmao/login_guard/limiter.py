@@ -87,7 +87,9 @@ def _reserve_attempt(request, email):
     with transaction.atomic():
         now = timezone.now()
         ip_bucket = _load_locked(ip_key, now)
-        retry = _retry_after(ip_bucket, IP_LIMIT, now)
+        # The IP bucket has no progressive delay. Another request may have
+        # created it a few microseconds after this request sampled its clock.
+        retry = _retry_after(ip_bucket, IP_LIMIT, now) if ip_bucket.attempts >= IP_LIMIT else 0
         if retry:
             return Admission(retry, "ip", ip_key)
         pair_bucket = _load_locked(pair_key, now)

@@ -82,6 +82,15 @@ class LoginLimiterTests(TestCase):
         self.assertEqual(result.retry_after, WINDOW_SECONDS)
         self.assertEqual(LoginBucket.objects.count(), IP_LIMIT + 1)
 
+    def test_ip_bucket_created_after_request_clock_does_not_add_a_delay(self):
+        later = self.now + timedelta(milliseconds=1)
+        LoginBucket.objects.create(
+            key=bucket_key("ip", "192.0.2.10"), window_started=later,
+            next_allowed=later, attempts=1,
+        )
+        self.assertEqual(self.reserve().retry_after, 0)
+        self.assertEqual(LoginBucket.objects.get(key=bucket_key("ip", "192.0.2.10")).attempts, 2)
+
     def test_stored_keys_do_not_contain_email_or_ip(self):
         self.reserve()
         for key in LoginBucket.objects.values_list("key", flat=True):
