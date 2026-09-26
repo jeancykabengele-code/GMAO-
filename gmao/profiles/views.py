@@ -2,10 +2,14 @@ from functools import wraps
 import logging
 from time import perf_counter
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import connection
 from django.http import JsonResponse
+from django.utils.crypto import constant_time_compare
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
 
 from .local_auth import LocalAuthenticationError, authenticate, change_password, issue_token, parse_payload, profile_from_token
 from .permissions import build_permissions
@@ -18,34 +22,27 @@ def health(request):
     return JsonResponse({"status": "UP"})
 
 
+@never_cache
+@require_GET
 def database_health(request):
+    expected_token = settings.GMAO_HEALTH_TOKEN
+    scheme, separator, token = request.headers.get("Authorization", "").partition(" ")
+    if (not expected_token or not separator or scheme.lower() != "bearer"
+            or not constant_time_compare(token, expected_token)):
+        response = JsonResponse({"detail": "Accès non autorisé."}, status=401)
+        response["WWW-Authenticate"] = "Bearer"
+        return response
+
     started_at = perf_counter()
     try:
         with connection.cursor() as cursor:
             cursor.execute("select 1")
             cursor.fetchone()
-            table_names = (
-                "user_profiles", "sites", "gmao_local_credentials",
-                "gmao_equipements", "gmao_tickets",
-                "gmao_groupes_electrogenes", "gmao_releves_rh_ge", "gmao_fuel_ge",
-                "gmao_fuel_ravitaillements", "gmao_consommations_groupes_ge",
-                "gmao_fuel_monthly_summary", "gmao_pue", "gmao_problemes_datacenter",
-                "gmao_interventions", "gmao_pieces_rechange", "gmao_notifications",
-            )
-            records = {}
-            table_errors = {}
-            for table_name in table_names:
-                try:
-                    cursor.execute(f"SELECT COUNT(*) FROM {connection.ops.quote_name(table_name)}")
-                    records[table_name] = cursor.fetchone()[0]
-                except Exception as error:
-                    table_errors[table_name] = str(error)
     except Exception:
-        logger.exception("Le controle de connexion MySQL a echoue")
+        logger.warning("Le controle de connexion a la base a echoue")
         return JsonResponse({"status": "DOWN", "database": "DOWN"}, status=503)
     elapsed_ms = round((perf_counter() - started_at) * 1000)
-    status = "UP" if not table_errors else "DEGRADED"
-    return JsonResponse({"status": status, "database": "UP", "responseTimeMs": elapsed_ms, "records": records, "tableErrors": table_errors})
+    return JsonResponse({"status": "UP", "database": "UP", "responseTimeMs": elapsed_ms})
 
 
 def require_authenticated_user(view):

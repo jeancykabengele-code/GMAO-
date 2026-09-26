@@ -23,7 +23,20 @@ Le push sur `main` déclenche les déploiements automatiques Render et Vercel.
 
 Render lit `render.yaml` et construit `gmao/Dockerfile`. Dans **Environment**, définir `GMAO_DATABASE_ENGINE=mysql`, les variables `AIVEN_MYSQL_HOST`, `AIVEN_MYSQL_PORT`, `AIVEN_MYSQL_DATABASE`, `AIVEN_MYSQL_USER`, `AIVEN_MYSQL_PASSWORD`, `AIVEN_MYSQL_CA_PEM`, ainsi que `FRONTEND_ORIGINS=https://gmao-ordc.vercel.app`.
 
-Après un déploiement, contrôler `/health` et `/health/database` : les deux doivent répondre `UP`.
+Le contrôle automatique Render reste `/health`, public et indépendant de MySQL.
+
+Le diagnostic `/health/database` exige un secret dédié `GMAO_HEALTH_TOKEN` dans **Environment**. Le blueprint prévoit sa génération ; pour un service existant, vérifier sa présence et, si nécessaire, ajouter une valeur aléatoire d'au moins 32 octets avant de redéployer. Ne pas réutiliser `DJANGO_SECRET_KEY` ni un jeton utilisateur. Ne jamais placer ce secret dans Angular, une URL, le dépôt ou les journaux.
+
+Depuis un poste de supervision où le secret est chargé dans l'environnement :
+
+```powershell
+Invoke-RestMethod https://gmao-ordc-api.onrender.com/health
+Invoke-RestMethod https://gmao-ordc-api.onrender.com/health/database -Headers @{ Authorization = "Bearer $env:GMAO_HEALTH_TOKEN" }
+```
+
+Vérification après déploiement : `/health` répond HTTP 200 avec `status=UP`. `/health/database` sans jeton ou avec un mauvais jeton répond HTTP 401 ; avec le secret de supervision, il répond HTTP 200 avec `status=UP`, `database=UP` et `responseTimeMs`, ou HTTP 503 avec `status=DOWN` et `database=DOWN` si la connexion échoue. Aucun volume, nom de table ou détail SQL n'est retourné. Les réponses du diagnostic ne doivent pas être mises en cache. Si le secret est absent ou vide, ce diagnostic reste inaccessible (HTTP 401).
+
+Cette sonde exécute uniquement `SELECT 1` : elle vérifie la connexion, pas la conformité du schéma ni la disponibilité de toutes les tables métier.
 
 ## Vercel — frontend Angular
 

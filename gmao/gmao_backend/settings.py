@@ -81,6 +81,8 @@ FRONTEND_ORIGINS = env_list(
     "http://localhost:4200,http://127.0.0.1:4200",
 )
 GMAO_LOCAL_TOKEN_MAX_AGE = int(os.getenv("GMAO_LOCAL_TOKEN_MAX_AGE", "43200"))
+# Dedicated monitoring secret; an empty value disables the database probe.
+GMAO_HEALTH_TOKEN = os.getenv("GMAO_HEALTH_TOKEN", "").strip()
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)

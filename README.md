@@ -301,7 +301,7 @@ Le backend est disponible sur [http://localhost:8080](http://localhost:8080).
 
 ```powershell
 Invoke-WebRequest http://localhost:8080/health
-Invoke-WebRequest http://localhost:8080/health/database
+Invoke-WebRequest http://localhost:8080/health/database -Headers @{ Authorization = "Bearer $env:GMAO_HEALTH_TOKEN" }
 ```
 
 Réponses attendues :
@@ -387,7 +387,7 @@ Authorization: Bearer <jeton_de_session_django>
 | Méthode | Route | Description |
 |---|---|---|
 | `GET` | `/health` | Santé du serveur |
-| `GET` | `/health/database` | Santé et temps de réponse Aiven MySQL |
+| `GET` | `/health/database` | Connexion et temps de réponse MySQL ; secret de supervision `GMAO_HEALTH_TOKEN` requis en Bearer |
 | `GET` | `/api/me` | Profil connecté et permissions calculées |
 | `GET` | `/api/notifications` | Notifications personnelles du rôle global connecté |
 | `PATCH` | `/api/notifications/<uuid>/read` | Marquer une notification comme lue |
@@ -535,7 +535,7 @@ Avant une livraison, vérifier au minimum :
 - Frontend Vercel : `https://gmao-ordc.vercel.app`
 - Branche de déploiement : `main`
 
-Render utilise Aiven MySQL avec les variables `AIVEN_MYSQL_*` et `AIVEN_MYSQL_CA_PEM`. Le contrôle `GET /health/database` doit répondre `{"status":"UP","database":"UP"}` après chaque déploiement.
+Render utilise Aiven MySQL avec les variables `AIVEN_MYSQL_*` et `AIVEN_MYSQL_CA_PEM`. Le contrôle public Render reste `/health`. Le diagnostic `GET /health/database` exige `Authorization: Bearer <GMAO_HEALTH_TOKEN>` et retourne `status=UP`, `database=UP` et `responseTimeMs` si la connexion fonctionne. Sans secret configuré ou avec un jeton incorrect, il retourne HTTP 401. Il ne vérifie pas le schéma et n'expose aucun volume de table ni détail SQL. Voir [la procédure de supervision](DEPLOIEMENT.md#render--api-django).
 
 Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-build`, et la seule variable requise est `GMAO_API_URL=https://gmao-ordc-api.onrender.com`. Publier le déploiement en **Production**.
 ## Dépannage
@@ -551,7 +551,7 @@ Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-buil
 
 - Ouvrir d’abord /health.
 - Une instance Render gratuite peut être en veille et nécessiter un redémarrage à froid.
-- Tester ensuite /health/database pour distinguer le réveil Render d’un problème Aiven MySQL.
+- Tester ensuite `/health/database` avec le secret de supervision pour distinguer le réveil Render d’un problème Aiven MySQL.
 - Éviter de cliquer plusieurs fois sur **Enregistrer** pendant le réveil.
 
 ### Le frontend ne charge aucune donnée
@@ -560,7 +560,7 @@ Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-buil
 - Vérifier `environment.apiUrl`.
 
 - Vérifier que le compte possède un profil actif dans `user_profiles`.
-- Tester `/health/database`.
+- Tester `/health/database` avec le secret de supervision `GMAO_HEALTH_TOKEN` en Bearer.
 
 ### Un site ne retourne aucune donnée
 
