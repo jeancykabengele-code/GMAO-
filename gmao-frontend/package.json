@@ -5,9 +5,11 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "vercel-build": "node scripts/generate-environment.mjs && ng build --configuration production",
+    "build:production": "node scripts/generate-environment.mjs && ng build --configuration production",
+    "vercel-build": "npm run test:ci && npm run build:production",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:ci": "ng test --watch=false --reporters=junit --reporters=default --output-file=test-results/junit.xml"
   },
   "private": true,
   "packageManager": "npm@11.17.0",

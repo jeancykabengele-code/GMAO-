@@ -34,11 +34,13 @@ describe('App routing shell', () => {
           provide: AuthService,
           useValue: {
             initialize: () => Promise.resolve(),
+            authenticated: authenticatedState,
+            mustChangePassword: signal(false),
             isAuthenticated: () => authenticatedState(),
             profile: profileState,
             destinationFor: () => '/tableau-de-bord',
             signOut: () => Promise.resolve(),
-          },
+          } satisfies Pick<AuthService, 'initialize' | 'authenticated' | 'mustChangePassword' | 'isAuthenticated' | 'profile' | 'destinationFor' | 'signOut'>,
         },
         {
           provide: NotificationsService,

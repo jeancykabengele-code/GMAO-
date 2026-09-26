@@ -25,10 +25,17 @@ jobs:
           cache: npm
           cache-dependency-path: gmao-frontend/package-lock.json
       - run: npm ci
-      - run: npm test -- --watch=false
       - run: npm run vercel-build
         env:
           GMAO_API_URL: https://api.example.invalid
+      - name: Publier le rapport des tests Angular
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-test-results
+          path: gmao-frontend/test-results/junit.xml
+          if-no-files-found: warn
+          retention-days: 14
 
   backend:
     runs-on: ubuntu-latest
