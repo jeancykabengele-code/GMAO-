@@ -96,9 +96,7 @@ form > label { display: block; margin: 0 0 9px; color: rgba(255,255,255,.84); fo
 .visibility { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 0; color: #6f6f6a; background: transparent; cursor: pointer; }
 .field-error { margin: 0 0 18px; color: #ff8a8a; font-size: .72rem; }
 
-.form-options { display: flex; margin: 4px 0 28px; align-items: center; justify-content: flex-start; gap: 20px; color: rgba(255,255,255,.58); font-size: .72rem; }
-.remember { display: flex; align-items: center; gap: 8px; white-space: nowrap; cursor: pointer; }
-.remember input { width: 15px; height: 15px; accent-color: var(--orange); }
+.session-notice { margin: 4px 0 28px; color: rgba(255,255,255,.7); font-size: .75rem; line-height: 1.5; }
 
 
 .submit-button {
@@ -143,7 +141,6 @@ form > label { display: block; margin: 0 0 9px; color: rgba(255,255,255,.84); fo
   .heading-logo { width: 58px; height: 58px; }
   .form-heading h1 { font-size: 1.35rem; }
   .form-heading p { font-size: .75rem; }
-  .form-options { align-items: flex-start; flex-direction: column; gap: 10px; }
 
 }
 

@@ -3,6 +3,17 @@
   "framework": "angular",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist/gmao-frontend/browser",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://gmao-ordc-api.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'; worker-src 'none'; require-trusted-types-for 'script'; trusted-types angular angular#bundler; upgrade-insecure-requests"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
@@ -10,4 +21,3 @@
     }
   ]
 }
-

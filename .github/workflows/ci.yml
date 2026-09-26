@@ -27,7 +27,11 @@ jobs:
       - run: npm ci
       - run: npm run vercel-build
         env:
-          GMAO_API_URL: https://api.example.invalid
+          GMAO_API_URL: https://gmao-ordc-api.onrender.com
+      - name: Installer Chromium pour la validation CSP
+        run: npx playwright install --with-deps chromium
+      - name: Vérifier la CSP et les sessions dans Chromium (API simulée)
+        run: npm run test:csp
       - name: Publier le rapport des tests Angular
         if: always()
         uses: actions/upload-artifact@v4

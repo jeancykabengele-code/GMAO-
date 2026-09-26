@@ -65,6 +65,8 @@ Vérification en production : utiliser un identifiant de test inexistant, respec
 
 Le dossier de sortie est `dist/gmao-frontend/browser`.
 
+Vercel applique la CSP définie dans `gmao-frontend/vercel.json`. La CI vérifie le build dans Chromium avec cette politique et une API simulée. Les jetons persistants existants sont supprimés et les utilisateurs concernés doivent se reconnecter ; les nouvelles sessions sont limitées au stockage de l'onglet. La migration vers les cookies HttpOnly reste distincte. Voir [la politique, les limites et la procédure de test navigateur](gmao-frontend/docs/security-browser.md).
+
 ## Vérification finale
 
 - Connexion avec un compte local Django.

@@ -31,9 +31,7 @@
           <p class="field-error">Le mot de passe est requis.</p>
         }
 
-        <div class="form-options">
-          <label class="remember"><input type="checkbox" formControlName="rememberMe"><span>Rester connecté</span></label>
-        </div>
+        <p class="session-notice">Votre connexion est conservée dans cet onglet. Déconnectez-vous après utilisation sur un poste partagé.</p>
 
         <button class="submit-button" type="submit" [disabled]="loading">
           <span>{{ loading ? 'Connexion en cours…' : 'Se connecter' }}</span>

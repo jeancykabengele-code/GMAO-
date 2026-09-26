@@ -9,7 +9,8 @@
     "vercel-build": "npm run test:ci && npm run build:production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "test:ci": "ng test --watch=false --reporters=junit --reporters=default --output-file=test-results/junit.xml"
+    "test:ci": "ng test --watch=false --reporters=junit --reporters=default --output-file=test-results/junit.xml",
+    "test:csp": "node scripts/test-csp.mjs"
   },
   "private": true,
   "packageManager": "npm@11.17.0",
@@ -30,6 +31,7 @@
     "@angular/cli": "^22.1.4",
     "@angular/compiler-cli": "^22.1.0",
     "jsdom": "^28.0.0",
+    "playwright": "^1.63.0",
     "prettier": "^3.8.1",
     "read-excel-file": "^9.3.10",
     "typescript": "~6.0.2",

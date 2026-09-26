@@ -32,7 +32,6 @@ export class ConnexionPageComponent implements OnInit {
   readonly loginForm = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
     password: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    rememberMe: new FormControl(false, { nonNullable: true }),
   });
 
   async ngOnInit(): Promise<void> {
@@ -53,10 +52,10 @@ export class ConnexionPageComponent implements OnInit {
     }
 
     this.loading = true;
-    const { email, password, rememberMe } = this.loginForm.getRawValue();
+    const { email, password } = this.loginForm.getRawValue();
 
     try {
-      const profile = await this.auth.signIn(email.trim(), password, rememberMe);
+      const profile = await this.auth.signIn(email.trim(), password);
       if (this.mustChangePassword) return;
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
       const destination = this.isSafeInternalUrl(returnUrl)
