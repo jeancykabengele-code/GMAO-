@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from datetime import timedelta
 from ipaddress import ip_address, ip_network
 from math import ceil
+from random import uniform
+from time import sleep
 
 from django.conf import settings
-from django.db import transaction
+from django.db import OperationalError, transaction
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
@@ -63,6 +65,18 @@ def _retry_after(bucket, limit, now):
 
 
 def reserve_attempt(request, email):
+    # InnoDB may deadlock when simultaneous requests create the same missing
+    # bucket. Retry the whole rolled-back transaction, never a partial update.
+    for attempt in range(5):
+        try:
+            return _reserve_attempt(request, email)
+        except OperationalError as error:
+            if not error.args or error.args[0] != 1213 or attempt == 4:
+                raise
+            sleep(uniform(0.005, 0.025) * 2 ** attempt)
+
+
+def _reserve_attempt(request, email):
     address = client_address(request)
     normalized_email = str(email or "").strip().lower()
     ip_key = bucket_key("ip", address)

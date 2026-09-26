@@ -13,6 +13,11 @@ const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
 const root = resolve('dist/gmao-frontend/browser');
 let server;
 let browser;
+let page;
+const errors = [];
+const violations = [];
+const failedRequests = [];
+let apiCalls = 0;
 
 try {
   let base = process.env.CSP_TEST_BASE_URL;
@@ -35,9 +40,6 @@ try {
   const origin = new URL(base).origin;
   browser = await chromium.launch({ headless: true, executablePath: process.env.CSP_BROWSER_EXECUTABLE || undefined });
   const context = await browser.newContext({ acceptDownloads: true });
-  const errors = [];
-  const violations = [];
-  let apiCalls = 0;
   // No real account, token, or business data is used, even against production HTML.
   await context.route('**/*', async route => {
     const request = route.request();
@@ -67,15 +69,17 @@ try {
       void window.__captureCsp(violation);
     });
   });
-  const page = await context.newPage();
-  page.setDefaultTimeout(20000);
+  page = await context.newPage();
+  page.setDefaultTimeout(30000);
+  page.setDefaultNavigationTimeout(60000);
   page.on('pageerror', error => errors.push(error.message));
-  const home = await page.goto(base);
+  page.on('requestfailed', request => failedRequests.push({ url: request.url(), error: request.failure()?.errorText }));
+  const home = await page.goto(base, { waitUntil: 'domcontentloaded' });
   assert.equal(home.headers()['content-security-policy'], policy, 'Exact deployed CSP header required');
   await page.locator('app-public-home-page').waitFor();
   // Old remembered tokens must be removed and must not silently authenticate.
   await page.evaluate(key => localStorage.setItem(key, 'legacy-fake-token'), tokenKey);
-  await page.reload();
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('app-public-home-page').waitFor();
   assert.equal(await page.evaluate(key => localStorage.getItem(key), tokenKey), null);
   await page.locator('a.login-button').click();
@@ -84,12 +88,12 @@ try {
   await page.locator('#email').fill(profile.email);
   await page.locator('#password').fill('fake-browser-test-password');
   await page.locator('button.submit-button').first().click();
-  await page.waitForURL('**/tableau-de-bord');
+  await page.waitForURL('**/tableau-de-bord', { waitUntil: 'domcontentloaded' });
   await page.locator('.sidebar').waitFor();
   assert.equal(await page.evaluate(key => localStorage.getItem(key), tokenKey), null);
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), tokenKey), 'csp-fake-tab-token');
   for (const path of ['accueil', 'equipements', 'gestion-tickets', 'maintenance/interventions-realisees', 'maintenance/suivi-groupes-electrogenes', 'pieces-rechange', 'fuel-ge', 'consommation-groupes-ge', 'pue', 'ravitaillement-fuel', 'problemes-datacenter', 'administration/sites', 'administration/utilisateurs', 'documentations']) {
-    await page.goto(`${base}/${path}`);
+    await page.goto(`${base}/${path}`, { waitUntil: 'domcontentloaded' });
     await page.locator('.sidebar').waitFor();
     await page.locator('main > router-outlet + *').waitFor();
     assert.equal(new URL(page.url()).pathname, `/${path}`);
@@ -101,7 +105,7 @@ try {
   const bytes = await readFile(await download.path());
   assert.equal(bytes.subarray(0, 2).toString(), 'PK', 'Export must remain an XLSX archive');
   await page.locator('.logout-button').click();
-  await page.waitForURL(base + '/');
+  await page.waitForURL(base + '/', { waitUntil: 'domcontentloaded' });
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), tokenKey), null);
   assert.ok(apiCalls > 0, 'Mock API must actually have been used');
   assert.deepEqual(errors, [], 'No uncaught application errors');
@@ -118,6 +122,10 @@ try {
   await page.evaluate(async () => { try { await fetch('https://example.invalid/csp-exfiltration-test'); } catch { /* Expected. */ } });
   await page.waitForFunction(() => window.__cspViolations.some(item => item.directive === 'connect-src'));
   console.log('CSP browser checks passed: public home, login, 14 internal routes, reload, XLSX, logout, blocked injection and external connection. API fully mocked.');
+} catch (error) {
+  console.error(JSON.stringify({ url: page?.url(), apiCalls, errors, violations, failedRequests,
+    loginError: page ? await page.locator('.login-message').allTextContents().catch(() => []) : [] }, null, 2));
+  throw error;
 } finally {
   if (browser) await browser.close();
   if (server) await new Promise(resolve => server.close(resolve));

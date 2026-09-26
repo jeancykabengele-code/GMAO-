@@ -3,7 +3,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.management import call_command
-from django.db import DatabaseError, connections
+from django.db import DatabaseError, OperationalError, connections
 from django.test import RequestFactory, SimpleTestCase, TestCase, TransactionTestCase, override_settings, skipUnlessDBFeature
 from django.utils import timezone
 
@@ -86,6 +86,37 @@ class LoginLimiterTests(TestCase):
         self.reserve()
         for key in LoginBucket.objects.values_list("key", flat=True):
             self.assertRegex(key, r"^[0-9a-f]{64}$")
+
+    def test_deadlock_rolls_back_both_counters_before_retry(self):
+        original_save = LoginBucket.save
+        pair_key = bucket_key("pair", "192.0.2.10\ntest@example.invalid")
+        interrupted = False
+
+        def interrupted_save(bucket, *args, **kwargs):
+            nonlocal interrupted
+            if bucket.key == pair_key and bucket.attempts == 1 and not interrupted:
+                interrupted = True
+                raise OperationalError(1213, "simulated deadlock")
+            return original_save(bucket, *args, **kwargs)
+
+        with patch.object(LoginBucket, "save", interrupted_save), patch("login_guard.limiter.sleep"):
+            self.assertEqual(self.reserve().retry_after, 0)
+        self.assertTrue(interrupted)
+        self.assertEqual(list(LoginBucket.objects.values_list("attempts", flat=True)), [1, 1])
+
+    @patch("login_guard.limiter.sleep")
+    @patch("login_guard.limiter._reserve_attempt", side_effect=OperationalError(1213, "persistent deadlock"))
+    def test_persistent_deadlock_has_bounded_retries(self, reserve, sleep):
+        with self.assertRaises(OperationalError):
+            self.reserve()
+        self.assertEqual(reserve.call_count, 5)
+        self.assertEqual(sleep.call_count, 4)
+
+    @patch("login_guard.limiter._reserve_attempt", side_effect=OperationalError(2003, "connection unavailable"))
+    def test_other_database_errors_are_not_retried(self, reserve):
+        with self.assertRaises(OperationalError):
+            self.reserve()
+        reserve.assert_called_once()
 
     def test_cleanup_preserves_active_buckets(self):
         self.reserve()

@@ -76,6 +76,13 @@ jobs:
         run: python manage.py test login_guard --settings=gmao_backend.mysql_test_settings --verbosity 2
         env:
           GMAO_MYSQL_TESTS: "1"
+      - name: Répéter les scénarios de concurrence MySQL
+        run: |
+          for attempt in 1 2 3 4 5; do
+            python manage.py test login_guard.tests.ConcurrentLoginTests --settings=gmao_backend.mysql_test_settings --verbosity 1
+          done
+        env:
+          GMAO_MYSQL_TESTS: "1"
       - run: python manage.py check --deploy
         env:
           DJANGO_SECURE_SSL_REDIRECT: "true"
