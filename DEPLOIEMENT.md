@@ -19,6 +19,8 @@ git push origin main
 
 Le push sur `main` déclenche la CI et les intégrations de déploiement. Le blueprint Render demande `autoDeployTrigger: checksPass` : vérifier que le service existant utilise bien **After CI Checks Pass** dans ses paramètres, car une modification du fichier ne prouve pas à elle seule son application au service. Vercel exécute les tests Angular avant la compilation via `npm run vercel-build` ; tout échec empêche ce build d'être publié. Ce contrôle Vercel porte sur le frontend et ne remplace pas un verrou global dépendant aussi du backend.
 
+La disponibilité de la production est contrôlée toutes les dix minutes par le workflow **Disponibilité production**. Configurer le secret GitHub Actions `GMAO_HEALTH_TOKEN` pour inclure la sonde Aiven protégée et suivre la [procédure d’incident](docs/incident-disponibilite.md). Une surveillance ne supprime pas la mise en veille : avant une exploitation critique, remplacer les plans gratuits conformément aux options et coûts documentés dans cette procédure.
+
 La CI exécute la même commande frontend et conserve le rapport JUnit dans l'artefact **angular-test-results** pendant 14 jours, même si les tests échouent. Pour reproduire uniquement les tests : `npm run test:ci` depuis `gmao-frontend`. Ne pas contourner un échec par une désactivation de tests ou une publication manuelle.
 
 ## Render — API Django

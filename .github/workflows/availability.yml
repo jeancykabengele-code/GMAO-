@@ -1,0 +1,35 @@
+name: Disponibilité production
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-availability
+  cancel-in-progress: true
+
+jobs:
+  synthetic-monitoring:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GMAO_HEALTH_TOKEN: ${{ secrets.GMAO_HEALTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Vérifier Vercel, Render et Aiven
+        run: >-
+          python ops/check_availability.py
+          --frontend-url https://gmao-ordc.vercel.app/
+          --api-url https://gmao-ordc-api.onrender.com/health
+          --database-url https://gmao-ordc-api.onrender.com/health/database
+          --max-frontend-seconds 5
+          --max-api-seconds 10
+          --max-database-seconds 5
+          --timeout 70
