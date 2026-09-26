@@ -25,6 +25,7 @@ if render_hostname := os.getenv("RENDER_EXTERNAL_HOSTNAME"):
 
 INSTALLED_APPS = [
     "profiles",
+    "login_guard",
 ]
 
 MIDDLEWARE = [
@@ -83,6 +84,8 @@ FRONTEND_ORIGINS = env_list(
 GMAO_LOCAL_TOKEN_MAX_AGE = int(os.getenv("GMAO_LOCAL_TOKEN_MAX_AGE", "43200"))
 # Dedicated monitoring secret; an empty value disables the database probe.
 GMAO_HEALTH_TOKEN = os.getenv("GMAO_HEALTH_TOKEN", "").strip()
+# Only Render's public Cloudflare ingress may supply the client address.
+GMAO_LOGIN_TRUST_RENDER_PROXY = env_bool("RENDER", False)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)

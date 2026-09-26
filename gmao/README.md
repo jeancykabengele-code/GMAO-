@@ -18,3 +18,5 @@ Le serveur écoute sur `http://localhost:8080`. Sans variables Aiven, le dévelo
 - Santé : `GET /health`
 - Base : `GET /health/database` avec `Authorization: Bearer <GMAO_HEALTH_TOKEN>` (secret de supervision distinct des sessions, refus HTTP 401 s'il est absent ou incorrect). La sonde vérifie uniquement la connexion ; aucun volume de table ni détail SQL n'est exposé. Voir [la procédure de configuration et de vérification](../DEPLOIEMENT.md#render--api-django).
 - Profil connecté : `GET /api/me` avec `Authorization: Bearer <jeton_de_session_django>`
+
+Les connexions sont limitées à 5 tentatives par IP/e-mail et 50 par IP sur 15 minutes, avec attente progressive. HTTP 429 indique le délai à respecter. Les compteurs sont partagés dans la nouvelle table `gmao_login_buckets`. Pour un démarrage manuel, exécuter `python manage.py migrate login_guard --noinput` avant le serveur ; les lanceurs locaux et Docker le font automatiquement. Voir [la procédure de déploiement et de vérification](../DEPLOIEMENT.md#protection-des-connexions).

@@ -42,6 +42,20 @@ Vérification après déploiement : `/health` répond HTTP 200 avec `status=UP`.
 
 Cette sonde exécute uniquement `SELECT 1` : elle vérifie la connexion, pas la conformité du schéma ni la disponibilité de toutes les tables métier.
 
+## Protection des connexions
+
+`POST /api/auth/local/login` admet au maximum **5 tentatives par couple IP/e-mail sur 15 minutes**, avec une attente minimale de **1, 2, 4 puis 8 secondes** entre les essais. Le sixième essai est bloqué jusqu'à la fin de la fenêtre initiale. Un second plafond de **50 tentatives par IP sur 15 minutes**, tous e-mails confondus, limite la rotation des comptes. Les tentatives admises, réussies ou échouées, consomment le quota ; les requêtes rejetées ne prolongent pas la fenêtre. Les sessions déjà ouvertes restent utilisables.
+
+Le refus retourne HTTP **429**, `Retry-After` et un message d'attente dans l'interface. Si le stockage des compteurs est indisponible, la connexion retourne **503** sans contourner la protection. Les blocages sont journalisés sans mot de passe, jeton, IP brute ni e-mail brut (identifiant HMAC pour corrélation). La base conserve uniquement les clés HMAC et les compteurs ; elle est partagée par tous les workers et instances utilisant la même base et la même clé Django.
+
+Au démarrage Docker, `python manage.py migrate login_guard --noinput` crée uniquement la table `gmao_login_buckets` et le suivi standard `django_migrations`, sans migrer les tables métier `managed=False`. Le démarrage est interrompu si la migration échoue. Le lanceur local applique également cette migration. Pour un lancement manuel, l'exécuter avant `runserver` ou Gunicorn. La CI teste les quotas et les accès concurrents sur un MySQL 8.4 isolé, sans identifiants Aiven.
+
+Sur Render (`RENDER=true`, fourni par la plateforme), la source est l'en-tête `CF-Connecting-IP` réécrit par l'entrée publique Cloudflare. `X-Forwarded-For` est ignoré ; en local, seule `REMOTE_ADDR` est utilisée. Un en-tête absent/invalide partage le quota `unknown`. Les IPv6 sont regroupées par `/64`. Ne pas exposer directement le conteneur à des clients non fiables en conservant `RENDER=true` : l'en-tête n'est fiable que derrière l'entrée Render/Cloudflare. Voir [les indications Render sur le proxy](https://render.com/articles/host-pocketbase-on-render).
+
+`python manage.py purge_login_buckets` supprime uniquement les fenêtres de plus de 24 heures. Cette purge est exécutée au démarrage Docker ; la planifier aussi quotidiennement sur l'environnement d'exploitation pour éviter l'accumulation entre deux déploiements. Une modification de `DJANGO_SECRET_KEY` change les clés HMAC et redémarre les quotas.
+
+Vérification en production : utiliser un identifiant de test inexistant, respecter les attentes entre les cinq essais, puis vérifier HTTP 429 au sixième. Ne pas utiliser un compte réel. En cas de retour arrière du code, conserver la nouvelle table : l'ancien code l'ignore et les données métier restent intactes. Un retour arrière désactive cette protection tant que le correctif n'est pas rétabli.
+
 ## Vercel — frontend Angular
 
 1. Connecter le dépôt `Projet_Reporting_DC`.

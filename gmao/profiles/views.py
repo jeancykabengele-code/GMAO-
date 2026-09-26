@@ -4,12 +4,14 @@ from time import perf_counter
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import connection
+from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
+
+from login_guard.limiter import reserve_attempt
 
 from .local_auth import LocalAuthenticationError, authenticate, change_password, issue_token, parse_payload, profile_from_token
 from .permissions import build_permissions
@@ -73,11 +75,25 @@ def _serialize_profile(profile):
 
 
 @csrf_exempt
+@never_cache
 def local_login(request):
     if request.method != "POST":
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
     try:
         data = parse_payload(request)
+    except (ValidationError, UnicodeDecodeError):
+        data = {}
+    try:
+        admission = reserve_attempt(request, data.get("email"))
+    except DatabaseError:
+        logger.error("login_limiter_unavailable")
+        return JsonResponse({"status": 503, "code": "login_unavailable", "detail": "Connexion temporairement indisponible. Veuillez réessayer."}, status=503)
+    if admission.retry_after:
+        logger.warning("login_rate_limited scope=%s bucket=%s retry_after=%s", admission.scope, admission.key, admission.retry_after)
+        response = JsonResponse({"status": 429, "code": "login_rate_limited", "retryAfter": admission.retry_after, "detail": f"Trop de tentatives de connexion. Réessayez dans {admission.retry_after} secondes."}, status=429)
+        response["Retry-After"] = str(admission.retry_after)
+        return response
+    try:
         profile, credential = authenticate(data.get("email"), data.get("password"))
         return JsonResponse({"accessToken": issue_token(profile), "profile": _serialize_profile(profile), "mustChangePassword": False})
     except (ValidationError, LocalAuthenticationError) as error:

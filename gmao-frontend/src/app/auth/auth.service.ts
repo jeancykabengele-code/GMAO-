@@ -45,5 +45,16 @@ export class AuthService {
   private applyProfile(data: BackendUserProfile): UserProfile { if (!data.active || !this.isKnownRole(data.role)) throw new GmaoAuthError('invalid_profile', 'Votre profil n’est pas autorisé.'); const profile: UserProfile = { id:data.id,email:data.email,full_name:data.fullName,role:data.role,site:data.site,active:data.active,created_at:data.createdAt,permissions:data.permissions }; this.profile.set(profile); return profile; }
   private isKnownRole(role: unknown): role is UserRole { return role === 'manager' || role === 'charge_operations' || role === 'chef_site'; }
   private clearState(): void { this.session.set(null); this.profile.set(null); this.mustChangePassword.set(false); }
-  private mapError(error: unknown): GmaoAuthError { if (error instanceof TimeoutError) return new GmaoAuthError('timeout', 'Le serveur GMAO met trop de temps à répondre.'); if (error instanceof HttpErrorResponse) { const detail = typeof error.error?.detail === 'string' ? error.error.detail : ''; if (error.status === 401) return new GmaoAuthError('invalid_credentials', detail || 'Adresse e-mail ou mot de passe incorrect.'); if (error.status === 403) return new GmaoAuthError('access_denied', detail || 'Ce profil n’est pas autorisé.'); if (error.status === 0) return new GmaoAuthError('unavailable', 'Le serveur GMAO est indisponible.'); } return new GmaoAuthError('unavailable', 'Impossible de contacter le serveur GMAO.'); }
+  private mapError(error: unknown): GmaoAuthError {
+    if (error instanceof TimeoutError) return new GmaoAuthError('timeout', 'Le serveur GMAO met trop de temps à répondre.');
+    if (error instanceof HttpErrorResponse) {
+      const detail = typeof error.error?.detail === 'string' ? error.error.detail : '';
+      if (error.status === 429) return new GmaoAuthError('rate_limited', detail || 'Trop de tentatives de connexion. Patientez avant de réessayer.');
+      if (error.status === 401) return new GmaoAuthError('invalid_credentials', detail || 'Adresse e-mail ou mot de passe incorrect.');
+      if (error.status === 403) return new GmaoAuthError('access_denied', detail || 'Ce profil n’est pas autorisé.');
+      if (error.status === 503) return new GmaoAuthError('unavailable', 'Connexion temporairement indisponible. Veuillez réessayer.');
+      if (error.status === 0) return new GmaoAuthError('unavailable', 'Le serveur GMAO est indisponible.');
+    }
+    return new GmaoAuthError('unavailable', 'Impossible de contacter le serveur GMAO.');
+  }
 }
