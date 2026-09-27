@@ -30,6 +30,9 @@ def drop_immutability_triggers(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    # MySQL does not allow CREATE TRIGGER through Django's atomic migration
+    # wrapper because its DDL cannot be rolled back.
+    atomic = False
     dependencies = [("login_guard", "0002_passwordhistory")]
     operations = [
         migrations.CreateModel(
