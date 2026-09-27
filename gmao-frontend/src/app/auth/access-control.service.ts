@@ -51,6 +51,11 @@ export class AccessControlService {
     return permissions ? permissions.manageUsers : this.profile?.role === 'manager';
   }
 
+  get canViewAuditLog(): boolean {
+    const permissions = this.profile?.permissions;
+    return permissions ? permissions.viewAuditLog : this.profile?.role === 'manager';
+  }
+
   get currentSite(): string | null {
     return this.isChefSite ? this.profile?.site ?? null : null;
   }

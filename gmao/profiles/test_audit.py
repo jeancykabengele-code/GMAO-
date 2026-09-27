@@ -1,0 +1,101 @@
+import json
+from types import SimpleNamespace
+from unittest.mock import patch
+from uuid import uuid4
+
+from django.db import DatabaseError, connection, transaction
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+
+from login_guard.limiter import Admission
+from login_guard.models import AuditLog
+
+from .audit import audit_collection, record_audit
+from .local_auth import LocalAuthenticationError
+from .views import local_login
+
+
+@override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=False)
+class AuditLogPersistenceTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory(REMOTE_ADDR="192.0.2.10")
+        self.manager = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager")
+
+    def test_records_and_filters_events_without_secrets(self):
+        request = self.factory.get("/api/audit-logs?action=profile_update&result=success&actor=manager")
+        request.gmao_profile = self.manager
+        entry = record_audit(request, "profile_update", "profile", uuid4(), details={"old": {"role": "chef_site"}, "new": {"role": "charge_operations"}})
+
+        response = audit_collection.__wrapped__.__wrapped__(request)
+
+        self.assertEqual(response.status_code, 200)
+        payload = json.loads(response.content)
+        self.assertEqual(payload["total"], 1)
+        self.assertEqual(payload["items"][0]["id"], entry.id)
+        self.assertEqual(payload["items"][0]["ipAddress"], "192.0.2.10")
+        self.assertNotIn("password", json.dumps(payload).lower())
+
+    def test_rejects_secret_fields_before_writing(self):
+        request = self.factory.post("/api/example")
+        request.gmao_profile = self.manager
+        with self.assertRaisesRegex(ValueError, "secret"):
+            record_audit(request, "test", "profile", details={"password": "never-store-this"})
+        self.assertEqual(AuditLog.objects.count(), 0)
+
+    def test_application_and_database_both_block_mutation(self):
+        request = self.factory.post("/api/example")
+        request.gmao_profile = self.manager
+        entry = record_audit(request, "test", "profile")
+        entry.result = "failure"
+        with self.assertRaisesRegex(TypeError, "immuable"):
+            entry.save()
+        with self.assertRaisesRegex(TypeError, "immuable"):
+            AuditLog.objects.filter(id=entry.id).delete()
+        with self.assertRaises(DatabaseError):
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute("UPDATE audit_log SET result = %s WHERE id = %s", ["failure", entry.id])
+        entry.refresh_from_db()
+        self.assertEqual(entry.result, "success")
+
+    def test_operations_lead_cannot_read_audit_log(self):
+        request = self.factory.get("/api/audit-logs")
+        request.gmao_profile = SimpleNamespace(id=uuid4(), email="operations@example.com", role="charge_operations")
+        response = audit_collection.__wrapped__.__wrapped__(request)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(json.loads(response.content)["code"], "audit_log_denied")
+
+
+class LoginAuditTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory(REMOTE_ADDR="192.0.2.20")
+
+    @patch("profiles.audit.record_audit")
+    @patch("profiles.views._serialize_profile", return_value={"id": "manager"})
+    @patch("profiles.views.issue_token", return_value="signed-token")
+    @patch("profiles.views.authenticate")
+    @patch("profiles.views.reserve_attempt", return_value=Admission(0, "pair", "opaque"))
+    def test_successful_login_is_audited(self, reserve, authenticate, issue_token, serialize, audit):
+        profile = SimpleNamespace(id=uuid4(), email="manager@example.com")
+        authenticate.return_value = (profile, SimpleNamespace())
+        request = self.factory.post("/api/auth/local/login", data=json.dumps({"email": profile.email, "password": "not-logged"}), content_type="application/json")
+
+        response = local_login(request)
+
+        self.assertEqual(response.status_code, 200)
+        audit.assert_called_once()
+        self.assertEqual(audit.call_args.args[1:3], ("login", "session"))
+        self.assertEqual(audit.call_args.kwargs["target_id"], profile.id)
+        self.assertNotIn("password", repr(audit.call_args).lower())
+
+    @patch("profiles.audit.record_audit")
+    @patch("profiles.views.authenticate", side_effect=LocalAuthenticationError("Identifiants invalides."))
+    @patch("profiles.views.reserve_attempt", return_value=Admission(0, "pair", "opaque"))
+    def test_failed_login_is_audited_without_password(self, reserve, authenticate, audit):
+        request = self.factory.post("/api/auth/local/login", data=json.dumps({"email": "unknown@example.com", "password": "not-logged"}), content_type="application/json")
+
+        response = local_login(request)
+
+        self.assertEqual(response.status_code, 401)
+        audit.assert_called_once()
+        self.assertEqual(audit.call_args.kwargs["result"], "failure")
+        self.assertNotIn("not-logged", repr(audit.call_args))

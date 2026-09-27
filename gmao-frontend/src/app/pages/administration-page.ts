@@ -12,6 +12,7 @@ import { AccessControlService } from '../auth/access-control.service';
         <nav class="administration-tabs" aria-label="Sections d’administration">
           <a routerLink="sites" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Gestion des sites</a>
           @if (access.canManageUsers) { <a routerLink="utilisateurs" routerLinkActive="active">Gestion des utilisateurs</a> }
+          @if (access.canViewAuditLog) { <a routerLink="journal-audit" routerLinkActive="active">Journal d’audit</a> }
         </nav>
       </header>
       <router-outlet></router-outlet>

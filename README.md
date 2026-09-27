@@ -140,6 +140,13 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - La suppression est refusée pour son propre compte, pour un profil encore affecté à un site, ou dès qu’une donnée métier a été créée ou modifiée par ce profil.
 - Dans ces cas, il faut désactiver le compte afin de conserver l’historique et empêcher toute nouvelle connexion.
 
+### Journal d’audit
+
+- Seul le Manager peut ouvrir **Administration → Journal d’audit**.
+- Les connexions, échecs, changements et réinitialisations de mot de passe, opérations sur les comptes et suppressions sensibles y sont historisés.
+- Le journal affiche l’acteur, la date, l’adresse IP, la cible, le résultat et les changements utiles, sans mot de passe ni jeton.
+- La table et l’API sont append-only : aucune modification ou suppression d’un événement n’est exposée.
+
 
 ### Documentation et exports Excel XLSX
 
@@ -368,8 +375,9 @@ La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et 
 - `gmao_notifications` : alertes et notifications personnelles du Manager et du Chef des opérations.
 - `gmao_login_buckets` : compteurs techniques de limitation des connexions.
 - `gmao_password_history` : cinq anciens hachages au maximum par profil, utilisés uniquement contre la réutilisation.
+- `audit_log` : journal append-only des événements de sécurité et des actions sensibles.
 
-Les tables métier existantes utilisent `managed = False`. Les deux tables techniques sont créées par les migrations versionnées de l’application `login_guard` au démarrage.
+Les tables métier existantes utilisent `managed = False`. Les trois tables techniques sont créées par les migrations versionnées de l’application `login_guard` au démarrage.
 
 ### Création d’un utilisateur
 
@@ -598,7 +606,6 @@ Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-buil
 - Import massif de données au format Excel XLSX avec validation et rapport d’erreurs.
 - Réduction future de la taille du bundle initial et des styles partagés.
 - Supervision plus détaillée de la latence API et des échecs d’enregistrement.
-- Historique d’audit métier plus complet.
 
 ## Audit de préparation — 12 septembre 2026
 
@@ -639,7 +646,7 @@ Ce README décrit l’état vérifié du projet GMAO ORDC au **22 septembre 2026
 
 ## Administration
 
-La page unique **Administration** regroupe deux onglets : **Gestion des sites** et **Affectation des chefs de site**. Elle est réservée au Manager GMAO et au Chargé des opérations.
+La page **Administration** reste visible au Manager et au Chargé des opérations pour la gestion des sites. Les onglets **Gestion des utilisateurs** et **Journal d’audit** sont visibles uniquement par le Manager et protégés à nouveau par Django.
 
 - ajouter un site avec un nom et un code unique ;
 - modifier le code d’un site ;

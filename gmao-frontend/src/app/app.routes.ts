@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth/auth.guard';
+import { auditLogGuard } from './auth/audit-log.guard';
 import { globalRoleGuard } from './auth/global-role.guard';
 import { manageUsersGuard } from './auth/manage-users.guard';
 import { portalEntryGuard } from './auth/portal-entry.guard';
@@ -33,6 +34,7 @@ export const routes: Routes = [
           { path: '', redirectTo: 'sites', pathMatch: 'full' },
           { path: 'sites', loadComponent: () => import('./pages/sites-admin-page').then((module) => module.SitesAdminPageComponent) },
           { path: 'utilisateurs', loadComponent: () => import('./pages/users-admin-page').then((module) => module.UsersAdminPageComponent), canActivate: [manageUsersGuard] },
+          { path: 'journal-audit', loadComponent: () => import('./pages/audit-log-page').then((module) => module.AuditLogPageComponent), canActivate: [auditLogGuard] },
         ],
       },
       { path: 'a-propos', loadComponent: () => import('./pages/a-propos').then((module) => module.AProposComponent) },

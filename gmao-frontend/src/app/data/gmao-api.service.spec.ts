@@ -36,4 +36,17 @@ describe('GmaoApiService user administration', () => {
     request.flush({ status: 'password_set' });
     await result;
   });
+
+  it('charge le journal avec ses filtres et le jeton Manager', async () => {
+    const result = api.listAuditLogs({ action: 'login', result: 'failure', actor: 'manager', limit: 50, offset: 0 });
+    await Promise.resolve();
+    const request = http.expectOne(`${environment.apiUrl}/api/audit-logs?action=login&result=failure&actor=manager&limit=50&offset=0`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer manager-session-token');
+    expect(request.request.params.get('action')).toBe('login');
+    expect(request.request.params.get('result')).toBe('failure');
+    expect(request.request.params.get('actor')).toBe('manager');
+    request.flush({ items: [], total: 0, limit: 50, offset: 0 });
+    await expect(result).resolves.toEqual({ items: [], total: 0, limit: 50, offset: 0 });
+  });
 });

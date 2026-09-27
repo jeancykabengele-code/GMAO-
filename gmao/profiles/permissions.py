@@ -19,6 +19,7 @@ class GmaoPermissions:
     modify_existing: bool
     delete_records: bool
     manage_users: bool
+    view_audit_log: bool
     allowed_sites: list[str]
 
     def as_dict(self) -> dict:
@@ -30,6 +31,7 @@ class GmaoPermissions:
             "modifyExisting": self.modify_existing,
             "deleteRecords": self.delete_records,
             "manageUsers": self.manage_users,
+            "viewAuditLog": self.view_audit_log,
             "allowedSites": self.allowed_sites,
         }
 
@@ -49,6 +51,7 @@ def build_permissions(profile: UserProfile) -> GmaoPermissions:
         modify_existing=is_global,
         delete_records=is_global,
         manage_users=profile.role == "manager",
+        view_audit_log=profile.role == "manager",
         allowed_sites=[site for site in allowed_sites if site],
     )
 
@@ -97,3 +100,8 @@ def assert_global_page_access(profile: UserProfile) -> None:
 def assert_manage_users(profile: UserProfile) -> None:
     if profile.role != "manager":
         raise PermissionDeniedError("La gestion des utilisateurs est réservée au Manager GMAO.")
+
+
+def assert_view_audit_log(profile: UserProfile) -> None:
+    if profile.role != "manager":
+        raise PermissionDeniedError("Le journal d’audit est réservé au Manager GMAO.")

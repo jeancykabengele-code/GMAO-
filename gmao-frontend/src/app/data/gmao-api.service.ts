@@ -21,6 +21,9 @@ export type GmaoResource =
 export type PersistedRow = Record<string, unknown> & { id?: string; site?: string };
 export interface SiteRecord { name: string; code: string; active: boolean; }
 export interface ProfileRecord { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; }
+export interface AuditLogRecord { id: number; actorId: string | null; actorEmail: string; action: string; targetType: string; targetId: string; result: 'success' | 'failure' | 'blocked'; ipAddress: string; details: Record<string, unknown>; createdAt: string; }
+export interface AuditLogPage { items: AuditLogRecord[]; total: number; limit: number; offset: number; }
+export interface AuditLogFilters { action?: string; result?: string; actor?: string; targetType?: string; from?: string; to?: string; limit?: number; offset?: number; }
 
 @Injectable({ providedIn: 'root' })
 export class GmaoApiService {
@@ -59,6 +62,17 @@ export class GmaoApiService {
   async listProfiles(): Promise<ProfileRecord[]> {
     return firstValueFrom(this.http.get<ProfileRecord[]>(`${environment.apiUrl}/api/profiles`, {
       headers: await this.authHeaders(),
+    }));
+  }
+
+  async listAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogPage> {
+    const parameters: Record<string, string> = {};
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') parameters[key] = String(value);
+    });
+    return firstValueFrom(this.http.get<AuditLogPage>(`${environment.apiUrl}/api/audit-logs`, {
+      headers: await this.authHeaders(),
+      params: parameters,
     }));
   }
 

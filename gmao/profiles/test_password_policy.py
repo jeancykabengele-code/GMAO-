@@ -7,7 +7,7 @@ from uuid import uuid4
 from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ValidationError
 from django.db import connection
-from django.test import RequestFactory, SimpleTestCase, TransactionTestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, TransactionTestCase, override_settings
 
 from login_guard.models import PasswordHistory
 from .local_auth import (
@@ -115,10 +115,11 @@ class PasswordHistoryTests(TransactionTestCase):
             verify_current_password(profile, "wrong-password")
 
 
-class PasswordEndpointTests(SimpleTestCase):
+class PasswordEndpointTests(TestCase):
+    @patch("profiles.audit.record_audit")
     @patch("profiles.views.profile_from_token")
     @patch("profiles.views.change_password")
-    def test_returns_503_when_compromise_service_is_unavailable(self, change, profile_from_token):
+    def test_returns_503_when_compromise_service_is_unavailable(self, change, profile_from_token, audit):
         change.side_effect = PasswordCompromiseCheckUnavailable("Contrôle indisponible.")
         profile_from_token.return_value = SimpleNamespace(id=uuid4())
         request = RequestFactory().post(
@@ -132,3 +133,4 @@ class PasswordEndpointTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(json.loads(response.content)["code"], "password_check_unavailable")
+        audit.assert_called_once()

@@ -45,6 +45,7 @@ class PermissionPolicyTests(SimpleTestCase):
         self.assertFalse(permissions.view_dashboard)
         self.assertFalse(permissions.view_documentation)
         self.assertFalse(permissions.manage_users)
+        self.assertFalse(permissions.view_audit_log)
         assert_can_create(chef, "Goma")
         assert_site_access(chef, "Goma")
         with self.assertRaises(PermissionDeniedError):
@@ -70,6 +71,7 @@ class PermissionPolicyTests(SimpleTestCase):
             self.assertTrue(permissions.modify_existing)
             self.assertTrue(permissions.delete_records)
             self.assertEqual(permissions.manage_users, role == "manager")
+            self.assertEqual(permissions.view_audit_log, role == "manager")
             assert_site_access(profile, "Utex")
             with self.assertRaises(PermissionDeniedError):
                 assert_can_create(profile, "Utex")
@@ -167,6 +169,7 @@ class ApiTests(TestCase):
             "modifyExisting": True,
             "deleteRecords": False,
             "manageUsers": True,
+            "viewAuditLog": True,
             "allowedSites": ["Goma", "Utex"],
         }
 

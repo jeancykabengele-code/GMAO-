@@ -9,7 +9,7 @@ const policy = config.headers.flatMap(rule => rule.headers).find(header => heade
 const api = 'https://gmao-ordc-api.onrender.com';
 const tokenKey = 'gmao-local-access-token';
 const profile = { id: 'csp-test-user', email: 'csp@example.invalid', fullName: 'Test CSP', role: 'manager', site: null, active: true,
-  permissions: { globalScope: true, viewDashboard: true, viewDocumentation: true, createRecords: false, modifyExisting: true, deleteRecords: true, manageUsers: true, allowedSites: ['Goma'] } };
+  permissions: { globalScope: true, viewDashboard: true, viewDocumentation: true, createRecords: false, modifyExisting: true, deleteRecords: true, manageUsers: true, viewAuditLog: true, allowedSites: ['Goma'] } };
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.woff2': 'font/woff2' };
 const root = resolve('dist/gmao-frontend/browser');
 let server;
@@ -53,6 +53,7 @@ try {
       if (url.pathname.endsWith('/auth/local/login')) data = { accessToken: 'csp-fake-tab-token', profile };
       else if (url.pathname.endsWith('/me')) data = profile;
       else if (url.pathname.includes('/notifications')) data = { items: [], unreadCount: 0 };
+      else if (url.pathname.endsWith('/audit-logs')) data = { items: [], total: 0, limit: 50, offset: 0 };
       else if (url.pathname.endsWith('/sites')) data = [{ name: 'Goma', code: 'GOM', active: true }];
       await route.fulfill({ status: 200, headers, contentType: 'application/json', body: JSON.stringify(data) });
     } else if (url.origin === origin || url.protocol === 'blob:') {
@@ -93,7 +94,7 @@ try {
   await page.locator('.sidebar').waitFor();
   assert.equal(await page.evaluate(key => localStorage.getItem(key), tokenKey), null);
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), tokenKey), 'csp-fake-tab-token');
-  for (const path of ['accueil', 'equipements', 'gestion-tickets', 'maintenance/interventions-realisees', 'maintenance/suivi-groupes-electrogenes', 'pieces-rechange', 'fuel-ge', 'consommation-groupes-ge', 'pue', 'ravitaillement-fuel', 'problemes-datacenter', 'administration/sites', 'administration/utilisateurs', 'documentations']) {
+  for (const path of ['accueil', 'equipements', 'gestion-tickets', 'maintenance/interventions-realisees', 'maintenance/suivi-groupes-electrogenes', 'pieces-rechange', 'fuel-ge', 'consommation-groupes-ge', 'pue', 'ravitaillement-fuel', 'problemes-datacenter', 'administration/sites', 'administration/utilisateurs', 'administration/journal-audit', 'documentations']) {
     await page.goto(`${base}/${path}`, { waitUntil: 'domcontentloaded' });
     await page.locator('.sidebar').waitFor();
     await page.locator('main > router-outlet + *').waitFor();
@@ -122,7 +123,7 @@ try {
   assert.equal(await page.evaluate(() => window.__injectedScriptRan), undefined);
   await page.evaluate(async () => { try { await fetch('https://example.invalid/csp-exfiltration-test'); } catch { /* Expected. */ } });
   await page.waitForFunction(() => window.__cspViolations.some(item => item.directive === 'connect-src'));
-  console.log('CSP browser checks passed: public home, login, 14 internal routes, reload, XLSX, logout, blocked injection and external connection. API fully mocked.');
+  console.log('CSP browser checks passed: public home, login, 15 internal routes, reload, XLSX, logout, blocked injection and external connection. API fully mocked.');
 } catch (error) {
   console.error(JSON.stringify({ url: page?.url(), apiCalls, errors, violations, failedRequests,
     loginError: page ? await page.locator('.login-message').allTextContents().catch(() => []) : [] }, null, 2));

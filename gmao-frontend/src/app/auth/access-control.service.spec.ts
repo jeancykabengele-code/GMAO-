@@ -63,6 +63,7 @@ describe('AccessControlService', () => {
     const basePermissions = {
       globalScope: true, viewDashboard: true, viewDocumentation: true,
       createRecords: false, modifyExisting: true, deleteRecords: true,
+      viewAuditLog: false,
       allowedSites: ['Goma'],
     };
     profileState.set({
@@ -71,13 +72,15 @@ describe('AccessControlService', () => {
       permissions: { ...basePermissions, manageUsers: false },
     });
     expect(access.canManageUsers).toBe(false);
+    expect(access.canViewAuditLog).toBe(false);
 
     profileState.set({
       id: 'manager', email: 'manager@ordc.cd', full_name: 'Manager',
       role: 'manager', site: null, active: true,
-      permissions: { ...basePermissions, manageUsers: true },
+      permissions: { ...basePermissions, manageUsers: true, viewAuditLog: true },
     });
     expect(access.canManageUsers).toBe(true);
+    expect(access.canViewAuditLog).toBe(true);
   });
 
   it('reserves new data entry to chefs de site while global roles retain editing', () => {

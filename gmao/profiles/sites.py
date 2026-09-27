@@ -1,10 +1,11 @@
 import json
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse, JsonResponse
 
 from .models import (DatacenterProblem, Equipment, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
+from .audit import record_audit
 from .permissions import assert_global_page_access
 from .views import require_authenticated_user
 
@@ -82,7 +83,10 @@ def site_detail(request, site_name):
             return _error("Ce site possède encore des données métier. Désactivez-le plutôt que de le supprimer.", 409)
         if UserProfile.objects.filter(site=site.name).exists():
             return _error("Ce site est encore associé à un utilisateur. Réaffectez-le avant de le supprimer.", 409)
-        site.delete()
+        snapshot = _serialize(site)
+        with transaction.atomic():
+            site.delete()
+            record_audit(request, "site_delete", "site", site_name, details={"old": snapshot})
         return HttpResponse(status=204)
     if request.method not in {"PATCH", "PUT"}:
         return _error("Méthode non autorisée.", 405)

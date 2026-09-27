@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .audit import audit_collection
 from .notifications import mark_all_notifications_read, mark_notification_read, notification_collection
 from .records import record_collection, record_detail
 from .sites import site_collection, site_detail
@@ -20,6 +21,7 @@ urlpatterns = [
     path('profiles/<uuid:profile_id>', profile_detail),
     path('profiles/<uuid:profile_id>/delete', profile_delete),
     path('profiles/<uuid:profile_id>/password', profile_password),
+    path('audit-logs', audit_collection),
     path("records/<slug:resource>", record_collection),
     path("records/<slug:resource>/<uuid:record_id>", record_detail),
 ]

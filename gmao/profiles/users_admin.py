@@ -6,6 +6,7 @@ from django.db import transaction
 from django.http import JsonResponse
 
 from login_guard.models import PasswordHistory
+from .audit import record_audit
 from .local_auth import LocalAuthenticationError, PasswordCompromiseCheckUnavailable, set_local_password, verify_current_password
 from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, LocalCredential, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_manage_users
@@ -86,6 +87,7 @@ def profile_collection(request):
         with transaction.atomic():
             profile = UserProfile.objects.create(id=uuid4(), email=email, full_name=full_name, role=role, site=site_name, active=True)
             set_local_password(profile.id, data.get("password"))
+            record_audit(request, "profile_create", "profile", profile.id, details={"email": profile.email, "role": profile.role, "site": profile.site, "active": profile.active})
         return JsonResponse(_serialize(profile), status=201)
     except ValidationError as error:
         return JsonResponse({"status": 400, "code": "profile_creation_failed", "detail": error.messages[0]}, status=400)
@@ -109,11 +111,14 @@ def profile_delete(request, profile_id):
         if _profile_has_business_history(profile.id):
             raise ValidationError("Ce profil possède un historique métier. Désactivez-le plutôt que de le supprimer.")
 
-        LocalCredential.objects.filter(profile_id=profile.id).delete()
-        PasswordHistory.objects.filter(profile_id=profile.id).delete()
-
-        profile.delete()
-        return JsonResponse({"status": "deleted", "id": str(profile.id)})
+        deleted_id = str(profile.id)
+        deleted_snapshot = {"email": profile.email, "role": profile.role, "site": profile.site, "active": profile.active}
+        with transaction.atomic():
+            LocalCredential.objects.filter(profile_id=profile.id).delete()
+            PasswordHistory.objects.filter(profile_id=profile.id).delete()
+            profile.delete()
+            record_audit(request, "profile_delete", "profile", deleted_id, details={"old": deleted_snapshot})
+        return JsonResponse({"status": "deleted", "id": deleted_id})
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable."}, status=404)
     except ValidationError as error:
@@ -149,12 +154,12 @@ def profile_detail(request, profile_id):
                 raise ValidationError("Un chef de site doit être associé à un site actif.")
         elif site_name:
             raise ValidationError("Seul un chef de site peut être associé à un site.")
-        profile.full_name = full_name
-        profile.role = role
-        profile.site = site_name
-        profile.active = active
-        UserProfile.objects.filter(id=profile.id).update(full_name=full_name, role=role, site=site_name, active=active)
-        profile.refresh_from_db()
+        old = {"fullName": profile.full_name, "role": profile.role, "site": profile.site, "active": profile.active}
+        new = {"fullName": full_name, "role": role, "site": site_name, "active": active}
+        with transaction.atomic():
+            UserProfile.objects.filter(id=profile.id).update(full_name=full_name, role=role, site=site_name, active=active)
+            profile.refresh_from_db()
+            record_audit(request, "profile_update", "profile", profile.id, details={"old": old, "new": new})
         return JsonResponse(_serialize(profile))
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable."}, status=404)
@@ -173,13 +178,18 @@ def profile_password(request, profile_id):
         profile = UserProfile.objects.get(id=profile_id, active=True)
         data = _payload(request)
         verify_current_password(request.gmao_profile, data.get("managerPassword"))
-        set_local_password(profile.id, data.get("password"))
+        with transaction.atomic():
+            set_local_password(profile.id, data.get("password"))
+            record_audit(request, "password_reset", "profile", profile.id, details={"targetEmail": profile.email})
         return JsonResponse({"status": "password_set", "profileId": str(profile.id)})
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable ou inactif."}, status=404)
     except ValidationError as error:
+        record_audit(request, "password_reset", "profile", profile_id, result="failure", details={"reason": "password_rejected"})
         return JsonResponse({"status": 400, "code": "password_rejected", "detail": error.messages[0]}, status=400)
     except LocalAuthenticationError as error:
+        record_audit(request, "password_reset", "profile", profile_id, result="failure", details={"reason": "manager_reauthentication_failed"})
         return JsonResponse({"status": 403, "code": "manager_reauthentication_failed", "detail": str(error)}, status=403)
     except PasswordCompromiseCheckUnavailable as error:
+        record_audit(request, "password_reset", "profile", profile_id, result="failure", details={"reason": "compromise_check_unavailable"})
         return JsonResponse({"status": 503, "code": "password_check_unavailable", "detail": str(error)}, status=503)

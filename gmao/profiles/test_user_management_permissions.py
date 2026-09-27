@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from .local_auth import LocalAuthenticationError
 from .users_admin import profile_collection, profile_delete, profile_detail, profile_password
@@ -36,11 +36,11 @@ class UserManagementAuthorizationTests(SimpleTestCase):
                 self.assertEqual(json.loads(response.content)["code"], "profile_admin_denied")
 
 
-class PasswordResetReauthenticationTests(SimpleTestCase):
+class PasswordResetReauthenticationTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
-        self.manager = SimpleNamespace(id=uuid4(), role="manager", site=None)
-        self.target = SimpleNamespace(id=uuid4(), active=True)
+        self.manager = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager", site=None)
+        self.target = SimpleNamespace(id=uuid4(), email="target@example.com", active=True)
 
     def request(self, manager_password="Manager-current-password"):
         request = self.factory.post(
@@ -54,10 +54,11 @@ class PasswordResetReauthenticationTests(SimpleTestCase):
         request.gmao_profile = self.manager
         return request
 
+    @patch("profiles.users_admin.record_audit")
     @patch("profiles.users_admin.set_local_password")
     @patch("profiles.users_admin.verify_current_password")
     @patch("profiles.users_admin.UserProfile.objects")
-    def test_manager_must_reauthenticate_before_reset(self, profiles, verify, set_password):
+    def test_manager_must_reauthenticate_before_reset(self, profiles, verify, set_password, audit):
         profiles.get.return_value = self.target
 
         response = undecorated(profile_password)(self.request(), self.target.id)
@@ -65,11 +66,13 @@ class PasswordResetReauthenticationTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         verify.assert_called_once_with(self.manager, "Manager-current-password")
         set_password.assert_called_once_with(self.target.id, "Target-new-password-2026")
+        audit.assert_called_once()
 
+    @patch("profiles.users_admin.record_audit")
     @patch("profiles.users_admin.set_local_password")
     @patch("profiles.users_admin.verify_current_password")
     @patch("profiles.users_admin.UserProfile.objects")
-    def test_wrong_or_missing_manager_password_blocks_reset(self, profiles, verify, set_password):
+    def test_wrong_or_missing_manager_password_blocks_reset(self, profiles, verify, set_password, audit):
         profiles.get.return_value = self.target
         verify.side_effect = LocalAuthenticationError("Le mot de passe actuel du Manager est incorrect.")
 
@@ -80,3 +83,4 @@ class PasswordResetReauthenticationTests(SimpleTestCase):
                 self.assertEqual(json.loads(response.content)["code"], "manager_reauthentication_failed")
 
         set_password.assert_not_called()
+        self.assertEqual(audit.call_count, 2)
