@@ -377,7 +377,7 @@ La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et 
 - `gmao_password_history` : cinq anciens hachages au maximum par profil, utilisés uniquement contre la réutilisation.
 - `audit_log` : journal append-only des événements de sécurité et des actions sensibles.
 
-Les tables métier existantes utilisent `managed = False`. Les trois tables techniques sont créées par les migrations versionnées de l’application `login_guard` au démarrage.
+Les 16 tables métier sont gérées par des migrations Django versionnées dans l’application `profiles`. La migration initiale adopte les tables Aiven existantes après validation du contrat structurel, sans modifier leurs lignes ; elle crée les tables uniquement sur une base neuve. Les tables techniques restent versionnées dans l’application `login_guard`. Le démarrage applique toutes les migrations puis vérifie le schéma complet. Voir [la procédure de migration et de rollback](docs/migrations-metier.md).
 
 ### Création d’un utilisateur
 

@@ -5,15 +5,14 @@ from django.db import models
 
 class UserProfile(models.Model):
     id = models.UUIDField(primary_key=True)
-    email = models.TextField()
+    email = models.CharField(max_length=320)
     full_name = models.TextField()
-    role = models.TextField()
-    site = models.TextField(null=True, blank=True)
+    role = models.CharField(max_length=320)
+    site = models.CharField(max_length=320, null=True, blank=True)
     active = models.BooleanField()
     created_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        managed = False
         db_table = "user_profiles"
 
 
@@ -26,22 +25,20 @@ class LocalCredential(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        managed = False
         db_table = "gmao_local_credentials"
 
 class Site(models.Model):
-    name = models.TextField(primary_key=True)
-    code = models.TextField()
+    name = models.CharField(max_length=255, primary_key=True)
+    code = models.CharField(max_length=320)
     active = models.BooleanField()
 
     class Meta:
-        managed = False
         db_table = "sites"
 
 
 class BusinessRecord(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    site = models.TextField()
+    site = models.CharField(max_length=320)
     created_by = models.UUIDField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.UUIDField(null=True, blank=True)
@@ -49,11 +46,10 @@ class BusinessRecord(models.Model):
 
     class Meta:
         abstract = True
-        managed = False
 
 
 class Equipment(BusinessRecord):
-    code = models.TextField()
+    code = models.CharField(max_length=320)
     nom = models.TextField()
     date_mise_en_service = models.DateField(null=True, blank=True)
     famille = models.TextField()
@@ -63,12 +59,12 @@ class Equipment(BusinessRecord):
     criticite = models.TextField()
 
     class Meta:
-        managed = False
         db_table = "gmao_equipements"
+        unique_together = ("site", "code")
 
 
 class Ticket(BusinessRecord):
-    numero = models.TextField()
+    numero = models.CharField(max_length=320)
     nature = models.TextField()
     equipement = models.TextField()
     date = models.DateField()
@@ -78,12 +74,12 @@ class Ticket(BusinessRecord):
     description = models.TextField()
 
     class Meta:
-        managed = False
         db_table = "gmao_tickets"
+        unique_together = ("site", "numero")
 
 
 class GeneratorRecord(BusinessRecord):
-    code = models.TextField()
+    code = models.CharField(max_length=320)
     type_ge = models.TextField()
     mois_releve = models.TextField()
     date_mise_en_service = models.DateField(null=True, blank=True)
@@ -97,24 +93,22 @@ class GeneratorRecord(BusinessRecord):
     commentaires = models.TextField(blank=True)
 
     class Meta:
-        managed = False
         db_table = "gmao_groupes_electrogenes"
 
 
 class GeneratorMonthlyReading(BusinessRecord):
     """Historique interne des compteurs RH mensuels des groupes électrogènes."""
-    periode = models.TextField()
-    groupe_code = models.TextField()
+    periode = models.CharField(max_length=191)
+    groupe_code = models.CharField(max_length=191)
     rh_actuel = models.DecimalField(max_digits=14, decimal_places=2)
     commentaires = models.TextField(blank=True)
 
     class Meta:
-        managed = False
         db_table = "gmao_releves_rh_ge"
         unique_together = ("site", "periode", "groupe_code")
 
 class FuelRecord(BusinessRecord):
-    periode = models.TextField()
+    periode = models.CharField(max_length=191)
     stock_initial = models.DecimalField(max_digits=16, decimal_places=3, null=True, blank=True)
     entree = models.DecimalField(max_digits=16, decimal_places=3, null=True, blank=True)
     sortie = models.DecimalField(max_digits=16, decimal_places=3)
@@ -125,8 +119,8 @@ class FuelRecord(BusinessRecord):
     disponibilite_grid = models.DecimalField(max_digits=7, decimal_places=2)
 
     class Meta:
-        managed = False
         db_table = "gmao_fuel_ge"
+        unique_together = ("site", "periode")
 
 
 class FuelDelivery(BusinessRecord):
@@ -143,25 +137,23 @@ class FuelDelivery(BusinessRecord):
     difference_stock = models.BooleanField(default=False)
 
     class Meta:
-        managed = False
         db_table = "gmao_fuel_ravitaillements"
 
 
 class GeneratorFuelConsumption(BusinessRecord):
-    periode = models.TextField()
-    groupe_code = models.TextField()
+    periode = models.CharField(max_length=191)
+    groupe_code = models.CharField(max_length=191)
     consommation_litres = models.DecimalField(max_digits=16, decimal_places=3)
     heures_ge = models.DecimalField(max_digits=14, decimal_places=2)
     litres_heure = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
     commentaires = models.TextField(blank=True)
 
     class Meta:
-        managed = False
         db_table = "gmao_consommations_groupes_ge"
         unique_together = ("site", "periode", "groupe_code")
 
 class FuelMonthlySummary(BusinessRecord):
-    periode = models.TextField()
+    periode = models.CharField(max_length=191)
     stock_initial = models.DecimalField(max_digits=16, decimal_places=3)
     entree = models.DecimalField(max_digits=16, decimal_places=3)
     sortie = models.DecimalField(max_digits=16, decimal_places=3)
@@ -169,19 +161,18 @@ class FuelMonthlySummary(BusinessRecord):
     heures_ge = models.DecimalField(max_digits=14, decimal_places=2)
 
     class Meta:
-        managed = False
         db_table = "gmao_fuel_monthly_summary"
 
 
 class PueRecord(BusinessRecord):
-    mois = models.TextField()
+    mois = models.CharField(max_length=191)
     energie_it = models.DecimalField(max_digits=18, decimal_places=3)
     energie_totale = models.DecimalField(max_digits=18, decimal_places=3)
     pue = models.DecimalField(max_digits=8, decimal_places=3)
 
     class Meta:
-        managed = False
         db_table = "gmao_pue"
+        unique_together = ("site", "mois")
 
 
 class DatacenterProblem(BusinessRecord):
@@ -196,7 +187,6 @@ class DatacenterProblem(BusinessRecord):
     prochaine_etape = models.TextField(blank=True)
 
     class Meta:
-        managed = False
         db_table = "gmao_problemes_datacenter"
 
 
@@ -211,7 +201,6 @@ class Intervention(BusinessRecord):
     statut = models.TextField()
 
     class Meta:
-        managed = False
         db_table = "gmao_interventions"
 
 
@@ -225,24 +214,23 @@ class SparePartOperation(BusinessRecord):
     statut = models.TextField()
 
     class Meta:
-        managed = False
         db_table = "gmao_pieces_rechange"
 
 class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     recipient_id = models.UUIDField()
     actor_id = models.UUIDField(null=True, blank=True)
-    site = models.TextField(null=True, blank=True)
-    event_type = models.TextField()
-    resource = models.TextField()
+    site = models.CharField(max_length=320, null=True, blank=True)
+    event_type = models.CharField(max_length=320)
+    resource = models.CharField(max_length=320)
     resource_id = models.UUIDField(null=True, blank=True)
     title = models.TextField()
     message = models.TextField()
-    severity = models.TextField(default='info')
-    dedupe_key = models.TextField(null=True, blank=True)
+    severity = models.CharField(max_length=320, default='info')
+    dedupe_key = models.CharField(max_length=191, null=True, blank=True)
     read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        managed = False
         db_table = 'gmao_notifications'
+        unique_together = ("recipient_id", "dedupe_key")

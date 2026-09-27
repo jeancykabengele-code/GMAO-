@@ -75,6 +75,12 @@ jobs:
       - name: Tester la sonde de disponibilité
         run: python -m unittest discover -s ../ops -p "test_*.py" -v
       - run: python manage.py test
+      - name: Tester l'adoption et le rollback non destructif sur MySQL
+        run: python scripts/test_business_migration_rollback.py
+        env:
+          GMAO_MYSQL_TESTS: "1"
+          GMAO_MIGRATION_ROLLBACK_TESTS: "1"
+          DJANGO_SETTINGS_MODULE: gmao_backend.mysql_test_settings
       - name: Vérifier les compteurs concurrents sur MySQL
         run: python manage.py test login_guard profiles.test_password_policy.PasswordHistoryTests --settings=gmao_backend.mysql_test_settings --verbosity 2
         env:
