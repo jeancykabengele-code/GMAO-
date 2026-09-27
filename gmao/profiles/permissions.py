@@ -18,6 +18,7 @@ class GmaoPermissions:
     create_records: bool
     modify_existing: bool
     delete_records: bool
+    manage_users: bool
     allowed_sites: list[str]
 
     def as_dict(self) -> dict:
@@ -28,6 +29,7 @@ class GmaoPermissions:
             "createRecords": self.create_records,
             "modifyExisting": self.modify_existing,
             "deleteRecords": self.delete_records,
+            "manageUsers": self.manage_users,
             "allowedSites": self.allowed_sites,
         }
 
@@ -46,6 +48,7 @@ def build_permissions(profile: UserProfile) -> GmaoPermissions:
         create_records=profile.role == "chef_site",
         modify_existing=is_global,
         delete_records=is_global,
+        manage_users=profile.role == "manager",
         allowed_sites=[site for site in allowed_sites if site],
     )
 
@@ -89,3 +92,8 @@ def assert_can_delete_ticket(profile: UserProfile) -> None:
 def assert_global_page_access(profile: UserProfile) -> None:
     if profile.role not in GLOBAL_ROLES:
         raise PermissionDeniedError("Cette page est réservée au Manager GMAO et au Chargé des opérations.")
+
+
+def assert_manage_users(profile: UserProfile) -> None:
+    if profile.role != "manager":
+        raise PermissionDeniedError("La gestion des utilisateurs est réservée au Manager GMAO.")

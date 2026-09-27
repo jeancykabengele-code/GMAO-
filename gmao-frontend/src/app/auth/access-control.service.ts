@@ -46,6 +46,11 @@ export class AccessControlService {
     return this.profile?.permissions?.deleteRecords ?? false;
   }
 
+  get canManageUsers(): boolean {
+    const permissions = this.profile?.permissions;
+    return permissions ? permissions.manageUsers : this.profile?.role === 'manager';
+  }
+
   get currentSite(): string | null {
     return this.isChefSite ? this.profile?.site ?? null : null;
   }

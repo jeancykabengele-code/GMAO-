@@ -148,6 +148,15 @@ def authenticate(email: object, password: object):
         raise LocalAuthenticationError(str(error)) from error
 
 
+def verify_current_password(profile: UserProfile, password: object) -> None:
+    try:
+        credential = LocalCredential.objects.get(profile_id=profile.id)
+    except LocalCredential.DoesNotExist as error:
+        raise LocalAuthenticationError("Le mot de passe actuel du Manager est incorrect.") from error
+    if not check_password(str(password or ""), credential.password_hash):
+        raise LocalAuthenticationError("Le mot de passe actuel du Manager est incorrect.")
+
+
 def issue_token(profile: UserProfile) -> str:
     return signing.dumps({"sub": str(profile.id)}, salt=TOKEN_SALT, compress=True)
 

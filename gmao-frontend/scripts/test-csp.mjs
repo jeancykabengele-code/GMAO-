@@ -8,7 +8,8 @@ const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.u
 const policy = config.headers.flatMap(rule => rule.headers).find(header => header.key === 'Content-Security-Policy').value;
 const api = 'https://gmao-ordc-api.onrender.com';
 const tokenKey = 'gmao-local-access-token';
-const profile = { id: 'csp-test-user', email: 'csp@example.invalid', fullName: 'Test CSP', role: 'manager', site: null, active: true };
+const profile = { id: 'csp-test-user', email: 'csp@example.invalid', fullName: 'Test CSP', role: 'manager', site: null, active: true,
+  permissions: { globalScope: true, viewDashboard: true, viewDocumentation: true, createRecords: false, modifyExisting: true, deleteRecords: true, manageUsers: true, allowedSites: ['Goma'] } };
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.woff2': 'font/woff2' };
 const root = resolve('dist/gmao-frontend/browser');
 let server;

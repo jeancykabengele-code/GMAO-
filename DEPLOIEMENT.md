@@ -54,6 +54,8 @@ Au démarrage Docker, `python manage.py migrate login_guard --noinput` crée les
 
 La [politique des mots de passe](docs/politique-mots-de-passe.md) impose 14 caractères, bloque les valeurs courantes ou compromises et conserve cinq anciens hachages pour empêcher leur réutilisation. Render active explicitement la vérification anonymisée Pwned Passwords avec `GMAO_PWNED_PASSWORD_CHECK=true`.
 
+La [gestion des utilisateurs](docs/gestion-utilisateurs.md) est réservée au Manager par la permission serveur `manageUsers`. Une réinitialisation exige également son mot de passe actuel ; le masquage du lien et la garde Angular complètent le contrôle Django sans le remplacer.
+
 Sur Render (`RENDER=true`, fourni par la plateforme), la source est l'en-tête `CF-Connecting-IP` réécrit par l'entrée publique Cloudflare. `X-Forwarded-For` est ignoré ; en local, seule `REMOTE_ADDR` est utilisée. Un en-tête absent/invalide partage le quota `unknown`. Les IPv6 sont regroupées par `/64`. Ne pas exposer directement le conteneur à des clients non fiables en conservant `RENDER=true` : l'en-tête n'est fiable que derrière l'entrée Render/Cloudflare. Voir [les indications Render sur le proxy](https://render.com/articles/host-pocketbase-on-render).
 
 `python manage.py purge_login_buckets` supprime uniquement les fenêtres de plus de 24 heures. Cette purge est exécutée au démarrage Docker ; la planifier aussi quotidiennement sur l'environnement d'exploitation pour éviter l'accumulation entre deux déploiements. Une modification de `DJANGO_SECRET_KEY` change les clés HMAC et redémarre les quotas.

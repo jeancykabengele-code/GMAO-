@@ -11,10 +11,12 @@ from django.test import RequestFactory, SimpleTestCase, TransactionTestCase, ove
 
 from login_guard.models import PasswordHistory
 from .local_auth import (
+    LocalAuthenticationError,
     PasswordCompromiseCheckUnavailable,
     change_password,
     set_local_password,
     validate_password,
+    verify_current_password,
 )
 from .models import LocalCredential
 from .views import local_change_password
@@ -102,6 +104,15 @@ class PasswordHistoryTests(TransactionTestCase):
             set_local_password(self.profile_id, password)
 
         self.assertEqual(PasswordHistory.objects.filter(profile_id=self.profile_id).count(), 5)
+
+    def test_manager_current_password_is_verified_against_the_hash(self):
+        password = "Manager-current-password-2026"
+        profile = SimpleNamespace(id=self.profile_id)
+        set_local_password(self.profile_id, password)
+
+        verify_current_password(profile, password)
+        with self.assertRaises(LocalAuthenticationError):
+            verify_current_password(profile, "wrong-password")
 
 
 class PasswordEndpointTests(SimpleTestCase):

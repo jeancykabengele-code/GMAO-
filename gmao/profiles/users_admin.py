@@ -6,9 +6,9 @@ from django.db import transaction
 from django.http import JsonResponse
 
 from login_guard.models import PasswordHistory
-from .local_auth import PasswordCompromiseCheckUnavailable, set_local_password
+from .local_auth import LocalAuthenticationError, PasswordCompromiseCheckUnavailable, set_local_password, verify_current_password
 from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, LocalCredential, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
-from .permissions import assert_global_page_access
+from .permissions import assert_manage_users
 from .services import ALLOWED_ROLES
 from .views import require_authenticated_user
 
@@ -45,7 +45,7 @@ def _profile_has_business_history(profile_id):
 
 def _deny_or_none(request):
     try:
-        assert_global_page_access(request.gmao_profile)
+        assert_manage_users(request.gmao_profile)
     except Exception as error:
         return JsonResponse({"status": 403, "code": "profile_admin_denied", "detail": str(error)}, status=403)
     return None
@@ -172,11 +172,14 @@ def profile_password(request, profile_id):
     try:
         profile = UserProfile.objects.get(id=profile_id, active=True)
         data = _payload(request)
+        verify_current_password(request.gmao_profile, data.get("managerPassword"))
         set_local_password(profile.id, data.get("password"))
         return JsonResponse({"status": "password_set", "profileId": str(profile.id)})
     except UserProfile.DoesNotExist:
         return JsonResponse({"detail": "Utilisateur introuvable ou inactif."}, status=404)
     except ValidationError as error:
         return JsonResponse({"status": 400, "code": "password_rejected", "detail": error.messages[0]}, status=400)
+    except LocalAuthenticationError as error:
+        return JsonResponse({"status": 403, "code": "manager_reauthentication_failed", "detail": str(error)}, status=403)
     except PasswordCompromiseCheckUnavailable as error:
         return JsonResponse({"status": 503, "code": "password_check_unavailable", "detail": str(error)}, status=503)

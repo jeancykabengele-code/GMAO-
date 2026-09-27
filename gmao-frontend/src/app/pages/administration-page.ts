@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { AccessControlService } from '../auth/access-control.service';
 
 @Component({
   selector: 'app-administration-page',
@@ -10,7 +11,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       <header class="administration-header">
         <nav class="administration-tabs" aria-label="Sections d’administration">
           <a routerLink="sites" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Gestion des sites</a>
-          <a routerLink="utilisateurs" routerLinkActive="active">Gestion des utilisateurs</a>
+          @if (access.canManageUsers) { <a routerLink="utilisateurs" routerLinkActive="active">Gestion des utilisateurs</a> }
         </nav>
       </header>
       <router-outlet></router-outlet>
@@ -29,4 +30,6 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     @media (max-width:800px) { .administration-header { align-items:stretch; flex-direction:column; } .administration-tabs { width:100%; } }
   `,
 })
-export class AdministrationPageComponent {}
+export class AdministrationPageComponent {
+  readonly access = inject(AccessControlService);
+}

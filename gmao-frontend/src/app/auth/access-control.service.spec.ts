@@ -59,6 +59,27 @@ describe('AccessControlService', () => {
     expect(store.canExportData).toBe(true);
   });
 
+  it('reserves user management to the manager permission', () => {
+    const basePermissions = {
+      globalScope: true, viewDashboard: true, viewDocumentation: true,
+      createRecords: false, modifyExisting: true, deleteRecords: true,
+      allowedSites: ['Goma'],
+    };
+    profileState.set({
+      id: 'operations', email: 'operations@ordc.cd', full_name: 'Chef des opérations',
+      role: 'charge_operations', site: null, active: true,
+      permissions: { ...basePermissions, manageUsers: false },
+    });
+    expect(access.canManageUsers).toBe(false);
+
+    profileState.set({
+      id: 'manager', email: 'manager@ordc.cd', full_name: 'Manager',
+      role: 'manager', site: null, active: true,
+      permissions: { ...basePermissions, manageUsers: true },
+    });
+    expect(access.canManageUsers).toBe(true);
+  });
+
   it('reserves new data entry to chefs de site while global roles retain editing', () => {
     profileState.set({
       id: 'manager', email: 'manager@ordc.cd', full_name: 'Manager', role: 'manager',

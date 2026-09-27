@@ -121,14 +121,14 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 
 ### Gestion des utilisateurs depuis le back office
 
-- Les rôles globaux peuvent ouvrir **Administration → Gestion des utilisateurs**.
+- Seul le Manager peut ouvrir **Administration → Gestion des utilisateurs**.
 - Le formulaire permet de saisir le nom complet, l’adresse e-mail, le rôle et le site du chef de site.
 
 - La désactivation conserve le compte et son historique ; elle est recommandée dès qu’un profil possède des données métier.
 
 ### Modification des profils
 
-- Le manager et le chef des opérations peuvent modifier le nom complet, le rôle, le site associé et le statut actif/inactif.
+- Seul le Manager peut modifier le nom complet, le rôle, le site associé et le statut actif/inactif des comptes.
 
 - Un chef de site doit toujours être associé à un site actif.
 - Un administrateur ne peut pas désactiver son propre compte depuis cette interface.
@@ -373,11 +373,11 @@ Les tables métier existantes utilisent `managed = False`. Les deux tables techn
 
 ### Création d’un utilisateur
 
-1. Ouvrir **Administration → Gestion des utilisateurs** avec un rôle global.
+1. Ouvrir **Administration → Gestion des utilisateurs** avec le rôle Manager.
 2. Saisir le nom, l’identifiant e-mail, le rôle, le site si nécessaire et une phrase de passe unique d’au moins 14 caractères.
 3. Django refuse les valeurs courantes, numériques, compromises ou récemment utilisées, puis enregistre uniquement le hachage du mot de passe.
 4. Les adresses e-mail servent d’identifiants : aucune boîte e-mail n’est requise.
-5. Le Manager peut réinitialiser ultérieurement un mot de passe depuis la même administration.
+5. Seul le Manager peut administrer les profils. Toute réinitialisation exige également son propre mot de passe actuel.
 ## API
 
 Toutes les routes métier, sauf les routes de santé, exigent :

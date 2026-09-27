@@ -27,6 +27,7 @@ from .permissions import (
     assert_can_delete_fuel_record,
     assert_can_modify,
     assert_global_page_access,
+    assert_manage_users,
     assert_site_access,
     build_permissions,
 )
@@ -43,6 +44,7 @@ class PermissionPolicyTests(SimpleTestCase):
         self.assertFalse(permissions.modify_existing)
         self.assertFalse(permissions.view_dashboard)
         self.assertFalse(permissions.view_documentation)
+        self.assertFalse(permissions.manage_users)
         assert_can_create(chef, "Goma")
         assert_site_access(chef, "Goma")
         with self.assertRaises(PermissionDeniedError):
@@ -67,11 +69,17 @@ class PermissionPolicyTests(SimpleTestCase):
             self.assertFalse(permissions.create_records)
             self.assertTrue(permissions.modify_existing)
             self.assertTrue(permissions.delete_records)
+            self.assertEqual(permissions.manage_users, role == "manager")
             assert_site_access(profile, "Utex")
             with self.assertRaises(PermissionDeniedError):
                 assert_can_create(profile, "Utex")
             assert_can_modify(profile, "Utex")
             assert_global_page_access(profile)
+            if role == "manager":
+                assert_manage_users(profile)
+            else:
+                with self.assertRaises(PermissionDeniedError):
+                    assert_manage_users(profile)
 
     def test_only_global_roles_can_delete_business_records(self):
         for role in ("manager", "charge_operations"):
@@ -116,7 +124,7 @@ class ProfileDeletionSafetyTests(SimpleTestCase):
     def test_profile_with_business_history_is_rejected(self, profile_objects, has_history):
         target = SimpleNamespace(id=uuid4(), site=None)
         profile_objects.get.return_value = target
-        actor = SimpleNamespace(id=uuid4(), role='charge_operations', site=None)
+        actor = SimpleNamespace(id=uuid4(), role='manager', site=None)
 
         response = profile_delete.__wrapped__.__wrapped__(self._request(actor), target.id)
 
@@ -158,6 +166,7 @@ class ApiTests(TestCase):
             "createRecords": True,
             "modifyExisting": True,
             "deleteRecords": False,
+            "manageUsers": True,
             "allowedSites": ["Goma", "Utex"],
         }
 
