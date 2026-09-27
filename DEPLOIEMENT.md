@@ -54,9 +54,9 @@ Au démarrage Docker, `python manage.py migrate --noinput` applique toutes les m
 
 La [politique des mots de passe](docs/politique-mots-de-passe.md) impose 14 caractères, bloque les valeurs courantes ou compromises et conserve cinq anciens hachages pour empêcher leur réutilisation. Render active explicitement la vérification anonymisée Pwned Passwords avec `GMAO_PWNED_PASSWORD_CHECK=true`.
 
-La [gestion des utilisateurs](docs/gestion-utilisateurs.md) est réservée au Manager par la permission serveur `manageUsers`. Une réinitialisation exige également son mot de passe actuel ; le masquage du lien et la garde Angular complètent le contrôle Django sans le remplacer.
+La [gestion des utilisateurs](docs/gestion-utilisateurs.md) est réservée au rôle Administrateur par la permission serveur `manageUsers`. Tant qu'aucun Administrateur actif n'existe, le Manager conserve provisoirement cet accès afin de créer le premier compte. Une réinitialisation exige le mot de passe actuel de l'Administrateur ; le masquage du lien et la garde Angular complètent le contrôle Django sans le remplacer.
 
-Le [journal d’audit](docs/journal-audit.md) est réservé au Manager. La migration `login_guard.0003_auditlog`, exécutée automatiquement au démarrage Render, crée la table append-only `audit_log` et ses déclencheurs d’immutabilité.
+Le [journal d’audit](docs/journal-audit.md) est réservé à l'Administrateur. La migration `login_guard.0003_auditlog`, exécutée automatiquement au démarrage Render, crée la table append-only `audit_log` et ses déclencheurs d’immutabilité.
 
 Sur Render (`RENDER=true`, fourni par la plateforme), la source est l'en-tête `CF-Connecting-IP` seulement lorsque l'adresse TCP est le proxy : boucle locale, réseau privé, ou plage Cloudflare publiée. Une adresse publique qui envoie cet en-tête est comptée sur sa propre adresse, pas sur la valeur de l'en-tête. `X-Forwarded-For` est ignoré ; en local, seule `REMOTE_ADDR` est utilisée. Un en-tête absent ou invalide derrière un proxy de confiance partage le quota `unknown`. Les IPv6 sont regroupées par `/64`. Voir [les indications Render sur le proxy](https://render.com/articles/host-pocketbase-on-render).
 
@@ -79,5 +79,5 @@ Vercel applique la CSP définie dans `gmao-frontend/vercel.json`. La CI vérifie
 
 - Connexion avec un compte local Django.
 - Lecture des équipements, PUE et GE.
-- Vérification des rôles Manager, Chargé des opérations et Chef de site.
+- Vérification des rôles Administrateur, Manager, Chargé des opérations et Chef de site.
 - Contrôle de `/health/database` après chaque changement de base.

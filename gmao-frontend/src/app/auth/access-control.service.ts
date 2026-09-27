@@ -20,6 +20,10 @@ export class AccessControlService {
     return this.profile?.role === 'chef_site';
   }
 
+  get isAdministrator(): boolean {
+    return this.profile?.role === 'administrator';
+  }
+
   get canAccessGlobalPages(): boolean {
     const permissions = this.profile?.permissions;
     return permissions
@@ -48,12 +52,16 @@ export class AccessControlService {
 
   get canManageUsers(): boolean {
     const permissions = this.profile?.permissions;
-    return permissions ? permissions.manageUsers : this.profile?.role === 'manager';
+    return permissions ? permissions.manageUsers : this.isAdministrator;
   }
 
   get canViewAuditLog(): boolean {
     const permissions = this.profile?.permissions;
-    return permissions ? permissions.viewAuditLog : this.profile?.role === 'manager';
+    return permissions ? permissions.viewAuditLog : this.isAdministrator;
+  }
+
+  get canAccessAdministration(): boolean {
+    return this.canManageUsers || this.canViewAuditLog;
   }
 
   get currentSite(): string | null {
@@ -61,6 +69,7 @@ export class AccessControlService {
   }
 
   get allowedSites(): string[] {
+    if (this.isAdministrator) return [];
     const serverSites = this.profile?.permissions?.allowedSites;
     if (serverSites?.length) return [...serverSites];
     return this.currentSite ? [this.currentSite] : [...ORANGE_RDC_SITES];

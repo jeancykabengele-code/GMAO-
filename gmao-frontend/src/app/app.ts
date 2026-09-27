@@ -26,7 +26,7 @@ export class AppComponent {
 
   constructor() {
     effect(() => {
-      if (this.auth.authenticated()) {
+      if (this.auth.authenticated() && !this.access.isAdministrator) {
         void this.dataStore.loadAll(true);
       }
     });

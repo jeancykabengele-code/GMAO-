@@ -95,9 +95,11 @@ class PermissionPolicyTests(SimpleTestCase):
         with self.assertRaises(PermissionDeniedError):
             assert_global_page_access(chef)
 
+    @patch("profiles.permissions.UserProfile.objects")
     @patch("profiles.permissions.Site.objects")
-    def test_global_roles_can_view_all_sites_but_cannot_create_and_can_modify(self, site_objects):
+    def test_global_roles_can_view_all_sites_but_cannot_create_and_can_modify(self, site_objects, profile_objects):
         site_objects.filter.return_value.order_by.return_value.values_list.return_value = ["Bukavu", "Goma"]
+        profile_objects.filter.return_value.exists.return_value = False
         for role in ("manager", "charge_operations"):
             profile = SimpleNamespace(role=role, site=None)
 
@@ -122,6 +124,38 @@ class PermissionPolicyTests(SimpleTestCase):
             else:
                 with self.assertRaises(PermissionDeniedError):
                     assert_manage_users(profile)
+
+    @patch("profiles.permissions.UserProfile.objects")
+    def test_administrator_has_only_administration_permissions(self, profile_objects):
+        administrator = SimpleNamespace(role="administrator", site=None)
+
+        permissions = build_permissions(administrator)
+
+        self.assertFalse(permissions.global_scope)
+        self.assertFalse(permissions.view_dashboard)
+        self.assertFalse(permissions.view_documentation)
+        self.assertFalse(permissions.create_records)
+        self.assertFalse(permissions.modify_existing)
+        self.assertFalse(permissions.delete_records)
+        self.assertTrue(permissions.manage_users)
+        self.assertTrue(permissions.view_audit_log)
+        self.assertEqual(permissions.allowed_sites, [])
+        assert_manage_users(administrator)
+        profile_objects.filter.assert_not_called()
+
+    @patch("profiles.permissions.Site.objects")
+    @patch("profiles.permissions.UserProfile.objects")
+    def test_manager_loses_administration_when_an_active_administrator_exists(self, profile_objects, site_objects):
+        profile_objects.filter.return_value.exists.return_value = True
+        site_objects.filter.return_value.order_by.return_value.values_list.return_value = ["Goma"]
+        manager = SimpleNamespace(role="manager", site=None)
+
+        permissions = build_permissions(manager)
+
+        self.assertFalse(permissions.manage_users)
+        self.assertFalse(permissions.view_audit_log)
+        with self.assertRaises(PermissionDeniedError):
+            assert_manage_users(manager)
 
     def test_only_global_roles_can_delete_business_records(self):
         for role in ("manager", "charge_operations"):
@@ -152,9 +186,9 @@ class ProfileDeletionSafetyTests(SimpleTestCase):
 
     @patch('profiles.users_admin.UserProfile.objects')
     def test_chef_site_with_active_assignment_is_rejected(self, profile_objects):
-        target = SimpleNamespace(id=uuid4(), site='Goma')
+        target = SimpleNamespace(id=uuid4(), role='chef_site', active=True, site='Goma')
         profile_objects.get.return_value = target
-        actor = SimpleNamespace(id=uuid4(), role='manager', site=None)
+        actor = SimpleNamespace(id=uuid4(), role='administrator', site=None)
 
         response = profile_delete.__wrapped__.__wrapped__(self._request(actor), target.id)
 
@@ -164,9 +198,9 @@ class ProfileDeletionSafetyTests(SimpleTestCase):
     @patch('profiles.users_admin._profile_has_business_history', return_value=True)
     @patch('profiles.users_admin.UserProfile.objects')
     def test_profile_with_business_history_is_rejected(self, profile_objects, has_history):
-        target = SimpleNamespace(id=uuid4(), site=None)
+        target = SimpleNamespace(id=uuid4(), role='manager', active=True, site=None)
         profile_objects.get.return_value = target
-        actor = SimpleNamespace(id=uuid4(), role='manager', site=None)
+        actor = SimpleNamespace(id=uuid4(), role='administrator', site=None)
 
         response = profile_delete.__wrapped__.__wrapped__(self._request(actor), target.id)
 

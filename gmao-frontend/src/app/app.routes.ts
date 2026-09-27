@@ -29,10 +29,10 @@ export const routes: Routes = [
       {
         path: 'administration',
         loadComponent: () => import('./pages/administration-page').then((module) => module.AdministrationPageComponent),
-        canActivate: [globalRoleGuard],
+        canActivate: [manageUsersGuard],
         children: [
           { path: '', redirectTo: 'sites', pathMatch: 'full' },
-          { path: 'sites', loadComponent: () => import('./pages/sites-admin-page').then((module) => module.SitesAdminPageComponent) },
+          { path: 'sites', loadComponent: () => import('./pages/sites-admin-page').then((module) => module.SitesAdminPageComponent), canActivate: [manageUsersGuard] },
           { path: 'utilisateurs', loadComponent: () => import('./pages/users-admin-page').then((module) => module.UsersAdminPageComponent), canActivate: [manageUsersGuard] },
           { path: 'journal-audit', loadComponent: () => import('./pages/audit-log-page').then((module) => module.AuditLogPageComponent), canActivate: [auditLogGuard] },
         ],

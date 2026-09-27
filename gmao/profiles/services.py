@@ -3,7 +3,7 @@ from uuid import UUID
 from .models import Site, UserProfile
 
 
-ALLOWED_ROLES = {"manager", "charge_operations", "chef_site"}
+ALLOWED_ROLES = {"administrator", "manager", "charge_operations", "chef_site"}
 
 
 class ProfileAccessError(Exception):

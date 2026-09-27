@@ -33,6 +33,10 @@ describe('AuthService login and session security', () => {
     expect(localStorage.getItem(tokenKey)).toBeNull();
   });
 
+  it('routes an administrator directly to administration', () => {
+    expect(auth.destinationFor('administrator')).toBe('/administration');
+  });
+
   it('discards legacy persistent tokens without restoring them', async () => {
     localStorage.setItem(tokenKey, 'old-persistent-token');
     await auth.initialize();

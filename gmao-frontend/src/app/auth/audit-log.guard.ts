@@ -9,5 +9,5 @@ export const auditLogGuard: CanActivateFn = async () => {
   const router = inject(Router);
 
   await auth.initialize();
-  return access.canViewAuditLog ? true : router.createUrlTree(['/administration/sites']);
+  return access.canViewAuditLog ? true : router.createUrlTree(['/accueil']);
 };

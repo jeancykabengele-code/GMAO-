@@ -1,6 +1,6 @@
 # Journal d’audit métier
 
-Le Manager consulte le journal dans **Administration → Journal d’audit**. Le Chargé des opérations conserve la gestion des sites et ses droits métier, sans accès à ce journal ni à son API `GET /api/audit-logs`.
+L'Administrateur consulte le journal dans **Administration → Journal d’audit**. Le Manager et le Chargé des opérations conservent leurs droits métier, sans accès à ce journal ni à son API `GET /api/audit-logs` après la création du premier Administrateur.
 
 La migration `login_guard.0003_auditlog` crée la table MySQL `audit_log`. Chaque entrée contient l’acteur, l’action, la cible, la date UTC, l’adresse IP obtenue depuis la source réseau de confiance, le résultat et uniquement les anciennes ou nouvelles valeurs utiles. Les mots de passe, jetons, secrets, autorisations et identifiants de connexion techniques sont refusés avant écriture.
 

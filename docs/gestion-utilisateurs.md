@@ -1,11 +1,14 @@
 # Gestion des utilisateurs et séparation des responsabilités
 
-La permission serveur `manageUsers` est accordée uniquement au rôle `manager`.
+La permission serveur `manageUsers` est accordée au rôle `administrator`.
 
-- Le Manager peut consulter, créer, modifier, désactiver et supprimer les profils, sous réserve des protections métier existantes.
-- Le Chargé des opérations conserve son périmètre métier global, la gestion des sites, les exports et la modification des fiches, mais n’accède plus à la gestion des comptes.
+- L'Administrateur peut consulter, créer, modifier, désactiver et supprimer les profils, gérer les sites et consulter le journal d'audit, sous réserve des protections existantes.
+- Le Manager et le Chargé des opérations conservent leur périmètre métier global, les exports et la modification des fiches, sans accès à la feuille Administration.
 - Le Chef de site reste limité à son site et n’accède à aucune administration des utilisateurs.
+- L'Administrateur n'accède pas aux feuilles ni aux données métier.
 
-Le lien **Gestion des utilisateurs** est masqué lorsque `manageUsers=false` et une garde Angular redirige toute navigation directe. Ces contrôles améliorent l’interface mais ne constituent pas la sécurité principale : toutes les routes `/api/profiles` vérifient à nouveau le rôle Manager dans Django et répondent HTTP 403 aux autres rôles.
+Pour amorcer la transition, le Manager conserve `manageUsers=true` uniquement tant qu'aucun Administrateur actif n'existe. Il crée le premier compte Administrateur depuis l'interface ; dès cette création, Django retire automatiquement l'accès administratif au Manager. Le dernier Administrateur actif ne peut ni se désactiver ni changer de rôle.
 
-Avant de réinitialiser le mot de passe d’un autre profil, le Manager doit saisir son propre mot de passe actuel. Django le vérifie contre le hachage local avant d’enregistrer le nouveau mot de passe de la cible. Cette valeur n’est ni conservée dans le navigateur, ni journalisée, ni incluse dans une URL.
+Le lien **Administration** est masqué lorsque `manageUsers=false` et une garde Angular redirige toute navigation directe. Ces contrôles améliorent l’interface mais ne constituent pas la sécurité principale : les routes `/api/profiles`, les écritures `/api/sites` et `GET /api/audit-logs` vérifient à nouveau la permission dans Django et répondent HTTP 403 aux autres rôles.
+
+Avant de réinitialiser le mot de passe d’un autre profil, l'Administrateur doit saisir son propre mot de passe actuel. Django le vérifie contre le hachage local avant d’enregistrer le nouveau mot de passe de la cible. Cette valeur n’est ni conservée dans le navigateur, ni journalisée, ni incluse dans une URL.

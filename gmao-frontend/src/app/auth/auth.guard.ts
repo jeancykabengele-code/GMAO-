@@ -7,7 +7,13 @@ export const authGuard: CanActivateChildFn = async (_route, state) => {
   const router = inject(Router);
 
   await auth.initialize();
-  return auth.isAuthenticated()
-    ? true
-    : router.createUrlTree(['/'], { queryParams: { returnUrl: state.url } });
+  if (!auth.isAuthenticated()) {
+    return router.createUrlTree(['/'], { queryParams: { returnUrl: state.url } });
+  }
+  if (auth.profile()?.role === 'administrator'
+      && !state.url.startsWith('/administration')
+      && !state.url.startsWith('/a-propos')) {
+    return router.createUrlTree(['/administration']);
+  }
+  return true;
 };

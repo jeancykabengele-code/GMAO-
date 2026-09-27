@@ -4,7 +4,7 @@ import { TimeoutError, firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 const LOCAL_TOKEN_KEY = 'gmao-local-access-token';
-export type UserRole = 'manager' | 'charge_operations' | 'chef_site';
+export type UserRole = 'administrator' | 'manager' | 'charge_operations' | 'chef_site';
 export interface GmaoPermissions { globalScope: boolean; viewDashboard: boolean; viewDocumentation: boolean; createRecords: boolean; modifyExisting: boolean; deleteRecords: boolean; manageUsers: boolean; viewAuditLog: boolean; allowedSites: string[]; }
 export interface UserProfile { id: string; email: string; full_name: string; role: UserRole; site: string | null; active: boolean; created_at?: string | null; permissions?: GmaoPermissions; }
 interface BackendUserProfile { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; permissions: GmaoPermissions; }
@@ -40,6 +40,10 @@ export class AuthService {
     void firstValueFrom(this.http.post(`${environment.apiUrl}/api/auth/local/logout`, {}, { headers: { Authorization: `Bearer ${token}` } }).pipe(timeout({ first: 5_000 }))).catch(() => undefined);
   }
   accessToken(): string | null { return this.session()?.access_token ?? null; }
+  async refreshProfile(): Promise<UserProfile | null> {
+    const token = this.accessToken();
+    return token ? this.loadProfile(token) : null;
+  }
   async changeLocalPassword(currentPassword: string, newPassword: string): Promise<void> {
     const token = this.accessToken(); if (!token) throw new GmaoAuthError('invalid_session', 'Votre session n’est plus valide.');
     try {
@@ -52,7 +56,7 @@ export class AuthService {
     catch (error) { throw this.mapError(error); }
   }
   isAuthenticated(): boolean { return this.authenticated(); }
-  destinationFor(role: UserRole): string { return role === 'manager' ? '/tableau-de-bord' : '/accueil'; }
+  destinationFor(role: UserRole): string { return role === 'administrator' ? '/administration' : role === 'manager' ? '/tableau-de-bord' : '/accueil'; }
   private async initializeLocal(): Promise<void> {
     // Remove legacy persistent sessions instead of silently restoring them.
     this.clearPersistentToken();
@@ -63,7 +67,7 @@ export class AuthService {
   }
   private async loadProfile(token: string): Promise<UserProfile> { try { const data = await firstValueFrom(this.http.get<BackendUserProfile>(`${environment.apiUrl}/api/me`, { headers: { Authorization: `Bearer ${token}` } }).pipe(timeout({ first: 10_000 }))); return this.applyProfile(data); } catch (error) { throw this.mapError(error); } }
   private applyProfile(data: BackendUserProfile): UserProfile { if (!data.active || !this.isKnownRole(data.role)) throw new GmaoAuthError('invalid_profile', 'Votre profil n’est pas autorisé.'); const profile: UserProfile = { id:data.id,email:data.email,full_name:data.fullName,role:data.role,site:data.site,active:data.active,created_at:data.createdAt,permissions:data.permissions }; this.profile.set(profile); return profile; }
-  private isKnownRole(role: unknown): role is UserRole { return role === 'manager' || role === 'charge_operations' || role === 'chef_site'; }
+  private isKnownRole(role: unknown): role is UserRole { return role === 'administrator' || role === 'manager' || role === 'charge_operations' || role === 'chef_site'; }
   private clearState(): void { this.session.set(null); this.profile.set(null); this.mustChangePassword.set(false); }
   private clearPersistentToken(): void {
     try { localStorage.removeItem(LOCAL_TOKEN_KEY); }

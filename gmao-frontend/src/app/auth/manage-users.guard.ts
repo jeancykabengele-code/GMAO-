@@ -9,5 +9,5 @@ export const manageUsersGuard: CanActivateFn = async () => {
   const router = inject(Router);
 
   await auth.initialize();
-  return access.canManageUsers ? true : router.createUrlTree(['/administration/sites']);
+  return access.canManageUsers ? true : router.createUrlTree(['/accueil']);
 };

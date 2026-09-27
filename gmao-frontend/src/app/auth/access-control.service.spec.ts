@@ -59,7 +59,7 @@ describe('AccessControlService', () => {
     expect(store.canExportData).toBe(true);
   });
 
-  it('reserves user management to the manager permission', () => {
+  it('reserves administration to the administrator permission', () => {
     const basePermissions = {
       globalScope: true, viewDashboard: true, viewDocumentation: true,
       createRecords: false, modifyExisting: true, deleteRecords: true,
@@ -73,14 +73,30 @@ describe('AccessControlService', () => {
     });
     expect(access.canManageUsers).toBe(false);
     expect(access.canViewAuditLog).toBe(false);
+    expect(access.canAccessAdministration).toBe(false);
 
     profileState.set({
-      id: 'manager', email: 'manager@ordc.cd', full_name: 'Manager',
-      role: 'manager', site: null, active: true,
-      permissions: { ...basePermissions, manageUsers: true, viewAuditLog: true },
+      id: 'administrator', email: 'administrator@ordc.cd', full_name: 'Administrateur',
+      role: 'administrator', site: null, active: true,
+      permissions: {
+        ...basePermissions,
+        globalScope: false,
+        viewDashboard: false,
+        viewDocumentation: false,
+        modifyExisting: false,
+        deleteRecords: false,
+        manageUsers: true,
+        viewAuditLog: true,
+        allowedSites: [],
+      },
     });
+    expect(access.isAdministrator).toBe(true);
     expect(access.canManageUsers).toBe(true);
     expect(access.canViewAuditLog).toBe(true);
+    expect(access.canAccessAdministration).toBe(true);
+    expect(access.canAccessGlobalPages).toBe(false);
+    expect(access.canExportData).toBe(false);
+    expect(access.allowedSites).toEqual([]);
   });
 
   it('reserves new data entry to chefs de site while global roles retain editing', () => {

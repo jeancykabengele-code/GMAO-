@@ -4,6 +4,7 @@ from .models import Site, UserProfile
 
 
 GLOBAL_ROLES = {"manager", "charge_operations"}
+ADMINISTRATOR_ROLE = "administrator"
 
 
 class PermissionDeniedError(Exception):
@@ -38,6 +39,7 @@ class GmaoPermissions:
 
 def build_permissions(profile: UserProfile) -> GmaoPermissions:
     is_global = profile.role in GLOBAL_ROLES
+    manages_administration = _can_manage_administration(profile)
     allowed_sites = (
         list(Site.objects.filter(active=True).order_by("name").values_list("name", flat=True))
         if is_global
@@ -50,8 +52,8 @@ def build_permissions(profile: UserProfile) -> GmaoPermissions:
         create_records=profile.role == "chef_site",
         modify_existing=is_global,
         delete_records=is_global,
-        manage_users=profile.role == "manager",
-        view_audit_log=profile.role == "manager",
+        manage_users=manages_administration,
+        view_audit_log=manages_administration,
         allowed_sites=[site for site in allowed_sites if site],
     )
 
@@ -98,10 +100,21 @@ def assert_global_page_access(profile: UserProfile) -> None:
 
 
 def assert_manage_users(profile: UserProfile) -> None:
-    if profile.role != "manager":
-        raise PermissionDeniedError("La gestion des utilisateurs est réservée au Manager GMAO.")
+    if not _can_manage_administration(profile):
+        raise PermissionDeniedError("L’administration est réservée au profil Administrateur.")
 
 
 def assert_view_audit_log(profile: UserProfile) -> None:
-    if profile.role != "manager":
-        raise PermissionDeniedError("Le journal d’audit est réservé au Manager GMAO.")
+    if not _can_manage_administration(profile):
+        raise PermissionDeniedError("Le journal d’audit est réservé au profil Administrateur.")
+
+
+def _can_manage_administration(profile: UserProfile) -> bool:
+    if profile.role == ADMINISTRATOR_ROLE:
+        return True
+    # Transition sûre : le Manager crée le premier Administrateur, puis perd
+    # automatiquement l'accès administratif dès que ce compte existe.
+    return profile.role == "manager" and not UserProfile.objects.filter(
+        role=ADMINISTRATOR_ROLE,
+        active=True,
+    ).exists()

@@ -6,7 +6,7 @@ from django.http import HttpResponse, JsonResponse
 
 from .models import (DatacenterProblem, Equipment, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .audit import record_audit
-from .permissions import assert_global_page_access
+from .permissions import assert_global_page_access, assert_manage_users
 from .views import require_authenticated_user
 
 
@@ -30,14 +30,21 @@ def _error(message, status=400):
 
 @require_authenticated_user
 def site_collection(request):
-    try:
-        assert_global_page_access(request.gmao_profile)
-    except Exception as error:
-        return _error(str(error), 403)
-
     if request.method == "GET":
+        try:
+            assert_global_page_access(request.gmao_profile)
+        except Exception:
+            try:
+                assert_manage_users(request.gmao_profile)
+            except Exception as error:
+                return _error(str(error), 403)
         sites = Site.objects.order_by("name")
         return JsonResponse([_serialize(site) for site in sites], safe=False)
+
+    try:
+        assert_manage_users(request.gmao_profile)
+    except Exception as error:
+        return _error(str(error), 403)
 
     if request.method != "POST":
         return _error("Méthode non autorisée.", 405)
@@ -65,7 +72,7 @@ def site_collection(request):
 @require_authenticated_user
 def site_detail(request, site_name):
     try:
-        assert_global_page_access(request.gmao_profile)
+        assert_manage_users(request.gmao_profile)
     except Exception as error:
         return _error(str(error), 403)
 

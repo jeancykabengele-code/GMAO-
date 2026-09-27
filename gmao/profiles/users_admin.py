@@ -44,6 +44,21 @@ def _profile_has_business_history(profile_id):
     )
 
 
+def _protect_last_administrator(profile, next_role=None, next_active=None):
+    role = profile.role if next_role is None else next_role
+    active = profile.active if next_active is None else next_active
+    removes_active_administrator = (
+        profile.role == "administrator"
+        and profile.active
+        and (role != "administrator" or not active)
+    )
+    if removes_active_administrator and not UserProfile.objects.filter(
+        role="administrator",
+        active=True,
+    ).exclude(id=profile.id).exists():
+        raise ValidationError("Le dernier Administrateur actif ne peut pas être désactivé ni changer de rôle.")
+
+
 def _deny_or_none(request):
     try:
         assert_manage_users(request.gmao_profile)
@@ -106,6 +121,7 @@ def profile_delete(request, profile_id):
         profile = UserProfile.objects.get(id=profile_id)
         if str(profile.id) == str(request.gmao_profile.id):
             raise ValidationError("Vous ne pouvez pas supprimer votre propre compte.")
+        _protect_last_administrator(profile, next_active=False)
         if profile.site:
             raise ValidationError("Ce profil est encore affecté à un site. Désaffectez-le avant suppression.")
         if _profile_has_business_history(profile.id):
@@ -149,6 +165,7 @@ def profile_detail(request, profile_id):
             raise ValidationError("Le statut actif est invalide.")
         if str(profile.id) == str(request.gmao_profile.id) and not active:
             raise ValidationError("Vous ne pouvez pas désactiver votre propre compte.")
+        _protect_last_administrator(profile, next_role=role, next_active=active)
         if role == "chef_site":
             if not site_name or not Site.objects.filter(name=site_name, active=True).exists():
                 raise ValidationError("Un chef de site doit être associé à un site actif.")

@@ -121,14 +121,14 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 
 ### Gestion des utilisateurs depuis le back office
 
-- Seul le Manager peut ouvrir **Administration → Gestion des utilisateurs**.
+- Seul l'Administrateur peut ouvrir **Administration → Gestion des utilisateurs** après l'amorçage du premier compte.
 - Le formulaire permet de saisir le nom complet, l’adresse e-mail, le rôle et le site du chef de site.
 
 - La désactivation conserve le compte et son historique ; elle est recommandée dès qu’un profil possède des données métier.
 
 ### Modification des profils
 
-- Seul le Manager peut modifier le nom complet, le rôle, le site associé et le statut actif/inactif des comptes.
+- Seul l'Administrateur peut modifier le nom complet, le rôle, le site associé et le statut actif/inactif des comptes.
 
 - Un chef de site doit toujours être associé à un site actif.
 - Un administrateur ne peut pas désactiver son propre compte depuis cette interface.
@@ -142,7 +142,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 
 ### Journal d’audit
 
-- Seul le Manager peut ouvrir **Administration → Journal d’audit**.
+- Seul l'Administrateur peut ouvrir **Administration → Journal d’audit**.
 - Les connexions, échecs, changements et réinitialisations de mot de passe, opérations sur les comptes et suppressions sensibles y sont historisés.
 - Le journal affiche l’acteur, la date, l’adresse IP, la cible, le résultat et les changements utiles, sans mot de passe ni jeton.
 - La table et l’API sont append-only : aucune modification ou suppression d’un événement n’est exposée.
@@ -226,19 +226,20 @@ gmao-frontend/public/assets/orange/
 ```
 ## Rôles et permissions
 
-Les rôles reconnus sont `manager`, `charge_operations` et `chef_site`.
+Les rôles reconnus sont `administrator`, `manager`, `charge_operations` et `chef_site`.
 
-| Action | Manager GMAO | Chargé des opérations | Chef de site |
-|---|:---:|:---:|:---:|
-| Voir tous les sites | Oui | Oui | Non |
-| Voir son propre site | Oui | Oui | Oui |
-| Accéder au tableau de bord global | Oui | Oui | Non |
-| Accéder à Documentations | Oui | Oui | Non |
-| Créer une fiche | Oui | Oui | Oui, sur son site |
-| Modifier une fiche existante | Oui, toutes les fiches | Oui, toutes les fiches | Selon les droits de son site |
-| Exporter les données en Excel XLSX | Oui | Oui | Non |
-| Supprimer un équipement | Oui | Oui | Non |
-| Supprimer une autre fiche métier | Oui, toutes les fiches | Oui, toutes les fiches | Non |
+| Action | Administrateur | Manager GMAO | Chargé des opérations | Chef de site |
+|---|:---:|:---:|:---:|:---:|
+| Administrer les comptes et les sites | Oui | Non | Non | Non |
+| Consulter le journal d'audit | Oui | Non | Non | Non |
+| Voir tous les sites métier | Non | Oui | Oui | Non |
+| Voir son propre site | Non | Oui | Oui | Oui |
+| Accéder au tableau de bord global | Non | Oui | Oui | Non |
+| Accéder à Documentations | Non | Oui | Oui | Non |
+| Créer une fiche | Non | Oui | Oui | Oui, sur son site |
+| Modifier une fiche existante | Non | Oui, toutes les fiches | Oui, toutes les fiches | Selon les droits de son site |
+| Exporter les données en Excel XLSX | Non | Oui | Oui | Non |
+| Supprimer une fiche métier | Non | Oui | Oui | Non |
 
 Le backend reste l’autorité finale : masquer un bouton dans Angular ne remplace jamais le contrôle de permission effectué par Django.
 
@@ -381,11 +382,11 @@ Les 16 tables métier sont gérées par des migrations Django versionnées dans 
 
 ### Création d’un utilisateur
 
-1. Ouvrir **Administration → Gestion des utilisateurs** avec le rôle Manager.
+1. Ouvrir **Administration → Gestion des utilisateurs** avec le rôle Administrateur. Lors de l'amorçage initial, le Manager utilise cette page une seule fois pour créer ce compte.
 2. Saisir le nom, l’identifiant e-mail, le rôle, le site si nécessaire et une phrase de passe unique d’au moins 14 caractères.
 3. Django refuse les valeurs courantes, numériques, compromises ou récemment utilisées, puis enregistre uniquement le hachage du mot de passe.
 4. Les adresses e-mail servent d’identifiants : aucune boîte e-mail n’est requise.
-5. Seul le Manager peut administrer les profils. Toute réinitialisation exige également son propre mot de passe actuel.
+5. Seul l'Administrateur peut administrer les profils après l'amorçage. Toute réinitialisation exige également son propre mot de passe actuel.
 ## API
 
 Toutes les routes métier, sauf les routes de santé, exigent :
@@ -535,7 +536,7 @@ $env:DJANGO_DEBUG = 'true' # Uniquement pour les tests en développement local
 Avant une livraison, vérifier au minimum :
 
 - la connexion et la déconnexion ;
-- les permissions de chacun des trois rôles ;
+- les permissions de chacun des quatre rôles ;
 - les filtres du tableau de bord ;
 - la création et la modification des fiches ;
 - l’isolation du chef de site ;
@@ -646,7 +647,7 @@ Ce README décrit l’état vérifié du projet GMAO ORDC au **22 septembre 2026
 
 ## Administration
 
-La page **Administration** reste visible au Manager et au Chargé des opérations pour la gestion des sites. Les onglets **Gestion des utilisateurs** et **Journal d’audit** sont visibles uniquement par le Manager et protégés à nouveau par Django.
+La page **Administration** est réservée à l'Administrateur : gestion des sites, gestion des utilisateurs et consultation du journal d'audit. Tant qu'aucun Administrateur actif n'existe, elle reste provisoirement accessible au Manager pour créer le premier compte Administrateur.
 
 - ajouter un site avec un nom et un code unique ;
 - modifier le code d’un site ;
@@ -655,7 +656,7 @@ La page **Administration** reste visible au Manager et au Chargé des opération
 
 Les sites actifs sont utilisés automatiquement par les filtres, les formulaires et le tableau de bord. Après l’ajout d’un site, actualiser la session pour recharger la liste des sites autorisés. La désactivation n’efface aucune donnée historique. Un chef de site affecté à un site désactivé ne peut plus se connecter ; son accès revient automatiquement lorsque le site est réactivé.
 
-Routes API protégées : `GET /api/sites`, `POST /api/sites` et `PATCH /api/sites/<nom>`. Seuls les rôles globaux peuvent les utiliser.
+Routes API protégées : les rôles métier globaux peuvent continuer à lire `GET /api/sites`, mais seuls les Administrateurs peuvent utiliser `POST /api/sites`, `PATCH /api/sites/<nom>` et `DELETE /api/sites/<nom>` après l'amorçage.
 
-La page **Affectation des chefs de site** permet aussi au Manager et au Chargé des opérations de choisir le site actif de chaque compte `chef_site`. Les rôles globaux ne sont pas modifiés par cette page.
+La page **Gestion des utilisateurs** permet à l'Administrateur de choisir le site actif de chaque compte `chef_site`. Les rôles globaux ne sont pas associés à un site.
 

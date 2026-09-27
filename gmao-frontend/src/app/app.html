@@ -71,6 +71,7 @@
     }
 
     <nav aria-label="Navigation principale">
+      @if (!access.isAdministrator) {
       <a routerLink="/accueil" routerLinkActive="active"><i class="solaris-icon solaris-home"></i><span>Accueil</span></a>
 
       <p class="nav-section-title">Analyse</p>
@@ -101,10 +102,13 @@
       <a routerLink="/ravitaillement-fuel" routerLinkActive="active"><i class="solaris-icon solaris-truck"></i><span>Ravitaillement Fuel</span></a>
       <a routerLink="/pue" routerLinkActive="active"><i class="solaris-icon solaris-energy"></i><span>PUE</span></a>
       <a routerLink="/problemes-datacenter" routerLinkActive="active"><i class="solaris-icon solaris-warning-triangle"></i><span>Problèmes Data Center</span></a>
+      }
 
       <p class="nav-section-title">Informations</p>
       @if (access.canAccessGlobalPages) {
         <a routerLink="/documentations" routerLinkActive="active"><i class="solaris-icon solaris-documentation"></i><span>Documentations</span></a>
+      }
+      @if (access.canAccessAdministration) {
         <a routerLink="/administration" routerLinkActive="active"><i class="solaris-icon solaris-security-approved"></i><span>Administration</span></a>
       }
       <a routerLink="/a-propos" routerLinkActive="active"><i class="solaris-icon solaris-information"></i><span>À propos</span></a>
