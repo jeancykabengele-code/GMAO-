@@ -12,3 +12,5 @@ Pour amorcer la transition, le Manager conserve `manageUsers=true` uniquement ta
 Le lien **Administration** est masqué lorsque `manageUsers=false` et une garde Angular redirige toute navigation directe. Ces contrôles améliorent l’interface mais ne constituent pas la sécurité principale : les routes `/api/profiles`, les écritures `/api/sites` et `GET /api/audit-logs` vérifient à nouveau la permission dans Django et répondent HTTP 403 aux autres rôles.
 
 Avant de réinitialiser le mot de passe d’un autre profil, l'Administrateur doit saisir son propre mot de passe actuel. Django le vérifie contre le hachage local avant d’enregistrer le nouveau mot de passe de la cible. Cette valeur n’est ni conservée dans le navigateur, ni journalisée, ni incluse dans une URL.
+
+Les colonnes `created_at` et `updated_at` du profil sont renseignées automatiquement par Django. La migration `profiles.0004_userprofile_timestamps` adopte la colonne historique Aiven sans la recréer et l'ajoute uniquement sur une base qui ne la possède pas.

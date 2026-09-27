@@ -1,11 +1,12 @@
 import json
-from unittest.mock import patch
 from uuid import uuid4
 
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 
-from .models import UserProfile
+from login_guard.models import AuditLog
+
+from .models import LocalCredential, UserProfile
 from .sites import site_collection
 from .users_admin import profile_collection, profile_detail
 
@@ -28,9 +29,8 @@ class AdministratorHandoffTests(TestCase):
         request.gmao_profile = profile
         return request
 
-    @patch("profiles.users_admin.record_audit")
-    @patch("profiles.users_admin.set_local_password")
-    def test_manager_can_create_first_administrator_then_loses_access(self, set_password, audit):
+    @override_settings(GMAO_PWNED_PASSWORD_CHECK=False)
+    def test_manager_can_create_first_administrator_then_loses_access(self):
         request = self._authenticated(
             self.factory.post(
                 "/api/profiles",
@@ -52,8 +52,8 @@ class AdministratorHandoffTests(TestCase):
         administrator = UserProfile.objects.get(email="administrator@example.com")
         self.assertEqual(administrator.role, "administrator")
         self.assertTrue(administrator.active)
-        set_password.assert_called_once()
-        audit.assert_called_once()
+        self.assertTrue(LocalCredential.objects.filter(profile_id=administrator.id).exists())
+        self.assertTrue(AuditLog.objects.filter(action="profile_create", target_id=str(administrator.id)).exists())
 
         denied = self._authenticated(self.factory.get("/api/profiles"), self.manager)
         self.assertEqual(profile_collection.__wrapped__.__wrapped__(denied).status_code, 403)

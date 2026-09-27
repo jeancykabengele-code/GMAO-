@@ -10,7 +10,8 @@ class UserProfile(models.Model):
     role = models.CharField(max_length=320)
     site = models.CharField(max_length=320, null=True, blank=True)
     active = models.BooleanField()
-    created_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "user_profiles"
