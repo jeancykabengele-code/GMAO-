@@ -11,6 +11,7 @@ from django.contrib.auth.password_validation import validate_password as django_
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import F
 
 from login_guard.models import PasswordHistory
 from .models import LocalCredential, UserProfile
@@ -29,6 +30,8 @@ class PasswordCompromiseCheckUnavailable(Exception):
 
 
 PASSWORD_HISTORY_SIZE = 5
+# Same PBKDF2 work as a real credential, so an unknown account is not faster.
+DUMMY_PASSWORD_HASH = "pbkdf2_sha256$1200000$ncuweYfFaQgQMD9rNaOvkh$6D6wFbUax1CJoBp2jRJcsMv/j6PZDp7CBP3uJRj1ZqU="
 
 
 def parse_payload(request):
@@ -104,8 +107,9 @@ def _replace_password(credential: LocalCredential, password: str) -> None:
     credential.password_hash = make_password(password)
     credential.must_change_password = False
     credential.password_changed_at = datetime.now(timezone.utc)
+    credential.session_version += 1
     credential.save(
-        update_fields=["password_hash", "must_change_password", "password_changed_at", "updated_at"]
+        update_fields=["password_hash", "must_change_password", "password_changed_at", "session_version", "updated_at"]
     )
     stale_ids = list(
         PasswordHistory.objects.filter(profile_id=credential.profile_id)
@@ -135,12 +139,14 @@ def set_local_password(profile_id, password: object) -> None:
 
 def authenticate(email: object, password: object):
     normalized_email = str(email or "").strip().lower()
+    password_text = str(password or "")
     try:
         profile = UserProfile.objects.get(email__iexact=normalized_email, active=True)
         credential = LocalCredential.objects.get(profile_id=profile.id)
     except (UserProfile.DoesNotExist, LocalCredential.DoesNotExist) as error:
+        check_password(password_text, DUMMY_PASSWORD_HASH)
         raise LocalAuthenticationError("Adresse e-mail ou mot de passe incorrect.") from error
-    if not check_password(str(password or ""), credential.password_hash):
+    if not check_password(password_text, credential.password_hash):
         raise LocalAuthenticationError("Adresse e-mail ou mot de passe incorrect.")
     try:
         return load_active_profile(str(profile.id)), credential
@@ -157,15 +163,30 @@ def verify_current_password(profile: UserProfile, password: object) -> None:
         raise LocalAuthenticationError("Le mot de passe actuel du Manager est incorrect.")
 
 
+def revoke_sessions(profile_id) -> None:
+    LocalCredential.objects.filter(profile_id=profile_id).update(session_version=F("session_version") + 1)
+
+
 def issue_token(profile: UserProfile) -> str:
-    return signing.dumps({"sub": str(profile.id)}, salt=TOKEN_SALT, compress=True)
+    credential = LocalCredential.objects.get(profile_id=profile.id)
+    return signing.dumps(
+        {"sub": str(profile.id), "sv": credential.session_version},
+        salt=TOKEN_SALT,
+        compress=True,
+    )
 
 
 def profile_from_token(token: str) -> UserProfile:
     try:
         payload = signing.loads(token, salt=TOKEN_SALT, max_age=settings.GMAO_LOCAL_TOKEN_MAX_AGE)
-        return load_active_profile(payload["sub"])
-    except (signing.BadSignature, KeyError, ProfileAccessError) as error:
+        if not isinstance(payload, dict) or "sv" not in payload:
+            raise KeyError("sv")
+        profile = load_active_profile(payload["sub"])
+        credential = LocalCredential.objects.get(profile_id=profile.id)
+        if credential.session_version != payload["sv"]:
+            raise LocalAuthenticationError("Session locale invalide ou expirée.")
+        return profile
+    except (signing.BadSignature, KeyError, ProfileAccessError, LocalCredential.DoesNotExist, LocalAuthenticationError) as error:
         raise LocalAuthenticationError("Session locale invalide ou expirée.") from error
 
 

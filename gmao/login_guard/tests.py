@@ -24,6 +24,11 @@ class ClientAddressTests(SimpleTestCase):
         self.assertEqual(client_address(request), "192.0.2.10")
 
     @override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=True)
+    def test_public_peer_cannot_choose_the_bucket_with_the_edge_header(self):
+        request = RequestFactory().post("/", REMOTE_ADDR="203.0.113.8", HTTP_CF_CONNECTING_IP="192.0.2.10")
+        self.assertEqual(client_address(request), "203.0.113.8")
+
+    @override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=True)
     def test_missing_or_invalid_edge_header_cannot_bypass_limits(self):
         for value in ("", "invalid", "192.0.2.1,192.0.2.2"):
             request = RequestFactory().post("/", HTTP_CF_CONNECTING_IP=value)
@@ -163,11 +168,20 @@ class LoginLimiterTests(TestCase):
     @patch("profiles.views._serialize_profile", return_value={"active": True})
     @patch("profiles.views.issue_token", return_value="test-session-token")
     @patch("profiles.views.authenticate", return_value=(object(), object()))
-    def test_successful_login_keeps_existing_response_and_consumes_budget(self, authenticate, issue, serialize):
+    def test_successful_login_keeps_existing_response_and_releases_budget(self, authenticate, issue, serialize):
         response = self.client.post("/api/auth/local/login", {"email": "ok@example.invalid", "password": "valid"}, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["accessToken"], "test-session-token")
-        self.assertEqual(list(LoginBucket.objects.values_list("attempts", flat=True)), [1, 1])
+        self.assertEqual(list(LoginBucket.objects.values_list("attempts", flat=True)), [0, 0])
+
+    @patch("profiles.views._serialize_profile", return_value={"active": True})
+    @patch("profiles.views.issue_token", return_value="test-session-token")
+    @patch("profiles.views.authenticate", return_value=(object(), object()))
+    def test_five_successful_logins_do_not_block_the_account(self, authenticate, issue, serialize):
+        for _ in range(5):
+            response = self.client.post("/api/auth/local/login", {"email": "ok@example.invalid", "password": "valid"}, content_type="application/json")
+            self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(LoginBucket.objects.values_list("attempts", flat=True)), [0, 0])
 
     def test_non_post_does_not_consume_budget(self):
         self.assertEqual(self.client.get("/api/auth/local/login").status_code, 405)

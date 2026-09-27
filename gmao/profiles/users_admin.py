@@ -7,7 +7,7 @@ from django.http import JsonResponse
 
 from login_guard.models import PasswordHistory
 from .audit import record_audit
-from .local_auth import LocalAuthenticationError, PasswordCompromiseCheckUnavailable, set_local_password, verify_current_password
+from .local_auth import LocalAuthenticationError, PasswordCompromiseCheckUnavailable, revoke_sessions, set_local_password, verify_current_password
 from .models import (DatacenterProblem, Equipment, FuelDelivery, FuelMonthlySummary, FuelRecord, GeneratorRecord, Intervention, LocalCredential, PueRecord, Site, SparePartOperation, Ticket, UserProfile)
 from .permissions import assert_manage_users
 from .services import ALLOWED_ROLES
@@ -158,6 +158,8 @@ def profile_detail(request, profile_id):
         new = {"fullName": full_name, "role": role, "site": site_name, "active": active}
         with transaction.atomic():
             UserProfile.objects.filter(id=profile.id).update(full_name=full_name, role=role, site=site_name, active=active)
+            if old["active"] and not active:
+                revoke_sessions(profile.id)
             profile.refresh_from_db()
             record_audit(request, "profile_update", "profile", profile.id, details={"old": old, "new": new})
         return JsonResponse(_serialize(profile))

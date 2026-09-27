@@ -11,9 +11,9 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
-from login_guard.limiter import reserve_attempt
+from login_guard.limiter import release_successful_attempt, reserve_attempt
 
-from .local_auth import LocalAuthenticationError, PasswordCompromiseCheckUnavailable, authenticate, change_password, issue_token, parse_payload, profile_from_token
+from .local_auth import LocalAuthenticationError, PasswordCompromiseCheckUnavailable, authenticate, change_password, issue_token, parse_payload, profile_from_token, revoke_sessions
 from .permissions import build_permissions
 
 
@@ -96,15 +96,31 @@ def local_login(request):
         response["Retry-After"] = str(admission.retry_after)
         return response
     try:
-        profile, credential = authenticate(data.get("email"), data.get("password"))
-        from .audit import record_audit
-        record_audit(request, "login", "session", target_id=getattr(profile, "id", ""), actor=profile, details={"reason": "authenticated"})
-        return JsonResponse({"accessToken": issue_token(profile), "profile": _serialize_profile(profile), "mustChangePassword": False})
+        profile, _credential = authenticate(data.get("email"), data.get("password"))
     except (ValidationError, LocalAuthenticationError) as error:
         from .audit import record_audit
         record_audit(request, "login", "session", result="failure", actor_email=str(data.get("email", "")).strip().lower(), details={"reason": "invalid_credentials"})
         detail = error.messages[0] if isinstance(error, ValidationError) else str(error)
         return JsonResponse({"status": 401, "code": "local_login_rejected", "detail": detail}, status=401)
+    try:
+        release_successful_attempt(admission)
+    except DatabaseError:
+        logger.error("login_limiter_release_unavailable")
+        return JsonResponse({"status": 503, "code": "login_unavailable", "detail": "Connexion temporairement indisponible. Veuillez réessayer."}, status=503)
+    from .audit import record_audit
+    record_audit(request, "login", "session", target_id=getattr(profile, "id", ""), actor=profile, details={"reason": "authenticated"})
+    return JsonResponse({"accessToken": issue_token(profile), "profile": _serialize_profile(profile), "mustChangePassword": False})
+
+
+@require_authenticated_user
+def local_logout(request):
+    if request.method != "POST":
+        return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
+    with transaction.atomic():
+        revoke_sessions(request.gmao_profile.id)
+        from .audit import record_audit
+        record_audit(request, "logout", "session", request.gmao_profile.id, details={"reason": "logout"})
+    return JsonResponse({"status": "logged_out"})
 
 
 @require_authenticated_user
@@ -117,7 +133,8 @@ def local_change_password(request):
             change_password(request.gmao_profile, data.get("currentPassword"), data.get("newPassword"))
             from .audit import record_audit
             record_audit(request, "password_change", "profile", request.gmao_profile.id, details={"scope": "self"})
-        return JsonResponse({"status": "changed"})
+            access_token = issue_token(request.gmao_profile)
+        return JsonResponse({"status": "changed", "accessToken": access_token})
     except (ValidationError, LocalAuthenticationError) as error:
         from .audit import record_audit
         record_audit(request, "password_change", "profile", request.gmao_profile.id, result="failure", details={"scope": "self", "reason": "rejected"})

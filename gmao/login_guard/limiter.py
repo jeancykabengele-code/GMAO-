@@ -17,12 +17,56 @@ WINDOW_SECONDS = 15 * 60
 PAIR_LIMIT = 5
 IP_LIMIT = 50
 
+# A public client must not be able to choose the rate-limit bucket. The edge
+# header is accepted only when the TCP peer is the platform proxy: loopback,
+# a private hop, or a published Cloudflare range.
+_TRUSTED_PROXY_NETWORKS = tuple(ip_network(cidr) for cidr in (
+    "127.0.0.0/8",
+    "::1/128",
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "173.245.48.0/20",
+    "103.21.244.0/22",
+    "103.22.200.0/22",
+    "103.31.4.0/22",
+    "141.101.64.0/18",
+    "108.162.192.0/18",
+    "190.93.240.0/20",
+    "188.114.96.0/20",
+    "197.234.240.0/22",
+    "198.41.128.0/17",
+    "162.158.0.0/15",
+    "104.16.0.0/13",
+    "104.24.0.0/14",
+    "172.64.0.0/13",
+    "131.0.72.0/22",
+    "2400:cb00::/32",
+    "2606:4700::/32",
+    "2803:f800::/32",
+    "2405:b500::/32",
+    "2405:8100::/32",
+    "2a06:98c0::/29",
+    "2c0f:f248::/32",
+))
+
+
+def _is_trusted_proxy(value: str) -> bool:
+    try:
+        address = ip_address(value)
+    except ValueError:
+        return False
+    if address.version == 6 and address.ipv4_mapped:
+        address = address.ipv4_mapped
+    return any(address in network for network in _TRUSTED_PROXY_NETWORKS)
+
 
 def client_address(request):
-    # Never trust client-supplied X-Forwarded-For. Render's Cloudflare edge
-    # overwrites CF-Connecting-IP. Outside Render, use the socket address.
-    value = request.META.get("REMOTE_ADDR", "")
-    if settings.GMAO_LOGIN_TRUST_RENDER_PROXY:
+    # Never trust client-supplied X-Forwarded-For. On Render, CF-Connecting-IP
+    # is the client address only when the socket peer is the platform proxy.
+    remote = request.META.get("REMOTE_ADDR", "")
+    value = remote
+    if settings.GMAO_LOGIN_TRUST_RENDER_PROXY and _is_trusted_proxy(remote):
         value = request.headers.get("CF-Connecting-IP", "")
     try:
         address = ip_address(value)
@@ -45,6 +89,8 @@ class Admission:
     retry_after: int
     scope: str
     key: str
+    ip_key: str = ""
+    pair_key: str = ""
 
 
 def _load_locked(key, now):
@@ -91,14 +137,45 @@ def _reserve_attempt(request, email):
         # created it a few microseconds after this request sampled its clock.
         retry = _retry_after(ip_bucket, IP_LIMIT, now) if ip_bucket.attempts >= IP_LIMIT else 0
         if retry:
-            return Admission(retry, "ip", ip_key)
+            return Admission(retry, "ip", ip_key, ip_key, pair_key)
         pair_bucket = _load_locked(pair_key, now)
         retry = _retry_after(pair_bucket, PAIR_LIMIT, now)
         if retry:
-            return Admission(retry, "pair", pair_key)
+            return Admission(retry, "pair", pair_key, ip_key, pair_key)
         ip_bucket.attempts += 1
         pair_bucket.attempts += 1
         pair_bucket.next_allowed = now + timedelta(seconds=2 ** (pair_bucket.attempts - 1))
         ip_bucket.save()
         pair_bucket.save()
-    return Admission(0, "pair", pair_key)
+    return Admission(0, "pair", pair_key, ip_key, pair_key)
+
+
+def _release_bucket(bucket, now, progressive: bool) -> None:
+    if bucket.attempts:
+        bucket.attempts -= 1
+    if bucket.attempts == 0:
+        bucket.next_allowed = now
+    elif progressive:
+        bucket.next_allowed = now + timedelta(seconds=2 ** (bucket.attempts - 1))
+    bucket.save(update_fields=["attempts", "next_allowed"])
+
+
+def release_successful_attempt(admission: Admission) -> None:
+    """Give back the slot reserved before a successful password check."""
+    if admission.retry_after or not admission.ip_key or not admission.pair_key:
+        return
+    for attempt in range(5):
+        try:
+            with transaction.atomic():
+                now = timezone.now()
+                ip_bucket = LoginBucket.objects.select_for_update().get(key=admission.ip_key)
+                pair_bucket = LoginBucket.objects.select_for_update().get(key=admission.pair_key)
+                _release_bucket(ip_bucket, now, progressive=False)
+                _release_bucket(pair_bucket, now, progressive=True)
+            return
+        except LoginBucket.DoesNotExist:
+            return
+        except OperationalError as error:
+            if not error.args or error.args[0] != 1213 or attempt == 4:
+                raise
+            sleep(uniform(0.005, 0.025) * 2 ** attempt)

@@ -58,8 +58,34 @@ describe('AuthService login and session security', () => {
     const result = auth.initialize();
     http.expectOne(request => request.url.endsWith('/api/me')).flush({}, { status: 401, statusText: 'Unauthorized' });
     await result;
+    http.expectOne(request => request.url.endsWith('/api/auth/local/logout')).flush({ status: 'logged_out' });
     expect(auth.authenticated()).toBe(false);
     expect(sessionStorage.getItem(tokenKey)).toBeNull();
+  });
+
+  it('revokes the server session when the tab is signed in', async () => {
+    const signedIn = auth.signIn('user@example.invalid', 'password');
+    http.expectOne(request => request.url.endsWith('/api/auth/local/login')).flush({ accessToken: 'tab-token', profile });
+    await signedIn;
+    const done = auth.signOut();
+    const logout = http.expectOne(request => request.url.endsWith('/api/auth/local/logout'));
+    expect(logout.request.method).toBe('POST');
+    expect(logout.request.headers.get('Authorization')).toBe('Bearer tab-token');
+    logout.flush({ status: 'logged_out' });
+    await done;
+    expect(sessionStorage.getItem(tokenKey)).toBeNull();
+    expect(auth.accessToken()).toBeNull();
+  });
+
+  it('keeps the new token returned after a password change', async () => {
+    const signedIn = auth.signIn('user@example.invalid', 'password');
+    http.expectOne(request => request.url.endsWith('/api/auth/local/login')).flush({ accessToken: 'tab-token', profile });
+    await signedIn;
+    const changed = auth.changeLocalPassword('password', 'Phrase-longue-2026!');
+    http.expectOne(request => request.url.endsWith('/api/auth/local/change-password')).flush({ status: 'changed', accessToken: 'next-token' });
+    await changed;
+    expect(sessionStorage.getItem(tokenKey)).toBe('next-token');
+    expect(auth.accessToken()).toBe('next-token');
   });
 
   it('removes tokens from both stores on logout', async () => {

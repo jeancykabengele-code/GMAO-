@@ -22,6 +22,7 @@ class LocalCredential(models.Model):
     password_hash = models.CharField(max_length=255)
     must_change_password = models.BooleanField(default=True)
     password_changed_at = models.DateTimeField(null=True, blank=True)
+    session_version = models.PositiveIntegerField(default=1)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

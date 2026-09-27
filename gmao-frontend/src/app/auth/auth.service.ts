@@ -31,11 +31,24 @@ export class AuthService {
       return profile;
     } catch (error) { throw this.mapError(error); }
   }
-  async signOut(): Promise<void> { this.clearState(); this.clearPersistentToken(); sessionStorage.removeItem(LOCAL_TOKEN_KEY); }
+  async signOut(): Promise<void> {
+    const token = this.accessToken();
+    this.clearState();
+    this.clearPersistentToken();
+    sessionStorage.removeItem(LOCAL_TOKEN_KEY);
+    if (!token) return;
+    void firstValueFrom(this.http.post(`${environment.apiUrl}/api/auth/local/logout`, {}, { headers: { Authorization: `Bearer ${token}` } }).pipe(timeout({ first: 5_000 }))).catch(() => undefined);
+  }
   accessToken(): string | null { return this.session()?.access_token ?? null; }
   async changeLocalPassword(currentPassword: string, newPassword: string): Promise<void> {
     const token = this.accessToken(); if (!token) throw new GmaoAuthError('invalid_session', 'Votre session n’est plus valide.');
-    try { await firstValueFrom(this.http.post(`${environment.apiUrl}/api/auth/local/change-password`, { currentPassword, newPassword }, { headers: { Authorization: `Bearer ${token}` } }).pipe(timeout({ first: 10_000 }))); }
+    try {
+      const result = await firstValueFrom(this.http.post<{ accessToken?: string }>(`${environment.apiUrl}/api/auth/local/change-password`, { currentPassword, newPassword }, { headers: { Authorization: `Bearer ${token}` } }).pipe(timeout({ first: 10_000 })));
+      if (result?.accessToken) {
+        sessionStorage.setItem(LOCAL_TOKEN_KEY, result.accessToken);
+        this.session.set({ access_token: result.accessToken });
+      }
+    }
     catch (error) { throw this.mapError(error); }
   }
   isAuthenticated(): boolean { return this.authenticated(); }
