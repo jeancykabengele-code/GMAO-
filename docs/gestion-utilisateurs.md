@@ -14,3 +14,7 @@ Le lien **Administration** est masqué lorsque `manageUsers=false` et une garde 
 Avant de réinitialiser le mot de passe d’un autre profil, l'Administrateur doit saisir son propre mot de passe actuel. Django le vérifie contre le hachage local avant d’enregistrer le nouveau mot de passe de la cible. Cette valeur n’est ni conservée dans le navigateur, ni journalisée, ni incluse dans une URL.
 
 Les colonnes `created_at` et `updated_at` du profil sont renseignées automatiquement par Django. La migration `profiles.0004_userprofile_timestamps` adopte la colonne historique Aiven sans la recréer et l'ajoute uniquement sur une base qui ne la possède pas.
+
+## Sauvegardes
+
+La même permission `manageUsers` réserve aussi la page **Sauvegardes** (`/administration/sauvegardes`) : elle génère à la demande une archive ZIP de toutes les tables métier, des sites, des comptes (hors mots de passe) et du journal d'audit, via `POST /api/backups/export`, puis la fait télécharger immédiatement par le navigateur. Rien n'est écrit sur le disque du conteneur Render (éphémère) : l'archive est construite en mémoire pour la durée de la requête. Chaque export est tracé dans le journal d'audit (action `backup_export`), visible depuis la page elle-même ou depuis le journal complet.

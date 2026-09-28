@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import type { CellObject, Row, SheetData } from 'write-excel-file/universal';
+import { downloadBlob } from './file-download.util';
 
 export interface ExcelTableColumn<T> {
   header: string;
@@ -120,18 +121,7 @@ export class ExcelExportService {
   }
 
   private download(blob: Blob, fileName: string): void {
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = fileName;
-    anchor.style.display = 'none';
-    document.body.appendChild(anchor);
-    try {
-      anchor.click();
-    } finally {
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    }
+    downloadBlob(blob, fileName);
   }
 
   private safeSheetName(value: string): string {

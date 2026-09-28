@@ -76,6 +76,17 @@ export class GmaoApiService {
     }));
   }
 
+  async exportBackup(): Promise<{ blob: Blob; fileName: string }> {
+    const response = await firstValueFrom(this.http.post(`${environment.apiUrl}/api/backups/export`, {}, {
+      headers: await this.authHeaders(),
+      responseType: 'blob',
+      observe: 'response',
+    }));
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const match = /filename="([^"]+)"/.exec(disposition);
+    return { blob: response.body as Blob, fileName: match?.[1] || `gmao-backup-${Date.now()}.zip` };
+  }
+
   async createProfile(profile: { email: string; fullName: string; role: string; site: string | null; password?: string }): Promise<ProfileRecord> {
     return firstValueFrom(this.http.post<ProfileRecord>(`${environment.apiUrl}/api/profiles`, profile, {
       headers: await this.authHeaders(),

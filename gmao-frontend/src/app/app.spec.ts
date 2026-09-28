@@ -124,4 +124,33 @@ describe('App routing shell', () => {
     expect(compiled.querySelector('.notification-trigger')).toBeTruthy();
     expect(compiled.textContent).toContain('Bienvenue dans votre espace de travail.');
   });
+
+  it('gives the administrator a Sauvegardes tab alongside the other administration tabs', async () => {
+    authenticatedState.set(true);
+    profileState.set({ ...managerProfile, id: 'admin-1', role: 'administrator', site: null });
+
+    const compiled = await renderRoute('/administration');
+    expect(compiled.querySelector('a[href="/administration"]')).toBeTruthy();
+    expect(compiled.querySelector('app-sites-admin-page')).toBeTruthy();
+    expect(compiled.querySelector('a[routerLink="utilisateurs"]')).toBeTruthy();
+    expect(compiled.querySelector('a[routerLink="journal-audit"]')).toBeTruthy();
+    expect(compiled.querySelector('a[routerLink="sauvegardes"]')).toBeTruthy();
+  });
+
+  it('keeps the Sauvegardes tab hidden and the route denied for the manager once handoff has happened', async () => {
+    authenticatedState.set(true);
+    profileState.set({
+      ...managerProfile,
+      permissions: {
+        globalScope: true, viewDashboard: true, viewDocumentation: true, createRecords: false,
+        modifyExisting: true, deleteRecords: true, manageUsers: false, viewAuditLog: false,
+        allowedSites: ['Goma'],
+      },
+    });
+
+    const compiled = await renderRoute('/administration/sauvegardes');
+    const router = TestBed.inject(Router);
+    expect(router.url).toBe('/accueil');
+    expect(compiled.querySelector('a[routerLink="sauvegardes"]')).toBeNull();
+  });
 });

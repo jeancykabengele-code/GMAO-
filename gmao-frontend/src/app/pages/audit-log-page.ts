@@ -34,7 +34,7 @@ import { AuditLogRecord, GmaoApiService } from '../data/gmao-api.service';
 export class AuditLogPageComponent {
   private readonly api = inject(GmaoApiService);
   private readonly cdr = inject(ChangeDetectorRef);
-  readonly actions = ['login', 'password_change', 'password_reset', 'profile_create', 'profile_update', 'profile_delete', 'record_delete', 'site_delete'];
+  readonly actions = ['login', 'password_change', 'password_reset', 'profile_create', 'profile_update', 'profile_delete', 'record_delete', 'site_delete', 'backup_export'];
   readonly limit = 50;
   entries: AuditLogRecord[] = [];
   total = 0;
@@ -55,7 +55,7 @@ export class AuditLogPageComponent {
   resetFilters(): void { this.filters = { from: '', to: '', actor: '', targetType: '', action: '', result: '' }; this.offset = 0; void this.load(); }
   previousPage(): void { this.offset = Math.max(0, this.offset - this.limit); void this.load(); }
   nextPage(): void { if (this.offset + this.limit < this.total) { this.offset += this.limit; void this.load(); } }
-  actionLabel(action: string): string { return ({ login: 'Connexion', password_change: 'Changement de mot de passe', password_reset: 'Réinitialisation de mot de passe', profile_create: 'Création de compte', profile_update: 'Modification de compte', profile_delete: 'Suppression de compte', record_delete: 'Suppression métier', site_delete: 'Suppression de site' } as Record<string, string>)[action] || action; }
+  actionLabel(action: string): string { return ({ login: 'Connexion', password_change: 'Changement de mot de passe', password_reset: 'Réinitialisation de mot de passe', profile_create: 'Création de compte', profile_update: 'Modification de compte', profile_delete: 'Suppression de compte', record_delete: 'Suppression métier', site_delete: 'Suppression de site', backup_export: 'Sauvegarde générée' } as Record<string, string>)[action] || action; }
   resultLabel(result: string): string { return ({ success: 'Réussite', failure: 'Échec', blocked: 'Bloqué' } as Record<string, string>)[result] || result; }
   detailsLabel(details: Record<string, unknown>): string { return Object.keys(details || {}).length ? JSON.stringify(details) : '—'; }
 }

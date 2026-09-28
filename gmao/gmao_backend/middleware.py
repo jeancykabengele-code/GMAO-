@@ -21,6 +21,7 @@ class ApiCorsMiddleware:
             response["Vary"] = "Origin"
             response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
             response["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
+            response["Access-Control-Expose-Headers"] = "Content-Disposition"
             response["Access-Control-Max-Age"] = "3600"
         return response
 

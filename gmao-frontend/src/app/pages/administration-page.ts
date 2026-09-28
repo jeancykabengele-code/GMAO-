@@ -13,6 +13,7 @@ import { AccessControlService } from '../auth/access-control.service';
           <a routerLink="sites" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Gestion des sites</a>
           @if (access.canManageUsers) { <a routerLink="utilisateurs" routerLinkActive="active">Gestion des utilisateurs</a> }
           @if (access.canViewAuditLog) { <a routerLink="journal-audit" routerLinkActive="active">Journal d’audit</a> }
+          @if (access.canManageUsers) { <a routerLink="sauvegardes" routerLinkActive="active">Sauvegardes</a> }
         </nav>
       </header>
       <router-outlet></router-outlet>

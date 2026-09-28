@@ -49,4 +49,16 @@ describe('GmaoApiService user administration', () => {
     request.flush({ items: [], total: 0, limit: 50, offset: 0 });
     await expect(result).resolves.toEqual({ items: [], total: 0, limit: 50, offset: 0 });
   });
+
+  it('déclenche un export de sauvegarde et lit le nom de fichier proposé par le serveur', async () => {
+    const result = api.exportBackup();
+    await Promise.resolve();
+    const request = http.expectOne(`${environment.apiUrl}/api/backups/export`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer manager-session-token');
+    expect(request.request.responseType).toBe('blob');
+    const blob = new Blob(['{}'], { type: 'application/zip' });
+    request.flush(blob, { headers: { 'Content-Disposition': 'attachment; filename="gmao-backup-20260928T120000Z.zip"' } });
+    await expect(result).resolves.toEqual({ blob, fileName: 'gmao-backup-20260928T120000Z.zip' });
+  });
 });
