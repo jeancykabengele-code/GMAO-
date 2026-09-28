@@ -5,7 +5,7 @@ from django.db import models
 
 class UserProfile(models.Model):
     id = models.UUIDField(primary_key=True)
-    email = models.CharField(max_length=320)
+    email = models.CharField(max_length=320, unique=True)
     full_name = models.TextField()
     role = models.CharField(max_length=320)
     site = models.CharField(max_length=320, null=True, blank=True)
@@ -31,8 +31,9 @@ class LocalCredential(models.Model):
 
 class Site(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
-    code = models.CharField(max_length=320)
+    code = models.CharField(max_length=320, unique=True)
     active = models.BooleanField()
+    grid_connected = models.BooleanField(default=True)
 
     class Meta:
         db_table = "sites"

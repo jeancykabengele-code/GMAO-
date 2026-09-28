@@ -176,7 +176,9 @@ def _calculate_generator_values(values, record=None):
     return values
 
 
-NO_GRID_SITES = {"Kikwit", "Mbandaka"}
+def _site_is_off_grid(site: str) -> bool:
+    connected = Site.objects.filter(name=site).values_list("grid_connected", flat=True).first()
+    return connected is False
 
 
 def _fuel_period_bounds(periode):
@@ -273,7 +275,7 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
             if FuelRecord.objects.filter(site=site).exists():
                 raise ValidationError("Un journal Fuel-GE existe déjà pour ce site. Le stock de départ ne peut pas être défini sur un mois antérieur.")
             if not allow_initial_stock:
-                raise ValidationError("Seul le Manager ou le Chef des opérations peut définir le stock de départ du premier mois.")
+                raise ValidationError("Seul le Manager ou le Chargé des opérations peut définir le stock de départ du premier mois.")
         stock_initial = values.get("stock_initial", getattr(record, "stock_initial", None))
         if stock_initial is None:
             raise ValidationError("Le stock initial doit être défini pour le premier mois du site.")
@@ -302,7 +304,7 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
         values["litres_heure"] = (sortie / hours_ge).quantize(Decimal("0.001"))
     else:
         values["litres_heure"] = Decimal("0") if sortie == 0 else None
-    if site in NO_GRID_SITES:
+    if _site_is_off_grid(site):
         values["snel_kwh"] = None
         values["disponibilite_grid"] = Decimal("0")
     else:

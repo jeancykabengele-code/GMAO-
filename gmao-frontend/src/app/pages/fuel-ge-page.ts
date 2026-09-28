@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, Optional } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { GmaoApiService } from '../data/gmao-api.service';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
@@ -39,7 +40,7 @@ interface MonthlyFuelSummary {
 })
 export class FuelGePageComponent {
   readonly rowsPerPage = 20;
-  readonly noGridSites = new Set(['Kikwit', 'Mbandaka']);
+  private offGridOverride: Set<string> | null = null;
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
@@ -47,7 +48,9 @@ export class FuelGePageComponent {
     @Optional() route: ActivatedRoute | null = null,
     @Optional() public readonly notificationFocus: NotificationRecordFocusService | null = null,
     @Optional() private readonly cdr: ChangeDetectorRef | null = null,
+    @Optional() api: GmaoApiService | null = null,
   ) {
+    void this.loadOffGridSites(api);
     if (route && notificationFocus) notificationFocus.bind(route, {
       rows: () => this.filteredRows,
       clearFilters: () => {
@@ -216,7 +219,7 @@ export class FuelGePageComponent {
   async saveEntry(): Promise<void> {
     this.formError = '';
     if (this.isInitialFuelMonth && !this.canSetInitialStock) {
-      this.formError = 'Le stock de départ du premier mois doit être défini par le Manager ou le Chef des opérations.';
+      this.formError = 'Le stock de départ du premier mois doit être défini par le Manager ou le Chargé des opérations.';
       return;
     }
     if (this.isInitialFuelMonth && (this.newEntry.stockInitial === null || Number(this.newEntry.stockInitial) < 0)) {
@@ -280,7 +283,21 @@ export class FuelGePageComponent {
   }
   previousPage(): void { if (this.currentPage > 1) this.currentPage--; }
   nextPage(): void { if (this.currentPage < this.pageCount) this.currentPage++; }
-  isNoGridSite(site: string): boolean { return this.noGridSites.has(site); }
+  isNoGridSite(site: string): boolean {
+    if (this.offGridOverride) return this.offGridOverride.has(site);
+    return this.dataStore.offGridSites.includes(site);
+  }
+
+  private async loadOffGridSites(api: GmaoApiService | null): Promise<void> {
+    if (!api) return;
+    try {
+      const sites = await api.listSites();
+      this.offGridOverride = new Set(sites.filter((site) => site.gridConnected === false).map((site) => site.name));
+      this.cdr?.detectChanges();
+    } catch {
+      this.offGridOverride = null;
+    }
+  }
 
   private createEmptyEntry(): MonthlyJournalRow {
     return {

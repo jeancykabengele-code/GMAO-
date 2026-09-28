@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 
 const LOCAL_TOKEN_KEY = 'gmao-local-access-token';
 export type UserRole = 'administrator' | 'manager' | 'charge_operations' | 'chef_site';
-export interface GmaoPermissions { globalScope: boolean; viewDashboard: boolean; viewDocumentation: boolean; createRecords: boolean; modifyExisting: boolean; deleteRecords: boolean; manageUsers: boolean; viewAuditLog: boolean; allowedSites: string[]; }
+export interface GmaoPermissions { globalScope: boolean; viewDashboard: boolean; viewDocumentation: boolean; createRecords: boolean; modifyExisting: boolean; deleteRecords: boolean; manageUsers: boolean; viewAuditLog: boolean; allowedSites: string[]; offGridSites?: string[]; }
 export interface UserProfile { id: string; email: string; full_name: string; role: UserRole; site: string | null; active: boolean; created_at?: string | null; permissions?: GmaoPermissions; }
 interface BackendUserProfile { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; permissions: GmaoPermissions; }
 interface LocalSession { access_token: string; }

@@ -73,7 +73,7 @@ class BusinessSchemaContractTests(SimpleTestCase):
                 self.assertEqual(model._meta.unique_together, unique_together)
 
 
-class PermissionPolicyTests(SimpleTestCase):
+class PermissionPolicyTests(TestCase):
     def test_chef_site_is_limited_to_own_site_and_cannot_modify(self):
         chef = SimpleNamespace(role="chef_site", site="Goma")
 
@@ -343,7 +343,7 @@ class HistoricalFuelDeliveryTests(SimpleTestCase):
         self.assertFalse(values["difference_stock"])
 
 
-class FuelCalculationTests(SimpleTestCase):
+class FuelCalculationTests(TestCase):
     @patch("profiles.records._generator_hours_total", return_value=Decimal("24"))
     @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("100"))
     @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
@@ -368,6 +368,7 @@ class FuelCalculationTests(SimpleTestCase):
     @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500"))
     @patch("profiles.records._generator_fuel_consumption_total", return_value=Decimal("100"))
     def test_no_grid_sites_have_zero_availability_and_no_snel(self, group_consumption, previous_stock, deliveries, generator_hours):
+        business_models.Site.objects.create(name="Kikwit", code="KKW", active=True, grid_connected=False)
         values = _calculate_fuel_values({
             "site": "Kikwit",
             "periode": "2026-01",

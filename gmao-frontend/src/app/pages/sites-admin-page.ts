@@ -20,11 +20,12 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
         <form class="site-form" (ngSubmit)="save()">
           <h2>{{ editing ? 'Modifier le site' : 'Nouveau site' }}</h2>
           <label>Nom du site
-            <input name="name" [(ngModel)]="form.name" [readonly]="!!editing" required maxlength="120" />
+            <input name="name" [(ngModel)]="form.name" required maxlength="120" />
           </label>
           <label>Code du site
             <input name="code" [(ngModel)]="form.code" required maxlength="30" placeholder="Ex. LUB" />
           </label>
+          <label class="checkbox"><input type="checkbox" name="gridConnected" [(ngModel)]="form.gridConnected" /> Raccordé au réseau SNEL</label>
           @if (editing) {
             <label class="checkbox"><input type="checkbox" name="active" [(ngModel)]="form.active" /> Site actif</label>
           }
@@ -41,15 +42,16 @@ import { GmaoApiService, SiteRecord } from '../data/gmao-api.service';
         @else {
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Nom</th><th>Code</th><th>Statut</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Nom</th><th>Code</th><th>Réseau SNEL</th><th>Statut</th><th>Actions</th></tr></thead>
               <tbody>
                 @for (site of sites; track site.name) {
                   <tr [class.inactive]="!site.active">
                     <td>{{ site.name }}</td><td>{{ site.code }}</td>
+                    <td>{{ site.gridConnected ? 'Raccordé' : 'Hors réseau' }}</td>
                     <td><span class="status" [class.off]="!site.active">{{ site.active ? 'Actif' : 'Désactivé' }}</span></td>
                     <td><button type="button" class="link-button" (click)="startEdit(site)">{{ site.active ? 'Modifier' : 'Réactiver' }}</button> <button type="button" class="delete-button" (click)="deleteSite(site)">Supprimer</button></td>
                   </tr>
-                } @empty { <tr><td colspan="4" class="empty">Aucun site enregistré.</td></tr> }
+                } @empty { <tr><td colspan="5" class="empty">Aucun site enregistré.</td></tr> }
               </tbody>
             </table>
           </div>
@@ -106,7 +108,7 @@ export class SitesAdminPageComponent {
   saving = false;
   formOpen = false;
   editing: SiteRecord | null = null;
-  form: SiteRecord = { name: '', code: '', active: true };
+  form: SiteRecord = { name: '', code: '', active: true, gridConnected: true };
   message = '';
   error = '';
   pendingDeletion: SiteRecord | null = null;
@@ -120,7 +122,7 @@ export class SitesAdminPageComponent {
     finally { this.loading = false; this.cdr.detectChanges(); }
   }
 
-  startCreate(): void { this.message = ''; this.error = ''; this.editing = null; this.form = { name: '', code: '', active: true }; this.formOpen = true; }
+  startCreate(): void { this.message = ''; this.error = ''; this.editing = null; this.form = { name: '', code: '', active: true, gridConnected: true }; this.formOpen = true; }
   startEdit(site: SiteRecord): void { this.message = ''; this.error = ''; this.editing = site; this.form = { ...site }; this.formOpen = true; }
   cancel(): void { this.formOpen = false; this.editing = null; }
   deleteSite(site: SiteRecord): void { this.message = ''; this.error = ''; this.pendingDeletion = site; }
@@ -145,8 +147,8 @@ export class SitesAdminPageComponent {
     this.saving = true;
     try {
       const saved = this.editing
-        ? await this.api.updateSite(this.editing.name, { code: this.form.code, active: this.form.active })
-        : await this.api.createSite({ name: this.form.name, code: this.form.code });
+        ? await this.api.updateSite(this.editing.name, { name: this.form.name.trim(), code: this.form.code, active: this.form.active, gridConnected: this.form.gridConnected })
+        : await this.api.createSite({ name: this.form.name.trim(), code: this.form.code, gridConnected: this.form.gridConnected });
       this.sites = this.editing ? this.sites.map(site => site.name === this.editing!.name ? saved : site) : [...this.sites, saved].sort((a, b) => a.name.localeCompare(b.name));
       this.message = this.editing ? 'Site mis à jour.' : 'Site ajouté. Actualisez la page après la création pour le voir dans tous les filtres.';
       this.cancel();

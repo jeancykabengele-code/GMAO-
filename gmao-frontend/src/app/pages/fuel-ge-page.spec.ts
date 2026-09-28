@@ -19,8 +19,16 @@ describe('FuelGePageComponent', () => {
     expect(component.calculatedGridAvailability).toBeCloseTo(96.77, 2);
   });
 
-  it('fixe la disponibilité à zéro et retire SNEL pour Kikwit et Mbandaka', () => {
-    const store = new GmaoDataStore();
+  it('fixe la disponibilité à zéro et retire SNEL pour un site hors réseau', () => {
+    const access = {
+      get profile() { return { permissions: { offGridSites: ['Kikwit'] } }; },
+      get allowedSites() { return ['Kikwit']; },
+      get canModifyExisting() { return true; },
+      get canEnterSiteData() { return true; },
+      get canExportData() { return true; },
+      get isChefSite() { return false; },
+    };
+    const store = new GmaoDataStore(access as never);
     store.generatorRows = [
       { site: 'Kikwit', code: 'GE-001', moisReleve: '2025-12', rhActuel: 100 },
       { site: 'Kikwit', code: 'GE-001', moisReleve: '2026-01', rhActuel: 110 },

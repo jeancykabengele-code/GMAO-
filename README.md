@@ -373,7 +373,7 @@ La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et 
 - `gmao_problemes_datacenter`
 - `gmao_interventions`
 - `gmao_pieces_rechange`
-- `gmao_notifications` : alertes et notifications personnelles du Manager et du Chef des opérations.
+- `gmao_notifications` : alertes et notifications personnelles du Manager et du Chargé des opérations.
 - `gmao_login_buckets` : compteurs techniques de limitation des connexions.
 - `gmao_password_history` : cinq anciens hachages au maximum par profil, utilisés uniquement contre la réutilisation.
 - `audit_log` : journal append-only des événements de sécurité et des actions sensibles.
@@ -476,7 +476,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - La disponibilité Grid est calculée à partir des heures du mois et des heures GE.
 - Modifier un ravitaillement, un relevé RH ou un journal Fuel-GE recalcule automatiquement le mois concerné et les mois suivants du même site, dans une transaction.
 - Les champs de calcul (ravitaillements, stocks finaux, heures GE, L/h et disponibilité Grid) ne sont jamais acceptés comme saisie manuelle par l’API.
-- Kikwit et Mbandaka sont considérés comme des sites sans Grid : disponibilité fixée à 0 et énergie SNEL non applicable.
+- Un site décoché « raccordé au réseau SNEL » a une disponibilité fixée à 0 et une énergie SNEL non applicable. Kikwit et Mbandaka sont hors réseau à l’installation de cette règle.
 
 ### Consommation par groupe GE
 

@@ -49,7 +49,7 @@
       @if (isInitialFuelMonth && canSetInitialStock) {
         <label class="full-width"><span>Stock de départ du site (L)</span><input name="stockInitial" type="number" min="0" step="0.001" [(ngModel)]="newEntry.stockInitial" required /></label>
       } @else if (isInitialFuelMonth) {
-        <div class="no-grid-message full-width"><i class="solaris-icon solaris-information"></i><span>Le stock de départ du premier mois peut être saisi par le Chef de site, le Manager ou le Chef des opérations.</span></div>
+        <div class="no-grid-message full-width"><i class="solaris-icon solaris-information"></i><span>Le stock de départ du premier mois peut être saisi par le Chef de site, le Manager ou le Chargé des opérations.</span></div>
       }
       @if (isNoGridSite(newEntry.site)) {
         <div class="no-grid-message"><i class="solaris-icon solaris-information"></i><span>SNEL non applicable pour ce site.</span></div>

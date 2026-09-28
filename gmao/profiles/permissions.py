@@ -22,6 +22,7 @@ class GmaoPermissions:
     manage_users: bool
     view_audit_log: bool
     allowed_sites: list[str]
+    off_grid_sites: list[str]
 
     def as_dict(self) -> dict:
         return {
@@ -34,6 +35,7 @@ class GmaoPermissions:
             "manageUsers": self.manage_users,
             "viewAuditLog": self.view_audit_log,
             "allowedSites": self.allowed_sites,
+            "offGridSites": self.off_grid_sites,
         }
 
 
@@ -42,9 +44,13 @@ def build_permissions(profile: UserProfile) -> GmaoPermissions:
     manages_administration = _can_manage_administration(profile)
     allowed_sites = (
         list(Site.objects.filter(active=True).order_by("name").values_list("name", flat=True))
-        if is_global
+        if is_global or manages_administration
         else [profile.site]
     )
+    allowed_sites = [site for site in allowed_sites if site]
+    off_grid_sites = list(
+        Site.objects.filter(name__in=allowed_sites, grid_connected=False).order_by("name").values_list("name", flat=True)
+    ) if allowed_sites else []
     return GmaoPermissions(
         global_scope=is_global,
         view_dashboard=is_global,
@@ -54,7 +60,8 @@ def build_permissions(profile: UserProfile) -> GmaoPermissions:
         delete_records=is_global,
         manage_users=manages_administration,
         view_audit_log=manages_administration,
-        allowed_sites=[site for site in allowed_sites if site],
+        allowed_sites=allowed_sites,
+        off_grid_sites=off_grid_sites,
     )
 
 

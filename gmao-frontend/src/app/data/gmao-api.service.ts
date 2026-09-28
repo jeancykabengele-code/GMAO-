@@ -19,7 +19,7 @@ export type GmaoResource =
   | 'pieces-rechange';
 
 export type PersistedRow = Record<string, unknown> & { id?: string; site?: string };
-export interface SiteRecord { name: string; code: string; active: boolean; }
+export interface SiteRecord { name: string; code: string; active: boolean; gridConnected: boolean; }
 export interface ProfileRecord { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; }
 export interface AuditLogRecord { id: number; actorId: string | null; actorEmail: string; action: string; targetType: string; targetId: string; result: 'success' | 'failure' | 'blocked'; ipAddress: string; details: Record<string, unknown>; createdAt: string; }
 export interface AuditLogPage { items: AuditLogRecord[]; total: number; limit: number; offset: number; }
@@ -42,7 +42,7 @@ export class GmaoApiService {
     }));
   }
 
-  async createSite(site: Pick<SiteRecord, 'name' | 'code'>): Promise<SiteRecord> {
+  async createSite(site: Pick<SiteRecord, 'name' | 'code' | 'gridConnected'>): Promise<SiteRecord> {
     return firstValueFrom(this.http.post<SiteRecord>(`${environment.apiUrl}/api/sites`, site, {
       headers: await this.authHeaders(),
     }));
