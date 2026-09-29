@@ -31,8 +31,6 @@
           <p class="field-error">Le mot de passe est requis.</p>
         }
 
-        <p class="session-notice">Votre connexion est conservée dans cet onglet. Déconnectez-vous après utilisation sur un poste partagé.</p>
-
         <button class="submit-button" type="submit" [disabled]="loading">
           <span>{{ loading ? 'Connexion en cours…' : 'Se connecter' }}</span>
           <i class="solaris-icon" [class.solaris-forward]="!loading" [class.solaris-redo]="loading" [class.spinning]="loading"></i>
