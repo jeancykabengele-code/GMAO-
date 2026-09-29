@@ -101,7 +101,7 @@ def profile_collection(request):
 
         with transaction.atomic():
             profile = UserProfile.objects.create(id=uuid4(), email=email, full_name=full_name, role=role, site=site_name, active=True)
-            set_local_password(profile.id, data.get("password"))
+            set_local_password(profile.id, data.get("password"), must_change_password=True)
             record_audit(request, "profile_create", "profile", profile.id, details={"email": profile.email, "role": profile.role, "site": profile.site, "active": profile.active})
         return JsonResponse(_serialize(profile), status=201)
     except ValidationError as error:
@@ -198,7 +198,7 @@ def profile_password(request, profile_id):
         data = _payload(request)
         verify_current_password(request.gmao_profile, data.get("managerPassword"))
         with transaction.atomic():
-            set_local_password(profile.id, data.get("password"))
+            set_local_password(profile.id, data.get("password"), must_change_password=True)
             record_audit(request, "password_reset", "profile", profile.id, details={"targetEmail": profile.email})
         return JsonResponse({"status": "password_set", "profileId": str(profile.id)})
     except UserProfile.DoesNotExist:

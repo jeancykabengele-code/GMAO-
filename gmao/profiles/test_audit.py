@@ -76,7 +76,7 @@ class LoginAuditTests(SimpleTestCase):
     @patch("profiles.views.reserve_attempt", return_value=Admission(0, "pair", "opaque"))
     def test_successful_login_is_audited(self, reserve, authenticate, issue_token, serialize, audit):
         profile = SimpleNamespace(id=uuid4(), email="manager@example.com")
-        authenticate.return_value = (profile, SimpleNamespace())
+        authenticate.return_value = (profile, SimpleNamespace(must_change_password=False))
         request = self.factory.post("/api/auth/local/login", data=json.dumps({"email": profile.email, "password": "not-logged"}), content_type="application/json")
 
         response = local_login(request)
@@ -85,7 +85,7 @@ class LoginAuditTests(SimpleTestCase):
         audit.assert_called_once()
         self.assertEqual(audit.call_args.args[1:3], ("login", "session"))
         self.assertEqual(audit.call_args.kwargs["target_id"], profile.id)
-        self.assertNotIn("password", repr(audit.call_args).lower())
+        self.assertNotIn("not-logged", repr(audit.call_args))
 
     @patch("profiles.audit.record_audit")
     @patch("profiles.views.authenticate", side_effect=LocalAuthenticationError("Identifiants invalides."))

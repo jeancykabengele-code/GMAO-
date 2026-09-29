@@ -92,6 +92,19 @@ describe('AuthService login and session security', () => {
     expect(auth.accessToken()).toBe('next-token');
   });
 
+  it('reports a temporary password imposed by an administrator and clears it once changed', async () => {
+    const signedIn = auth.signIn('user@example.invalid', 'password');
+    http.expectOne(request => request.url.endsWith('/api/auth/local/login'))
+      .flush({ accessToken: 'tab-token', profile: { ...profile, mustChangePassword: true } });
+    await signedIn;
+    expect(auth.mustChangePassword()).toBe(true);
+
+    const changed = auth.changeLocalPassword('password', 'Phrase-longue-2026!');
+    http.expectOne(request => request.url.endsWith('/api/auth/local/change-password')).flush({ status: 'changed', accessToken: 'next-token' });
+    await changed;
+    expect(auth.mustChangePassword()).toBe(false);
+  });
+
   it('removes tokens from both stores on logout', async () => {
     localStorage.setItem(tokenKey, 'legacy');
     sessionStorage.setItem(tokenKey, 'tab-token');

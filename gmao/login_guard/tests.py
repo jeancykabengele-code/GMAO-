@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.management import call_command
@@ -167,7 +168,7 @@ class LoginLimiterTests(TestCase):
 
     @patch("profiles.views._serialize_profile", return_value={"active": True})
     @patch("profiles.views.issue_token", return_value="test-session-token")
-    @patch("profiles.views.authenticate", return_value=(object(), object()))
+    @patch("profiles.views.authenticate", return_value=(SimpleNamespace(), SimpleNamespace(must_change_password=False)))
     def test_successful_login_keeps_existing_response_and_releases_budget(self, authenticate, issue, serialize):
         response = self.client.post("/api/auth/local/login", {"email": "ok@example.invalid", "password": "valid"}, content_type="application/json")
         self.assertEqual(response.status_code, 200)
@@ -176,7 +177,7 @@ class LoginLimiterTests(TestCase):
 
     @patch("profiles.views._serialize_profile", return_value={"active": True})
     @patch("profiles.views.issue_token", return_value="test-session-token")
-    @patch("profiles.views.authenticate", return_value=(object(), object()))
+    @patch("profiles.views.authenticate", return_value=(SimpleNamespace(), SimpleNamespace(must_change_password=False)))
     def test_five_successful_logins_do_not_block_the_account(self, authenticate, issue, serialize):
         for _ in range(5):
             response = self.client.post("/api/auth/local/login", {"email": "ok@example.invalid", "password": "valid"}, content_type="application/json")

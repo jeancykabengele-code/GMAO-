@@ -7,7 +7,7 @@ const LOCAL_TOKEN_KEY = 'gmao-local-access-token';
 export type UserRole = 'administrator' | 'manager' | 'charge_operations' | 'chef_site';
 export interface GmaoPermissions { globalScope: boolean; viewDashboard: boolean; viewDocumentation: boolean; createRecords: boolean; modifyExisting: boolean; deleteRecords: boolean; manageUsers: boolean; viewAuditLog: boolean; allowedSites: string[]; offGridSites?: string[]; }
 export interface UserProfile { id: string; email: string; full_name: string; role: UserRole; site: string | null; active: boolean; created_at?: string | null; permissions?: GmaoPermissions; }
-interface BackendUserProfile { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; permissions: GmaoPermissions; }
+interface BackendUserProfile { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; permissions: GmaoPermissions; mustChangePassword?: boolean; }
 interface LocalSession { access_token: string; }
 export class GmaoAuthError extends Error { constructor(readonly code: string, message: string) { super(message); } }
 
@@ -52,6 +52,7 @@ export class AuthService {
         sessionStorage.setItem(LOCAL_TOKEN_KEY, result.accessToken);
         this.session.set({ access_token: result.accessToken });
       }
+      this.mustChangePassword.set(false);
     }
     catch (error) { throw this.mapError(error); }
   }
@@ -66,7 +67,7 @@ export class AuthService {
     try { await this.loadProfile(token); } catch { await this.signOut(); }
   }
   private async loadProfile(token: string): Promise<UserProfile> { try { const data = await firstValueFrom(this.http.get<BackendUserProfile>(`${environment.apiUrl}/api/me`, { headers: { Authorization: `Bearer ${token}` } }).pipe(timeout({ first: 10_000 }))); return this.applyProfile(data); } catch (error) { throw this.mapError(error); } }
-  private applyProfile(data: BackendUserProfile): UserProfile { if (!data.active || !this.isKnownRole(data.role)) throw new GmaoAuthError('invalid_profile', 'Votre profil n’est pas autorisé.'); const profile: UserProfile = { id:data.id,email:data.email,full_name:data.fullName,role:data.role,site:data.site,active:data.active,created_at:data.createdAt,permissions:data.permissions }; this.profile.set(profile); return profile; }
+  private applyProfile(data: BackendUserProfile): UserProfile { if (!data.active || !this.isKnownRole(data.role)) throw new GmaoAuthError('invalid_profile', 'Votre profil n’est pas autorisé.'); const profile: UserProfile = { id:data.id,email:data.email,full_name:data.fullName,role:data.role,site:data.site,active:data.active,created_at:data.createdAt,permissions:data.permissions }; this.profile.set(profile); this.mustChangePassword.set(Boolean(data.mustChangePassword)); return profile; }
   private isKnownRole(role: unknown): role is UserRole { return role === 'administrator' || role === 'manager' || role === 'charge_operations' || role === 'chef_site'; }
   private clearState(): void { this.session.set(null); this.profile.set(null); this.mustChangePassword.set(false); }
   private clearPersistentToken(): void {

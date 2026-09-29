@@ -47,6 +47,12 @@ def database_health(request):
     return JsonResponse({"status": "UP", "database": "UP", "responseTimeMs": elapsed_ms})
 
 
+# Routes accessibles tant que le mot de passe imposé n'a pas été remplacé.
+# En dehors de cette liste, toute route est bloquée pour ne pas laisser un
+# compte agir avec un mot de passe temporaire choisi par quelqu'un d'autre.
+PASSWORD_CHANGE_EXEMPT_PATHS = {"/api/me", "/api/auth/local/change-password", "/api/auth/local/logout"}
+
+
 def require_authenticated_user(view):
     """Authentifie toutes les routes API avec un jeton Django signé."""
     @csrf_exempt
@@ -59,6 +65,11 @@ def require_authenticated_user(view):
             request.gmao_profile = profile_from_token(token.strip())
         except LocalAuthenticationError as error:
             return JsonResponse({"status": 401, "code": "invalid_session", "detail": str(error)}, status=401)
+        if getattr(request.gmao_profile, "must_change_password", False) and request.path not in PASSWORD_CHANGE_EXEMPT_PATHS:
+            return JsonResponse(
+                {"status": 403, "code": "password_change_required", "detail": "Un nouveau mot de passe doit être défini avant de continuer."},
+                status=403,
+            )
         return view(request, *args, **kwargs)
     return wrapped
 
@@ -70,7 +81,7 @@ def _serialize_profile(profile):
         "createdAt": profile.created_at.isoformat() if profile.created_at else None,
         "permissions": permissions.as_dict(),
     }
-    response["mustChangePassword"] = False
+    response["mustChangePassword"] = getattr(profile, "must_change_password", False)
     return response
 
 
@@ -96,7 +107,8 @@ def local_login(request):
         response["Retry-After"] = str(admission.retry_after)
         return response
     try:
-        profile, _credential = authenticate(data.get("email"), data.get("password"))
+        profile, credential = authenticate(data.get("email"), data.get("password"))
+        profile.must_change_password = credential.must_change_password
     except (ValidationError, LocalAuthenticationError) as error:
         from .audit import record_audit
         record_audit(request, "login", "session", result="failure", actor_email=str(data.get("email", "")).strip().lower(), details={"reason": "invalid_credentials"})
@@ -109,7 +121,7 @@ def local_login(request):
         return JsonResponse({"status": 503, "code": "login_unavailable", "detail": "Connexion temporairement indisponible. Veuillez réessayer."}, status=503)
     from .audit import record_audit
     record_audit(request, "login", "session", target_id=getattr(profile, "id", ""), actor=profile, details={"reason": "authenticated"})
-    return JsonResponse({"accessToken": issue_token(profile), "profile": _serialize_profile(profile), "mustChangePassword": False})
+    return JsonResponse({"accessToken": issue_token(profile), "profile": _serialize_profile(profile)})
 
 
 @require_authenticated_user

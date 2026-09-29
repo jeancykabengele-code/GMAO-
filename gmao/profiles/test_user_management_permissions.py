@@ -65,7 +65,7 @@ class PasswordResetReauthenticationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         verify.assert_called_once_with(self.administrator, "Administrator-current-password")
-        set_password.assert_called_once_with(self.target.id, "Target-new-password-2026")
+        set_password.assert_called_once_with(self.target.id, "Target-new-password-2026", must_change_password=True)
         audit.assert_called_once()
 
     @patch("profiles.users_admin.record_audit")

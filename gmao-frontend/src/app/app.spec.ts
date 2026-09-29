@@ -20,11 +20,13 @@ describe('App routing shell', () => {
 
   let authenticatedState: ReturnType<typeof signal<boolean>>;
   let profileState: ReturnType<typeof signal<UserProfile | null>>;
+  let mustChangePasswordState: ReturnType<typeof signal<boolean>>;
 
   beforeEach(async () => {
     sessionStorage.removeItem(PORTAL_ENTRY_KEY);
     authenticatedState = signal(false);
     profileState = signal<UserProfile | null>(null);
+    mustChangePasswordState = signal(false);
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -35,7 +37,7 @@ describe('App routing shell', () => {
           useValue: {
             initialize: () => Promise.resolve(),
             authenticated: authenticatedState,
-            mustChangePassword: signal(false),
+            mustChangePassword: mustChangePasswordState,
             isAuthenticated: () => authenticatedState(),
             profile: profileState,
             destinationFor: () => '/tableau-de-bord',
@@ -152,5 +154,16 @@ describe('App routing shell', () => {
     const router = TestBed.inject(Router);
     expect(router.url).toBe('/accueil');
     expect(compiled.querySelector('a[routerLink="sauvegardes"]')).toBeNull();
+  });
+
+  it('sends a user with a pending forced password change back to connexion instead of any internal page', async () => {
+    sessionStorage.setItem(PORTAL_ENTRY_KEY, 'true');
+    authenticatedState.set(true);
+    profileState.set(managerProfile);
+    mustChangePasswordState.set(true);
+
+    await renderRoute('/accueil');
+    const router = TestBed.inject(Router);
+    expect(router.url).toBe('/connexion');
   });
 });

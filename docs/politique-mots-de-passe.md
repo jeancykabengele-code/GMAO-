@@ -14,3 +14,7 @@ Les anciens hachages sont stockés dans `gmao_password_history`. Ils ne permette
 `GMAO_PWNED_PASSWORD_CHECK=true` est explicite sur Render. Le développement local peut conserver `false` pour fonctionner hors ligne. Ne pas désactiver ce contrôle en production pour contourner une panne : diagnostiquer la sortie HTTPS vers `api.pwnedpasswords.com` et réessayer.
 
 Référence : [API officielle Pwned Passwords](https://haveibeenpwned.com/API/v3#PwnedPasswords).
+
+## Mot de passe temporaire imposé
+
+Quand l'Administrateur crée un compte ou réinitialise le mot de passe d'un profil existant, il choisit lui-même la valeur initiale et la communique au titulaire du compte : ce mot de passe est marqué comme temporaire (`must_change_password=true` sur `LocalCredential`). Tant qu'il n'a pas été remplacé, Django refuse HTTP 403 (`password_change_required`) toute route API autre que `/api/me`, `/api/auth/local/change-password` et `/api/auth/local/logout` — l'interface ne montre d'ailleurs que le formulaire « Choisissez votre mot de passe » tant que ce changement n'est pas fait. Un changement volontaire (l'utilisateur connaît déjà son mot de passe actuel) ne redemande jamais un nouveau changement par la suite. La commande `reset_gmao_password` (accès serveur direct) définit en revanche un mot de passe durable, sans ce marquage.

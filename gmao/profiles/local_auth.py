@@ -98,14 +98,14 @@ def _assert_password_not_reused(profile_id, password: str, current_hash: str) ->
         )
 
 
-def _replace_password(credential: LocalCredential, password: str) -> None:
+def _replace_password(credential: LocalCredential, password: str, must_change_password: bool = False) -> None:
     _assert_password_not_reused(credential.profile_id, password, credential.password_hash)
     PasswordHistory.objects.create(
         profile_id=credential.profile_id,
         password_hash=credential.password_hash,
     )
     credential.password_hash = make_password(password)
-    credential.must_change_password = False
+    credential.must_change_password = must_change_password
     credential.password_changed_at = datetime.now(timezone.utc)
     credential.session_version += 1
     credential.save(
@@ -121,16 +121,16 @@ def _replace_password(credential: LocalCredential, password: str) -> None:
 
 
 @transaction.atomic
-def set_local_password(profile_id, password: object) -> None:
+def set_local_password(profile_id, password: object, must_change_password: bool = False) -> None:
     password = validate_password(password)
     credential = LocalCredential.objects.select_for_update().filter(profile_id=profile_id).first()
     if credential:
-        _replace_password(credential, password)
+        _replace_password(credential, password, must_change_password)
         return
     LocalCredential.objects.create(
         profile_id=profile_id,
         password_hash=make_password(password),
-        must_change_password=False,
+        must_change_password=must_change_password,
         password_changed_at=datetime.now(timezone.utc),
     )
 
@@ -185,6 +185,7 @@ def profile_from_token(token: str) -> UserProfile:
         credential = LocalCredential.objects.get(profile_id=profile.id)
         if credential.session_version != payload["sv"]:
             raise LocalAuthenticationError("Session locale invalide ou expirée.")
+        profile.must_change_password = credential.must_change_password
         return profile
     except (signing.BadSignature, KeyError, ProfileAccessError, LocalCredential.DoesNotExist, LocalAuthenticationError) as error:
         raise LocalAuthenticationError("Session locale invalide ou expirée.") from error

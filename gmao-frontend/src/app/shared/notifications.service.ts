@@ -46,7 +46,7 @@ export class NotificationsService {
 
   constructor() {
     effect(() => {
-      if (this.access.isGlobalRole) {
+      if (this.access.isGlobalRole && !this.auth.mustChangePassword()) {
         this.startPolling();
       } else {
         this.stopPolling();
