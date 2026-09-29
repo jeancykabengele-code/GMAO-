@@ -70,8 +70,7 @@
 .form-heading { display: grid; margin-bottom: 38px; grid-template-columns: 72px minmax(0, 1fr); align-items: center; column-gap: 20px; }
 .heading-logo { display: block; width: 72px; height: 72px; object-fit: contain; }
 .heading-copy { min-width: 0; text-align: left; }
-.form-heading h1 { margin: 0 0 7px; color: #fff; font-size: 1.7rem; font-weight: 700; letter-spacing: -.03em; line-height: 1.12; }
-.form-heading p { margin: 0; color: rgba(255,255,255,.72); font-size: .86rem; line-height: 1.45; }
+.form-heading h1 { margin: 0; color: #fff; font-size: 1.7rem; font-weight: 700; letter-spacing: -.03em; line-height: 1.12; }
 form > label { display: block; margin: 0 0 9px; color: rgba(255,255,255,.84); font-size: .75rem; font-weight: 800; letter-spacing: .035em; text-transform: uppercase; }
 
 .field {
@@ -138,7 +137,6 @@ form > label { display: block; margin: 0 0 9px; color: rgba(255,255,255,.84); fo
   .form-heading { margin-bottom: 31px; grid-template-columns: 58px minmax(0, 1fr); column-gap: 15px; }
   .heading-logo { width: 58px; height: 58px; }
   .form-heading h1 { font-size: 1.35rem; }
-  .form-heading p { font-size: .75rem; }
 
 }
 
