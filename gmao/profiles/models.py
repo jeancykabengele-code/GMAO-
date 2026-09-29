@@ -33,7 +33,7 @@ class Site(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
     code = models.CharField(max_length=320, unique=True)
     active = models.BooleanField()
-    grid_connected = models.BooleanField(default=True)
+    grid_connected = models.BooleanField(default=True, db_default=True)
 
     class Meta:
         db_table = "sites"

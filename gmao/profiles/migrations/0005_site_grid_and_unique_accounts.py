@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="site",
             name="grid_connected",
-            field=models.BooleanField(default=True),
+            field=models.BooleanField(default=True, db_default=True),
         ),
         migrations.RunPython(mark_off_grid_sites, restore_off_grid_sites),
         migrations.RunPython(normalize_accounts_and_codes, migrations.RunPython.noop),
