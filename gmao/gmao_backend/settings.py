@@ -104,9 +104,9 @@ X_FRAME_OPTIONS = "DENY"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "profiles.password_validators.MinimumLengthValidatorFr",
         "OPTIONS": {"min_length": 14},
     },
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {"NAME": "profiles.password_validators.CommonPasswordValidatorFr"},
+    {"NAME": "profiles.password_validators.NumericPasswordValidatorFr"},
 ]
