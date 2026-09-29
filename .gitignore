@@ -29,3 +29,6 @@ Thumbs.db
 
 # Données de sauvegarde locales (contiennent des informations métier et utilisateurs)
 gmao/backups/
+
+# Marqueur de version généré à chaque build (voir scripts/generate-environment.mjs)
+gmao-frontend/public/version.json

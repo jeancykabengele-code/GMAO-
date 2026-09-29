@@ -16,6 +16,26 @@
   font-family: 'Helvetica Neue Orange', Arial, sans-serif;
 }
 
+.update-banner {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 16px;
+  color: #fff;
+  background: var(--orange);
+  font-size: .85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+.update-banner button { border: 0; border-radius: 6px; padding: 6px 14px; color: var(--orange); background: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.update-banner button:hover { background: var(--off-white); }
+
 .app-shell { display: flex; height: 100vh; overflow: hidden; background: var(--off-white); }
 .sidebar { width: 270px; height: 100vh; flex: 0 0 270px; padding: 20px 14px; overflow-x: hidden; overflow-y: auto; color: #1f1f1d; background: var(--sidebar); border-right: 1px solid #d7d7d3; transition: width 0.25s ease, flex-basis 0.25s ease, padding 0.25s ease; }
 .sidebar.hidden { width: 0; flex-basis: 0; padding-right: 0; padding-left: 0; }

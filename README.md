@@ -563,6 +563,11 @@ Avant une livraison, vérifier au minimum :
 Render utilise Aiven MySQL avec les variables `AIVEN_MYSQL_*` et `AIVEN_MYSQL_CA_PEM`. Le contrôle public Render reste `/health`. Le diagnostic `GET /health/database` exige `Authorization: Bearer <GMAO_HEALTH_TOKEN>` et retourne `status=UP`, `database=UP` et `responseTimeMs` si la connexion fonctionne. Sans secret configuré ou avec un jeton incorrect, il retourne HTTP 401. Il ne vérifie pas le schéma et n'expose aucun volume de table ni détail SQL. Voir [la procédure de supervision](DEPLOIEMENT.md#render--api-django).
 
 Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-build`, et la seule variable requise est `GMAO_API_URL=https://gmao-ordc-api.onrender.com`. Publier le déploiement en **Production**.
+
+### Détection d’une nouvelle version
+
+Chaque build de production génère `public/version.json` (horodatage), servi tel quel après déploiement. Le frontend le relit toutes les 5 minutes, ainsi qu’à chaque retour sur l’onglet, sans jamais recharger la page tout seul. Dès qu’il détecte un horodatage différent de celui chargé au démarrage, un bandeau orange fixe apparaît en haut de l’écran : « Nouvelle version disponible. » avec un bouton **Rafraîchir**. Rien ne se passe tant que l’utilisateur n’a pas cliqué, pour ne jamais interrompre une saisie en cours. Voir `gmao-frontend/src/app/shared/version-check.service.ts`.
+
 ## Dépannage
 
 ### L’enregistrement réussit mais la feuille reste visible

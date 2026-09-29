@@ -1,3 +1,9 @@
+@if (versionCheck.updateAvailable()) {
+  <div class="update-banner" role="status">
+    <span>Nouvelle version disponible.</span>
+    <button type="button" (click)="versionCheck.reload()">Rafraîchir</button>
+  </div>
+}
 <div class="app-shell">
   @if (!isPublicRoute) {
   <aside class="sidebar" [class.hidden]="sidebarHidden">

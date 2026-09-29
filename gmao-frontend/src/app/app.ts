@@ -5,6 +5,7 @@ import { AuthService } from './auth/auth.service';
 import { GmaoDataStore } from './data/gmao-data-store';
 import { PORTAL_ENTRY_KEY } from './auth/portal-entry.guard';
 import { NotificationsService } from './shared/notifications.service';
+import { VersionCheckService } from './shared/version-check.service';
 
 @Component({
   selector: 'app-root',
@@ -19,12 +20,14 @@ export class AppComponent {
   readonly notifications = inject(NotificationsService);
   private readonly auth = inject(AuthService);
   readonly dataStore = inject(GmaoDataStore);
+  readonly versionCheck = inject(VersionCheckService);
 
   maintenanceOpen = true;
   loggingOut = false;
   sidebarHidden = false;
 
   constructor() {
+    this.versionCheck.start();
     effect(() => {
       if (this.auth.authenticated() && !this.auth.mustChangePassword() && !this.access.isAdministrator) {
         void this.dataStore.loadAll(true);
