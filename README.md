@@ -34,6 +34,7 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - [Dépannage](#dépannage)
 - [Évolutions prévues](#évolutions-prévues)
 - [Sécurité](#sécurité)
+- [Administration](#administration)
 
 ## Fonctionnalités
 
@@ -232,6 +233,7 @@ Les rôles reconnus sont `administrator`, `manager`, `charge_operations` et `che
 |---|:---:|:---:|:---:|:---:|
 | Administrer les comptes et les sites | Oui | Non | Non | Non |
 | Consulter le journal d'audit | Oui | Non | Non | Non |
+| Générer une sauvegarde de la base | Oui | Non | Non | Non |
 | Voir tous les sites métier | Non | Oui | Oui | Non |
 | Voir son propre site | Non | Oui | Oui | Oui |
 | Accéder au tableau de bord global | Non | Oui | Oui | Non |
@@ -367,7 +369,10 @@ La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et 
 - `gmao_equipements`
 - `gmao_tickets`
 - `gmao_groupes_electrogenes`
+- `gmao_releves_rh_ge`
 - `gmao_fuel_ge`
+- `gmao_fuel_ravitaillements`
+- `gmao_consommations_groupes_ge`
 - `gmao_fuel_monthly_summary`
 - `gmao_pue`
 - `gmao_problemes_datacenter`
@@ -405,6 +410,8 @@ Authorization: Bearer <jeton_de_session_django>
 | `GET` | `/api/notifications` | Notifications personnelles du rôle global connecté |
 | `PATCH` | `/api/notifications/<uuid>/read` | Marquer une notification comme lue |
 | `PATCH` | `/api/notifications/read-all` | Marquer toutes les notifications comme lues |
+| `POST` | `/api/backups/export` | Génère et télécharge une archive ZIP complète ; réservé à l'Administrateur |
+| `POST` | `/api/backups/scheduled-export` | Même export, pour le workflow planifié ; jeton dédié `GMAO_BACKUP_TOKEN` en Bearer, jamais une session utilisateur |
 
 ### Routes métier
 
@@ -506,6 +513,8 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 Les libellés doivent correspondre exactement aux données Aiven MySQL, notamment `Mbuji mayi`, `MTC` et `New MTC`, car les filtres utilisent les noms des sites.
 
+Chaque site a un raccordement réseau SNEL configurable (case « Raccordé au réseau SNEL » dans **Administration → Gestion des sites**), plutôt qu'une liste de sites fixée dans le code. Un site décoché a sa disponibilité Grid fixée à 0 et son énergie SNEL non applicable en Fuel-GE ; Kikwit et Mbandaka sont hors réseau par défaut. Décocher ou recocher cette case recalcule automatiquement les journaux Fuel-GE du site concerné.
+
 ## Tests et compilation
 
 ### Frontend
@@ -518,10 +527,10 @@ npm run build
 
 Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 
-État vérifié au 22 septembre 2026 :
+État vérifié au 29 septembre 2026 :
 
-- 14 fichiers de tests frontend réussis ;
-- 49 tests frontend réussis dans 14 fichiers ;
+- 19 fichiers de tests frontend réussis ;
+- 72 tests frontend réussis dans 19 fichiers ;
 - compilation Angular de production réussie sans avertissement de budget ;
 - seuils de budget calibrés à 1,2 Mo pour le bundle initial et 10 Ko par feuille de style.
 
@@ -536,11 +545,13 @@ $env:DJANGO_DEBUG = 'true' # Uniquement pour les tests en développement local
 Avant une livraison, vérifier au minimum :
 
 - la connexion et la déconnexion ;
+- le changement de mot de passe forcé après une création ou une réinitialisation par l'Administrateur ;
 - les permissions de chacun des quatre rôles ;
 - les filtres du tableau de bord ;
 - la création et la modification des fiches ;
 - l’isolation du chef de site ;
 - les exports Excel XLSX ;
+- la sauvegarde à la demande depuis **Administration → Sauvegardes** ;
 - `/health` et `/health/database`.
 
 ## Déploiement
@@ -639,22 +650,29 @@ Les suppressions de sites et équipements utilisent une confirmation intégrée 
 - Désactiver `DJANGO_DEBUG` en production.
 - Restreindre `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS`.
 - Maintenir les contrôles d’autorisation côté Django, même si l’interface masque déjà les actions interdites.
-- Sauvegarder régulièrement la base Aiven MySQL et tester la restauration.
+- Un compte créé par l'Administrateur, ou dont le mot de passe est réinitialisé par lui, doit obligatoirement en choisir un nouveau à la connexion suivante ; toute autre route API est bloquée (HTTP 403) tant que ce n'est pas fait.
+- Sauvegarder régulièrement la base Aiven MySQL et tester la restauration. La page **Sauvegardes** et le workflow GitHub Actions hebdomadaire couvrent un export applicatif complet, pas une sauvegarde native MySQL au niveau moteur.
 
 ---
 
-Ce README décrit l’état vérifié du projet GMAO ORDC au **22 septembre 2026**. Il doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API, d’une variable d’environnement ou d’une règle métier.
+Ce README décrit l’état vérifié du projet GMAO ORDC au **29 septembre 2026**. Il doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API, d’une variable d’environnement ou d’une règle métier.
 
 ## Administration
 
-La page **Administration** est réservée à l'Administrateur : gestion des sites, gestion des utilisateurs et consultation du journal d'audit. Tant qu'aucun Administrateur actif n'existe, elle reste provisoirement accessible au Manager pour créer le premier compte Administrateur.
+La page **Administration** est réservée à l'Administrateur : gestion des sites, gestion des utilisateurs, journal d'audit et sauvegardes. Tant qu'aucun Administrateur actif n'existe, elle reste provisoirement accessible au Manager pour créer le premier compte Administrateur ; dès cette création, Django lui retire automatiquement cet accès.
+
+**Gestion des sites**
 
 - ajouter un site avec un nom et un code unique ;
-- modifier le code d’un site ;
+- modifier le nom, le code et le raccordement réseau SNEL d’un site (renommer un site déplace automatiquement toutes ses données métier, notifications et le chef de site associé) ;
 - désactiver ou réactiver un site ;
-- voir le statut de chaque site.
+- voir le statut et le raccordement réseau de chaque site.
 
 Les sites actifs sont utilisés automatiquement par les filtres, les formulaires et le tableau de bord. Après l’ajout d’un site, actualiser la session pour recharger la liste des sites autorisés. La désactivation n’efface aucune donnée historique. Un chef de site affecté à un site désactivé ne peut plus se connecter ; son accès revient automatiquement lorsque le site est réactivé.
+
+**Sauvegardes**
+
+Depuis **Administration → Sauvegardes**, l'Administrateur génère à la demande une archive ZIP complète (données métier, sites, comptes hors mots de passe, journal d'audit), téléchargée immédiatement, sans rien conserver sur le serveur. La même archive est aussi générée automatiquement chaque dimanche à 3h UTC par un workflow GitHub Actions indépendant, conservée 90 jours comme artefact du workflow. Voir [DEPLOIEMENT.md](DEPLOIEMENT.md) pour la configuration du secret requis.
 
 Routes API protégées : les rôles métier globaux peuvent continuer à lire `GET /api/sites`, mais seuls les Administrateurs peuvent utiliser `POST /api/sites`, `PATCH /api/sites/<nom>` et `DELETE /api/sites/<nom>` après l'amorçage.
 
