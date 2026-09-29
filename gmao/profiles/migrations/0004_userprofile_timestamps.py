@@ -20,6 +20,11 @@ def preserve_timestamp_columns(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    # ensure_updated_at_column runs raw DDL (schema_editor.add_field) itself;
+    # MySQL/InnoDB cannot roll back DDL, so Django refuses to run it inside
+    # the transaction it would otherwise wrap an atomic migration in.
+    atomic = False
+
     dependencies = [("profiles", "0003_localcredential_session_version")]
 
     operations = [
