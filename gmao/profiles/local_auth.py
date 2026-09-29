@@ -158,9 +158,9 @@ def verify_current_password(profile: UserProfile, password: object) -> None:
     try:
         credential = LocalCredential.objects.get(profile_id=profile.id)
     except LocalCredential.DoesNotExist as error:
-        raise LocalAuthenticationError("Le mot de passe actuel du Manager est incorrect.") from error
+        raise LocalAuthenticationError("Votre mot de passe actuel est incorrect.") from error
     if not check_password(str(password or ""), credential.password_hash):
-        raise LocalAuthenticationError("Le mot de passe actuel du Manager est incorrect.")
+        raise LocalAuthenticationError("Votre mot de passe actuel est incorrect.")
 
 
 def revoke_sessions(profile_id) -> None:
