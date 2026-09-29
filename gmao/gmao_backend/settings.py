@@ -88,6 +88,8 @@ GMAO_PWNED_PASSWORD_CHECK = env_bool("GMAO_PWNED_PASSWORD_CHECK", not DEBUG)
 GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS = float(os.getenv("GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS", "3"))
 # Dedicated monitoring secret; an empty value disables the database probe.
 GMAO_HEALTH_TOKEN = os.getenv("GMAO_HEALTH_TOKEN", "").strip()
+# Dedicated secret for the scheduled backup job; an empty value disables it.
+GMAO_BACKUP_TOKEN = os.getenv("GMAO_BACKUP_TOKEN", "").strip()
 # Only Render's public Cloudflare ingress may supply the client address.
 GMAO_LOGIN_TRUST_RENDER_PROXY = env_bool("RENDER", False)
 

@@ -1,0 +1,49 @@
+name: Sauvegarde hebdomadaire
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-database-backup
+  cancel-in-progress: false
+
+jobs:
+  export-and-archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GMAO_BACKUP_TOKEN: ${{ secrets.GMAO_BACKUP_TOKEN }}
+    steps:
+      - name: Générer un nom de fichier horodaté
+        id: filename
+        run: echo "name=gmao-backup-$(date -u +%Y%m%dT%H%M%SZ).zip" >> "$GITHUB_OUTPUT"
+
+      - name: Déclencher l'export et sauvegarder la réponse
+        run: |
+          status=$(curl -sS -o "${{ steps.filename.outputs.name }}" -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${GMAO_BACKUP_TOKEN}" \
+            https://gmao-ordc-api.onrender.com/api/backups/scheduled-export)
+          echo "HTTP $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::La sauvegarde a échoué (HTTP $status)."
+            cat "${{ steps.filename.outputs.name }}" || true
+            exit 1
+          fi
+
+      - name: Vérifier que l'archive est un ZIP valide et non vide
+        run: |
+          test -s "${{ steps.filename.outputs.name }}"
+          unzip -l "${{ steps.filename.outputs.name }}" | grep -q manifest.json
+
+      - name: Conserver la sauvegarde comme artefact du workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.filename.outputs.name }}
+          path: ${{ steps.filename.outputs.name }}
+          retention-days: 90

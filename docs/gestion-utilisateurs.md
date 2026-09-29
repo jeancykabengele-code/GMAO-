@@ -18,3 +18,5 @@ Les colonnes `created_at` et `updated_at` du profil sont renseignées automatiqu
 ## Sauvegardes
 
 La même permission `manageUsers` réserve aussi la page **Sauvegardes** (`/administration/sauvegardes`) : elle génère à la demande une archive ZIP de toutes les tables métier, des sites, des comptes (hors mots de passe) et du journal d'audit, via `POST /api/backups/export`, puis la fait télécharger immédiatement par le navigateur. Rien n'est écrit sur le disque du conteneur Render (éphémère) : l'archive est construite en mémoire pour la durée de la requête. Chaque export est tracé dans le journal d'audit (action `backup_export`), visible depuis la page elle-même ou depuis le journal complet.
+
+Cette même archive est aussi générée automatiquement chaque semaine par un workflow GitHub Actions, sans intervention de l'Administrateur — voir [DEPLOIEMENT.md](../DEPLOIEMENT.md) pour la configuration du secret requis et la procédure de récupération.

@@ -1,7 +1,7 @@
 from django.urls import path
 
 from .audit import audit_collection
-from .backups import backup_export
+from .backups import backup_export, scheduled_backup_export
 from .notifications import mark_all_notifications_read, mark_notification_read, notification_collection
 from .records import record_collection, record_detail
 from .sites import site_collection, site_detail
@@ -15,6 +15,7 @@ urlpatterns = [
     path('auth/local/change-password', local_change_password),
     path('me', current_user),
     path('backups/export', backup_export),
+    path('backups/scheduled-export', scheduled_backup_export),
     path('notifications', notification_collection),
     path('notifications/read-all', mark_all_notifications_read),
     path('notifications/<uuid:notification_id>/read', mark_notification_read),
