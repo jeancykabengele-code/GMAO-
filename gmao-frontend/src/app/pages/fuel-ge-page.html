@@ -76,7 +76,7 @@
         <span>Disponibilité Grid<strong>{{ calculatedGridAvailability === null ? 'Non calculable' : (calculatedGridAvailability | number:'1.0-2':'fr') + ' %' }}</strong></span>
         <span>Stock final<strong>{{ calculatedStockFinal === null ? 'Non calculable' : (calculatedStockFinal | number:'1.0-3':'fr') + ' L' }}</strong></span>
       </div>
-      @if (missingPrerequisites.length) { <p class="form-error full-width" role="status">{{ missingPrerequisites[0] }} À saisir d'abord dans « Suivi groupes électrogènes ».</p> }
+      @if (missingPrerequisites.length) { <div class="form-error full-width" role="status">@for (message of missingPrerequisites; track message) { <p>{{ message }}</p> }<p>À saisir d'abord dans « Suivi groupes électrogènes ».</p></div> }
       @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }
       <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" [disabled]="saving" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }<button type="button" class="secondary-button" [disabled]="saving" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="saving || (isInitialFuelMonth && !canSetInitialStock) || missingPrerequisites.length > 0"><i class="solaris-icon solaris-confirm"></i> {{ saving ? 'Enregistrement…' : (editingIndex === null ? 'Enregistrer' : 'Mettre à jour') }}</button></div>
     </form>

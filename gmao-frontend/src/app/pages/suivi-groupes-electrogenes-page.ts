@@ -298,14 +298,22 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
           commentaires: this.newGenerator.commentaires,
         });
       }
-      await this.dataStore.createRecord('releves-rh-ge', {
+      const reading = {
         site: this.newGenerator.site,
         groupeCode: this.newGenerator.code,
         periode: this.newGenerator.moisReleve,
         rhActuel: Number(this.newGenerator.rhActuel),
         commentaires: this.newGenerator.commentaires,
-      });
+      };
+      // « Mettre à jour » sur une ligne du tableau corrige ce relevé (rôles globaux) ;
+      // un autre mois, ou le choix d'un groupe, crée un nouveau relevé.
+      const editedReading = this.editingRow as (GeneratorRow & MonthlyReadingRow) | null;
+      const correctsExistingReading = !this.selectingGenerator && !this.creatingGenerator && !!editedReading?.id
+        && editedReading.moisReleve === this.newGenerator.moisReleve && this.dataStore.canModifyExisting;
+      if (correctsExistingReading && editedReading) await this.dataStore.updateRecord('releves-rh-ge', editedReading, reading);
+      else await this.dataStore.createRecord('releves-rh-ge', reading);
       await this.dataStore.refreshResource('groupes-electrogenes');
+      await this.dataStore.refreshFuelJournal();
       this.sheetOpen = false;
       this.editingRow = null;
       this.selectingGenerator = false;
@@ -333,6 +341,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.saveError = '';
     try {
       await this.dataStore.deleteRecord('releves-rh-ge', this.editingRow);
+      await this.dataStore.refreshFuelJournal();
       this.deleteConfirmationOpen = false;
       this.sheetOpen = false;
       this.editingRow = null;

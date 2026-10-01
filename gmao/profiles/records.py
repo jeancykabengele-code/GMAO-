@@ -612,7 +612,7 @@ def record_detail(request, resource, record_id):
             values = _clean_values(model_class, _payload(request))
             with transaction.atomic():
                 previous_site = record.site
-                previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class in {GeneratorMonthlyReading, FuelRecord} else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None)
+                previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord} else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None)
                 if model_class is GeneratorRecord:
                     assert_site_access(profile, values["site"])
                     _set_generator_from_equipment(values, record)

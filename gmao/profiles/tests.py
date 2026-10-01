@@ -776,3 +776,35 @@ class NotificationApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["unreadCount"], 1)
         self.assertEqual(response.json()["items"][0]["actionPath"], "/fuel-ge")
+
+
+class GeneratorConsumptionUpdateTests(TestCase):
+    """Régression : modifier une consommation par GE recalculait Fuel-GE avec une période vide."""
+
+    @patch("profiles.views.profile_from_token")
+    def test_updating_a_consumption_recalculates_fuel_ge(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
+        site = "Goma"
+        business_models.GeneratorRecord.objects.create(
+            site=site, code="GE-01", type_ge="GE", mois_releve="2026-01", rh_actuel=130, rh_derniere_pm=0,
+            rh_depuis_derniere_pm=130, rh_prochaine_pm=250, etat="Normal", created_by=uuid4(),
+        )
+        for periode, rh in (("2025-12", 100), ("2026-01", 130)):
+            business_models.GeneratorMonthlyReading.objects.create(
+                site=site, periode=periode, groupe_code="GE-01", rh_actuel=rh, created_by=uuid4(),
+            )
+        consumption = business_models.GeneratorFuelConsumption.objects.create(
+            site=site, periode="2026-01", groupe_code="GE-01", consommation_litres=200, heures_ge=30,
+            litres_heure=Decimal("6.667"), created_by=uuid4(),
+        )
+
+        response = self.client.put(
+            f"/api/records/consommations-groupes-ge/{consumption.id}",
+            data=json.dumps({"site": site, "periode": "2026-01", "groupeCode": "GE-01", "consommationLitres": 210.5}),
+            content_type="application/json",
+            HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 200, response.content)
+        consumption.refresh_from_db()
+        self.assertEqual(consumption.consommation_litres, Decimal("210.500"))

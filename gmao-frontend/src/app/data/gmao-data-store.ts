@@ -91,6 +91,11 @@ export class GmaoDataStore {
     this.setRaw(resource, await this.api.list(resource));
   }
 
+  /** Les saisies amont recalculent Fuel-GE côté serveur : recharge le journal sans faire échouer la saisie. */
+  async refreshFuelJournal(): Promise<void> {
+    try { await this.refreshResource('fuel-ge'); } catch { /* le journal sera rechargé à la prochaine ouverture */ }
+  }
+
   async createRecord(resource: GmaoResource, row: object): Promise<PersistedRow> {
     const prepared = this.forceCurrentSite(row);
     const saved = this.api ? await this.api.create(resource, prepared) : prepared;

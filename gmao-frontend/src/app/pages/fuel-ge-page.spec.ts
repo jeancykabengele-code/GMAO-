@@ -87,6 +87,26 @@ describe('FuelGePageComponent', () => {
     expect(component.groupsWithoutConsumption).toEqual(['GE-001', 'GE-002']);
   });
 
+  it('exige un relevé antérieur pour les mois suivants quand on ajoute un mois plus ancien', () => {
+    const store = new GmaoDataStore();
+    store.fuelRows = [{ id: 'dec', site: 'Goma', periode: '2025-12' }] as never;
+    store.generatorRows = [{ site: 'Goma', code: 'GE-001' }];
+    store.generatorReadingRows = [{ site: 'Goma', groupeCode: 'GE-001', periode: '2025-12', rhActuel: 100 }];
+    const component = new FuelGePageComponent(store);
+    component.newEntry.site = 'Goma';
+    component.newEntry.periode = '2025-11';
+
+    expect(component.missingPrerequisites).toEqual([
+      'Relevé RH de GE-001 manquant pour un mois antérieur à 2025-12. (le journal 2025-12 en dépend)',
+    ]);
+
+    store.generatorReadingRows = [
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2025-11', rhActuel: 80 },
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2025-12', rhActuel: 100 },
+    ];
+    expect(component.missingPrerequisites).toEqual([]);
+  });
+
   it("n'exige pas de relevés RH pour le premier mois sans consommation", () => {
     const store = new GmaoDataStore();
     store.generatorRows = [{ site: 'Goma', code: 'GE-001' }];

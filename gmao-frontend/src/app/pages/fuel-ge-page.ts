@@ -173,11 +173,29 @@ export class FuelGePageComponent {
   /** Prérequis bloquants, comme côté backend ; vide si l'enregistrement est possible. */
   get missingPrerequisites(): string[] {
     if (!this.newEntry.site || !this.newEntry.periode) return [];
+    return [...this.ownPrerequisites(), ...this.laterMonthsPrerequisites()];
+  }
+
+  private ownPrerequisites(): string[] {
     const statuses = this.groupRhStatuses;
     // Le premier mois d'un site sans aucune consommation n'exige pas de relevés RH.
     if (this.isInitialFuelMonth && this.calculatedGroupConsumption === 0) return [];
     if (!statuses.length) return ['Aucun groupe électrogène enregistré pour ce site (Suivi groupes électrogènes).'];
     return statuses.map((status) => rhMissingMessage(status, this.newEntry.periode)).filter(Boolean);
+  }
+
+  /** Un nouveau mois de départ rend les mois déjà saisis dépendants d'un relevé antérieur : le serveur les recalcule. */
+  private laterMonthsPrerequisites(): string[] {
+    if (this.editingIndex !== null || !this.isInitialFuelMonth) return [];
+    const readings = this.dataStore.generatorReadingRows as RhReading[];
+    const codes = this.groupRhStatuses.map((status) => status.code);
+    const laterMonths = this.journalRows
+      .filter((row) => row.site === this.newEntry.site && row.periode > this.newEntry.periode)
+      .map((row) => row.periode);
+    return laterMonths.flatMap((periode) => codes
+      .map((code) => rhMissingMessage(groupRhStatus(readings, this.newEntry.site, code, periode), periode))
+      .filter(Boolean)
+      .map((message) => `${message} (le journal ${periode} en dépend)`));
   }
 
   get calculatedGeneratorHours(): number | null {
@@ -273,6 +291,7 @@ export class FuelGePageComponent {
       } else {
         await this.dataStore.updateRecord('fuel-ge', this.journalRows[this.editingIndex], entry);
       }
+      await this.dataStore.refreshFuelJournal();
       this.selectedSite = '';
       this.selectedPeriod = '';
       this.searchTerm = '';
@@ -308,6 +327,7 @@ export class FuelGePageComponent {
     this.pendingDeletion = null;
     try {
       await this.dataStore.deleteRecord('fuel-ge', row);
+      await this.dataStore.refreshFuelJournal();
       this.selectedSite = '';
       this.selectedPeriod = '';
       this.searchTerm = '';
