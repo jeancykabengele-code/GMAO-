@@ -491,7 +491,14 @@ def _clean_values(model_class, payload):
             raise ValidationError(f"Champ inconnu : {key}.")
         if value == "" and field.null:
             value = None
-        values[field_name] = field.to_python(value)
+        cleaned = field.to_python(value)
+        if isinstance(field, models.DecimalField) and isinstance(cleaned, Decimal):
+            # DecimalField.to_python() converts a JSON float through a binary
+            # approximation (e.g. 1000.1 -> Decimal('1000.100000000000')),
+            # which then fails the field's own decimal_places validation.
+            # Round back to what the field actually allows before it is used.
+            cleaned = cleaned.quantize(Decimal(1).scaleb(-field.decimal_places))
+        values[field_name] = cleaned
     if not values.get("site"):
         raise ValidationError("Le site est obligatoire.")
     return values
