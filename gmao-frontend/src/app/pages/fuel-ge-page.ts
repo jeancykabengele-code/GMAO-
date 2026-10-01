@@ -83,6 +83,7 @@ export class FuelGePageComponent {
   editingIndex: number | null = null;
   pendingDeletion: MonthlyJournalRow | null = null;
   formError = '';
+  saving = false;
   newEntry: MonthlyJournalRow = this.createEmptyEntry();
 
   get filteredRows(): MonthlyJournalRow[] {
@@ -208,6 +209,7 @@ export class FuelGePageComponent {
   }
 
   closeSheet(): void {
+    if (this.saving) return;
     this.sheetOpen = false;
     this.editingIndex = null;
   }
@@ -232,6 +234,7 @@ export class FuelGePageComponent {
       snelKwh: this.isNoGridSite(this.newEntry.site) ? null : Number(this.newEntry.snelKwh || 0),
     };
     if (this.isInitialFuelMonth) entry['stockInitial'] = Number(this.newEntry.stockInitial);
+    this.saving = true;
     try {
       if (this.editingIndex === null) {
         await this.dataStore.createRecord('fuel-ge', entry);
@@ -243,11 +246,14 @@ export class FuelGePageComponent {
       this.searchTerm = '';
       this.currentPage = 1;
       this.journalOpen = true;
+      this.saving = false;
       this.closeSheet();
-      this.cdr?.markForCheck();
     } catch (error) {
       const apiError = error as { error?: { detail?: string; message?: string }; message?: string };
       this.formError = apiError?.error?.detail || apiError?.error?.message || apiError?.message || 'Enregistrement impossible. Vérifiez les relevés RH et les données du mois.';
+    } finally {
+      this.saving = false;
+      this.cdr?.markForCheck();
     }
   }
   editEntry(row: MonthlyJournalRow): void {

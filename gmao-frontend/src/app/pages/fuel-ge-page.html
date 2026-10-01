@@ -42,7 +42,7 @@
 @if (sheetOpen) {
   <div class="sheet-backdrop" (click)="closeSheet()"></div>
   <aside class="fuel-sheet" aria-label="Renseigner le journal mensuel">
-    <header><div><h2>{{ sheetTitle }}</h2></div><button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()"><i class="solaris-icon solaris-close"></i></button></header>
+    <header><div><h2>{{ sheetTitle }}</h2></div><button type="button" class="close-button" aria-label="Fermer" [disabled]="saving" (click)="closeSheet()"><i class="solaris-icon solaris-close"></i></button></header>
     <form (ngSubmit)="saveEntry()">
       <label><span>Site</span><select name="site" [(ngModel)]="newEntry.site" (ngModelChange)="changeSite()" required><option value="" disabled>Sélectionner un site</option>@for (site of sites; track site) { <option [value]="site">{{ site }}</option> }</select></label>
       <label><span>Mois et année</span><input name="periode" type="month" [(ngModel)]="newEntry.periode" required /></label>
@@ -65,7 +65,7 @@
         <span>Stock final<strong>{{ calculatedStockFinal === null ? 'Non calculable' : (calculatedStockFinal | number:'1.0-3':'fr') + ' L' }}</strong></span>
       </div>
       @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }
-      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }<button type="button" class="secondary-button" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="isInitialFuelMonth && !canSetInitialStock"><i class="solaris-icon solaris-confirm"></i> {{ editingIndex === null ? 'Enregistrer' : 'Mettre à jour' }}</button></div>
+      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" [disabled]="saving" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }<button type="button" class="secondary-button" [disabled]="saving" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="saving || (isInitialFuelMonth && !canSetInitialStock)"><i class="solaris-icon solaris-confirm"></i> {{ saving ? 'Enregistrement…' : (editingIndex === null ? 'Enregistrer' : 'Mettre à jour') }}</button></div>
     </form>
   </aside>
 }@if (pendingDeletion) {
