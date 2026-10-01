@@ -7,6 +7,10 @@ import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
+function roundToDecimals(value: number | null, decimals: number): number {
+  return value === null ? 0 : Number(value.toFixed(decimals));
+}
+
 interface MonthlyJournalRow {
   id?: string;
   site: string;
@@ -231,9 +235,9 @@ export class FuelGePageComponent {
     const entry: Record<string, unknown> = {
       site: this.newEntry.site,
       periode: this.newEntry.periode,
-      snelKwh: this.isNoGridSite(this.newEntry.site) ? null : Number(this.newEntry.snelKwh || 0),
+      snelKwh: this.isNoGridSite(this.newEntry.site) ? null : roundToDecimals(this.newEntry.snelKwh || 0, 2),
     };
-    if (this.isInitialFuelMonth) entry['stockInitial'] = Number(this.newEntry.stockInitial);
+    if (this.isInitialFuelMonth) entry['stockInitial'] = roundToDecimals(this.newEntry.stockInitial, 3);
     this.saving = true;
     try {
       if (this.editingIndex === null) {

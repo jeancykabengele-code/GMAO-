@@ -58,6 +58,21 @@ describe('FuelGePageComponent', () => {
     expect(component.calculatedLitresPerHour).toBeNull();
   });
 
+  it('arrondit le stock de départ et le kWh SNEL avant de les envoyer', async () => {
+    const store = new GmaoDataStore();
+    const component = new FuelGePageComponent(store);
+    component.newEntry.site = 'Goma';
+    component.newEntry.periode = '2026-01';
+    component.newEntry.stockInitial = 0.1 + 0.2; // 0.30000000000000004 in floating point
+    component.newEntry.snelKwh = 10 / 3; // 3.3333333333333335 in floating point
+
+    await component.saveEntry();
+
+    expect(component.journalRows).toHaveLength(1);
+    expect(component.journalRows[0].stockInitial).toBe(0.3);
+    expect(component.journalRows[0].snelKwh).toBe(3.33);
+  });
+
   it('filtre par site et par mois et pagine par 20 lignes', () => {
     const component = new FuelGePageComponent();
     component.journalRows = Array.from({ length: 21 }, (_, index) => ({
