@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, Optional } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
@@ -24,7 +24,11 @@ export class ConsommationGroupesGePageComponent {
   deleting = false;
   deleteConfirmationOpen = false;
 
-  constructor(readonly dataStore: GmaoDataStore, private readonly excelExporter: ExcelExportService = new ExcelExportService()) { this.entry = this.empty(); }
+  constructor(
+    readonly dataStore: GmaoDataStore,
+    private readonly excelExporter: ExcelExportService = new ExcelExportService(),
+    @Optional() private readonly cdr: ChangeDetectorRef | null = null,
+  ) { this.entry = this.empty(); }
   get rows(): ConsumptionRow[] {
     return (this.dataStore.generatorFuelConsumptionRows as ConsumptionRow[]).map((row) => ({
       ...row,
@@ -91,6 +95,7 @@ export class ConsommationGroupesGePageComponent {
       this.close();
     }
     catch { this.error = 'Enregistrement impossible : vérifiez les relevés RH du groupe.'; }
+    finally { this.cdr?.markForCheck(); }
   }
   requestDeletion(): void { if (this.editingRow && !this.deleting) this.deleteConfirmationOpen = true; }
   cancelDeletion(): void { if (!this.deleting) this.deleteConfirmationOpen = false; }
@@ -109,6 +114,7 @@ export class ConsommationGroupesGePageComponent {
       this.error = 'Suppression impossible.';
     } finally {
       this.deleting = false;
+      this.cdr?.markForCheck();
     }
   }
   private empty(): Entry { return { site: this.dataStore.allowedSites[0] ?? '', periode: '', groupeCode: '', consommationLitres: null, commentaires: '' }; }
