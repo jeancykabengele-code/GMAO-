@@ -340,7 +340,8 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
       if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
     } catch (error) {
       this.deleteConfirmationOpen = false;
-      this.saveError = error instanceof Error ? error.message : 'La suppression du groupe électrogène a échoué.';
+      const apiError = error as { error?: { detail?: string; message?: string }; message?: string };
+      this.saveError = apiError?.error?.detail || apiError?.error?.message || apiError?.message || 'La suppression du groupe électrogène a échoué.';
     } finally {
       this.deleting = false;
       this.cdr?.markForCheck();
