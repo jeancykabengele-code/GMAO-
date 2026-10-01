@@ -92,8 +92,8 @@
 @if (deleteConfirmationOpen) {
   <div class="confirmation-backdrop">
     <section class="confirmation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-generator-title">
-      <h2 id="delete-generator-title">Supprimer ce groupe ?</h2>
-      <p>Le groupe <strong>{{ editingRow?.code }}</strong> et son relevé seront supprimés définitivement.</p>
+      <h2 id="delete-generator-title">Supprimer ce relevé ?</h2>
+      <p>Le relevé du groupe <strong>{{ editingRow?.code }}</strong> pour le mois sélectionné sera supprimé définitivement. La fiche du groupe reste disponible pour un prochain relevé.</p>
       <div class="confirmation-actions">
         <button type="button" class="secondary-button" [disabled]="deleting" (click)="cancelDeletion()">Annuler</button>
         <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteGenerator()"><i class="solaris-icon solaris-delete"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>

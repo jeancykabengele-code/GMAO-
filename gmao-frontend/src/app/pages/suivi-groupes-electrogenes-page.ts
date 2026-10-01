@@ -332,7 +332,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.deleting = true;
     this.saveError = '';
     try {
-      await this.dataStore.deleteRecord('groupes-electrogenes', this.editingRow);
+      await this.dataStore.deleteRecord('releves-rh-ge', this.editingRow);
       this.deleteConfirmationOpen = false;
       this.sheetOpen = false;
       this.editingRow = null;
