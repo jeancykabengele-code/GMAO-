@@ -20,6 +20,9 @@ export class ConsommationGroupesGePageComponent {
   selectedGroup = '';
   searchTerm = '';
   entry: Entry;
+  editingRow: ConsumptionRow | null = null;
+  deleting = false;
+  deleteConfirmationOpen = false;
 
   constructor(readonly dataStore: GmaoDataStore, private readonly excelExporter: ExcelExportService = new ExcelExportService()) { this.entry = this.empty(); }
   get rows(): ConsumptionRow[] {
@@ -30,6 +33,7 @@ export class ConsommationGroupesGePageComponent {
   }
   get sites(): string[] { return this.dataStore.allowedSites; }
   get canEnterData(): boolean { return this.dataStore.canEnterData; }
+  get canModify(): boolean { return this.dataStore.canModifyExisting; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   get groups(): GeneratorRow[] { return this.dataStore.generatorRows as GeneratorRow[]; }
   get allowedGroups(): GeneratorRow[] { return this.groups.filter((group) => group.site === this.entry.site); }
@@ -67,13 +71,45 @@ export class ConsommationGroupesGePageComponent {
   previousPage(): void { if (this.currentPage > 1) this.currentPage--; }
   nextPage(): void { if (this.currentPage < this.pageCount) this.currentPage++; }
   resetFilters(): void { this.selectedSite = ''; this.selectedPeriod = ''; this.selectedGroup = ''; this.searchTerm = ''; this.currentPage = 1; }
-  show(): void { if (!this.canEnterData) return; this.error = ''; this.entry = this.empty(); this.open = true; }
-  close(): void { this.open = false; }
+  get sheetTitle(): string { return this.editingRow ? 'Modifier la consommation' : 'Renseigner la consommation'; }
+  show(): void { if (!this.canEnterData) return; this.error = ''; this.editingRow = null; this.entry = this.empty(); this.open = true; }
+  openEdit(row: ConsumptionRow): void {
+    if (!this.canModify) return;
+    this.error = '';
+    this.editingRow = row;
+    this.entry = { site: row.site, periode: row.periode, groupeCode: row.groupeCode, consommationLitres: row.consommationLitres, commentaires: row.commentaires ?? '' };
+    this.open = true;
+  }
+  close(): void { if (this.deleting) return; this.open = false; this.editingRow = null; }
   async save(): Promise<void> {
     this.error = '';
     if (!this.entry.site || !this.entry.periode || !this.entry.groupeCode || this.entry.consommationLitres === null) { this.error = 'Complétez les champs obligatoires.'; return; }
-    try { await this.dataStore.createRecord('consommations-groupes-ge', this.entry); await this.dataStore.refreshResource('fuel-ge'); this.close(); }
+    try {
+      if (this.editingRow) await this.dataStore.updateRecord('consommations-groupes-ge', this.editingRow, this.entry);
+      else await this.dataStore.createRecord('consommations-groupes-ge', this.entry);
+      await this.dataStore.refreshResource('fuel-ge');
+      this.close();
+    }
     catch { this.error = 'Enregistrement impossible : vérifiez les relevés RH du groupe.'; }
+  }
+  requestDeletion(): void { if (this.editingRow && !this.deleting) this.deleteConfirmationOpen = true; }
+  cancelDeletion(): void { if (!this.deleting) this.deleteConfirmationOpen = false; }
+  async deleteEntry(): Promise<void> {
+    if (!this.editingRow || this.deleting) return;
+    this.deleting = true;
+    try {
+      await this.dataStore.deleteRecord('consommations-groupes-ge', this.editingRow);
+      await this.dataStore.refreshResource('fuel-ge');
+      this.deleteConfirmationOpen = false;
+      if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+      this.deleting = false;
+      this.close();
+    } catch {
+      this.deleteConfirmationOpen = false;
+      this.error = 'Suppression impossible.';
+    } finally {
+      this.deleting = false;
+    }
   }
   private empty(): Entry { return { site: this.dataStore.allowedSites[0] ?? '', periode: '', groupeCode: '', consommationLitres: null, commentaires: '' }; }
 }
