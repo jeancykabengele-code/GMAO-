@@ -428,6 +428,25 @@ class FuelCalculationTests(TestCase):
             _calculate_fuel_values({"site": "Goma", "periode": "2026-02", "sortie": Decimal("151")})
         self.assertIn("stock final négatif", str(error.exception))
 
+    @patch("profiles.records._generator_hours_total", return_value=Decimal("12.3333333333"))
+    @patch("profiles.records._fuel_deliveries_total", return_value=Decimal("100.000000000001"))
+    @patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("500.100000000000"))
+    @patch("profiles.records._generator_fuel_consumption_total", return_value=Decimal("300.000000000002"))
+    def test_rounds_noisy_aggregate_totals_to_the_field_precision(self, group_consumption, previous_stock, deliveries, generator_hours):
+        """A DB driver or aggregate that hands back more precision than the
+        FuelRecord columns allow (e.g. a SUM() carrying binary float noise)
+        must not make full_clean() reject the record afterwards."""
+        values = _calculate_fuel_values({
+            "site": "Goma", "periode": "2026-01", "sortie": Decimal("300.000000000002"),
+        })
+        for field in ("stock_initial", "entree", "sortie", "stock_final"):
+            self.assertGreaterEqual(values[field].as_tuple().exponent, -3, field)
+        self.assertGreaterEqual(values["heures_ge"].as_tuple().exponent, -2)
+        self.assertEqual(values["stock_initial"], Decimal("500.100"))
+        self.assertEqual(values["entree"], Decimal("100.000"))
+        self.assertEqual(values["stock_final"], Decimal("300.100"))
+        self.assertEqual(values["heures_ge"], Decimal("12.33"))
+
     @patch("profiles.records.FuelRecord.objects")
     @patch("profiles.records._previous_fuel_final_stock", return_value=None)
     @patch("profiles.records._generator_fuel_consumption_total", return_value=Decimal("0"))

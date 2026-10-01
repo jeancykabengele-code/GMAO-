@@ -266,7 +266,8 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
     if not site:
         raise ValidationError("Le site est obligatoire.")
     _fuel_period_bounds(periode)
-    sortie = _generator_fuel_consumption_total(site, periode)
+    three_places = Decimal("0.001")
+    sortie = _generator_fuel_consumption_total(site, periode).quantize(three_places)
     values["sortie"] = sortie
 
     previous_stock = _previous_fuel_final_stock(site, periode)
@@ -279,8 +280,9 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
         stock_initial = values.get("stock_initial", getattr(record, "stock_initial", None))
         if stock_initial is None:
             raise ValidationError("Le stock initial doit être défini pour le premier mois du site.")
+        stock_initial = Decimal(stock_initial).quantize(three_places)
     else:
-        stock_initial = previous_stock
+        stock_initial = previous_stock.quantize(three_places)
     if stock_initial < 0:
         raise ValidationError("Le stock initial ne peut pas être négatif.")
 
@@ -290,9 +292,10 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
             hours_ge = Decimal("0")
         else:
             raise ValidationError("Les relevés RH du mois et du mois précédent sont nécessaires pour calculer les heures GE.")
+    hours_ge = hours_ge.quantize(Decimal("0.01"))
 
-    entree = _fuel_deliveries_total(site, periode)
-    stock_final = stock_initial + entree - sortie
+    entree = _fuel_deliveries_total(site, periode).quantize(three_places)
+    stock_final = (stock_initial + entree - sortie).quantize(three_places)
     if stock_final < 0:
         raise ValidationError("La consommation ne peut pas rendre le stock final négatif.")
 
