@@ -45,6 +45,21 @@ describe('FuelGePageComponent', () => {
     expect(component.newEntry.snelKwh).toBeNull();
   });
 
+  it('considère le mois le plus ancien du site comme mois de départ', () => {
+    const store = new GmaoDataStore();
+    store.fuelRows = [{ id: 'jan', site: 'Goma', periode: '2026-01' }] as never;
+    const component = new FuelGePageComponent(store);
+    component.newEntry.site = 'Goma';
+
+    component.newEntry.periode = '2025-12';
+    expect(component.isInitialFuelMonth).toBe(true);
+    expect(component.replacedStartMonth).toBe('2026-01');
+
+    component.newEntry.periode = '2026-02';
+    expect(component.isInitialFuelMonth).toBe(false);
+    expect(component.replacedStartMonth).toBeNull();
+  });
+
   it('affiche Non calculable lorsque la consommation est positive avec zéro heure', () => {
     const store = new GmaoDataStore();
     store.generatorRows = [

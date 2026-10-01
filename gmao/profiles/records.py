@@ -257,7 +257,10 @@ def _assert_fuel_manual_fields_are_not_sent(values, record=None):
     if manual_fields:
         raise ValidationError("Les valeurs Fuel-GE calculées automatiquement ne peuvent pas être modifiées manuellement.")
     if record is not None and "stock_initial" in values:
-        raise ValidationError("Le stock initial est calculé automatiquement et ne peut plus être modifié.")
+        site = values.get("site", getattr(record, "site", None))
+        periode = values.get("periode", getattr(record, "periode", None))
+        if _previous_fuel_final_stock(site, periode) is not None:
+            raise ValidationError("Le stock initial est calculé automatiquement : seul le mois le plus ancien du site peut être modifié.")
 
 
 def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
@@ -272,11 +275,10 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
 
     previous_stock = _previous_fuel_final_stock(site, periode)
     if previous_stock is None:
-        if record is None:
-            if FuelRecord.objects.filter(site=site).exists():
-                raise ValidationError("Un journal Fuel-GE existe déjà pour ce site. Le stock de départ ne peut pas être défini sur un mois antérieur.")
-            if not allow_initial_stock:
-                raise ValidationError("Seul le Manager ou le Chargé des opérations peut définir le stock de départ du premier mois.")
+        # Aucun mois ne précède celui-ci : c'est le mois le plus ancien du site,
+        # son stock initial est donc le stock de départ saisi à la main.
+        if (record is None or "stock_initial" in values) and not allow_initial_stock:
+            raise ValidationError("Seul le Manager ou le Chargé des opérations peut définir le stock de départ du premier mois.")
         stock_initial = values.get("stock_initial", getattr(record, "stock_initial", None))
         if stock_initial is None:
             raise ValidationError("Le stock initial doit être défini pour le premier mois du site.")

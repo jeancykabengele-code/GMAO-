@@ -111,7 +111,17 @@ export class FuelGePageComponent {
   get isInitialFuelMonth(): boolean {
     if (!this.newEntry.site || !this.newEntry.periode) return false;
     const currentId = this.editingIndex === null ? undefined : this.journalRows[this.editingIndex]?.id;
-    return !this.journalRows.some(row => row.site === this.newEntry.site && row.id !== currentId);
+    return !this.journalRows.some(row => row.site === this.newEntry.site && row.id !== currentId && row.periode < this.newEntry.periode);
+  }
+
+  /** Mois suivant déjà saisi dont le stock initial sera remplacé si ce mois devient le mois de départ. */
+  get replacedStartMonth(): string | null {
+    if (!this.isInitialFuelMonth) return null;
+    const currentId = this.editingIndex === null ? undefined : this.journalRows[this.editingIndex]?.id;
+    const next = this.journalRows
+      .filter(row => row.site === this.newEntry.site && row.id !== currentId && row.periode > this.newEntry.periode)
+      .sort((a, b) => a.periode.localeCompare(b.periode))[0];
+    return next?.periode ?? null;
   }
 
   get previousStockFinal(): number | null {

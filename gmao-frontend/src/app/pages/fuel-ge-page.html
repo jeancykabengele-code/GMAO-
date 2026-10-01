@@ -51,6 +51,9 @@
       } @else if (isInitialFuelMonth) {
         <div class="no-grid-message full-width"><i class="solaris-icon solaris-information"></i><span>Le stock de départ du premier mois peut être saisi par le Chef de site, le Manager ou le Chargé des opérations.</span></div>
       }
+      @if (replacedStartMonth && canSetInitialStock) {
+        <div class="no-grid-message full-width"><i class="solaris-icon solaris-information"></i><span>Ce mois devient le mois de départ du site : le stock initial de {{ replacedStartMonth }} sera remplacé par le stock final de ce mois.</span></div>
+      }
       @if (isNoGridSite(newEntry.site)) {
         <div class="no-grid-message"><i class="solaris-icon solaris-information"></i><span>SNEL non applicable pour ce site.</span></div>
       } @else {
