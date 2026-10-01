@@ -47,4 +47,19 @@ describe('ConsommationGroupesGePageComponent', () => {
     expect(component.rows).toHaveLength(0);
     expect(component.deleteConfirmationOpen).toBe(false);
   });
+
+  it('explique quel relevé RH saisir avant la consommation', () => {
+    const dataStore = new GmaoDataStore();
+    const component = new ConsommationGroupesGePageComponent(dataStore);
+    component.entry = { site: 'Goma', periode: '2026-01', groupeCode: 'GE-01', consommationLitres: 100, commentaires: '' };
+    expect(component.missingPrerequisite).toContain('GE-01');
+    expect(component.hours()).toBeNull();
+
+    dataStore.generatorReadingRows = [
+      { site: 'Goma', groupeCode: 'GE-01', periode: '2025-12', rhActuel: 50 },
+      { site: 'Goma', groupeCode: 'GE-01', periode: '2026-01', rhActuel: 80 },
+    ];
+    expect(component.missingPrerequisite).toBe('');
+    expect(component.hours()).toBe(30);
+  });
 });

@@ -4,6 +4,7 @@
       <div class="page-heading">
         <h1>Fuel-GE</h1>
         <p>Suivi mensuel du carburant, des groupes électrogènes et de la disponibilité du réseau.</p>
+        <p class="entry-order">Ordre de saisie : groupes et relevés RH → ravitaillements → consommation par GE → Fuel-GE.</p>
       </div>
       <div class="view-actions">
         <button type="button" class="view-button" [class.inactive]="!journalOpen" [attr.aria-pressed]="journalOpen" (click)="toggleJournal()"><i class="solaris-icon solaris-documentation"></i> Journal mensuel</button>
@@ -59,6 +60,14 @@
       } @else {
         <label><span>kWh SNEL</span><input name="snelKwh" type="number" min="0" step="0.01" [(ngModel)]="newEntry.snelKwh" required /></label>
       }
+      @if (groupRhStatuses.length) {
+        <ul class="prerequisites full-width" aria-label="Prérequis de saisie">
+          @for (status of groupRhStatuses; track status.code) {
+            <li [class.missing]="status.hours === null"><span aria-hidden="true">{{ status.hours === null ? '❌' : '✅' }}</span> {{ status.code }} : relevé RH du mois {{ status.hasCurrent ? '✓' : 'manquant' }}, relevé précédent {{ status.hasPrevious ? '✓' : 'manquant' }}</li>
+          }
+          @if (groupsWithoutConsumption.length) { <li class="warning"><span aria-hidden="true">⚠️</span> Aucune consommation saisie pour {{ groupsWithoutConsumption.join(', ') }} (sortie comptée à 0 L).</li> }
+        </ul>
+      }
       <div class="calculated-values full-width" aria-label="Valeurs calculées automatiquement">
         <span>Stock initial<strong>{{ calculatedStockInitial === null ? 'À définir' : (calculatedStockInitial | number:'1.0-3':'fr') + ' L' }}</strong></span>
         <span>Ravitaillements<strong>{{ calculatedEntries | number:'1.0-3':'fr' }} L</strong></span>
@@ -67,8 +76,9 @@
         <span>Disponibilité Grid<strong>{{ calculatedGridAvailability === null ? 'Non calculable' : (calculatedGridAvailability | number:'1.0-2':'fr') + ' %' }}</strong></span>
         <span>Stock final<strong>{{ calculatedStockFinal === null ? 'Non calculable' : (calculatedStockFinal | number:'1.0-3':'fr') + ' L' }}</strong></span>
       </div>
+      @if (missingPrerequisites.length) { <p class="form-error full-width" role="status">{{ missingPrerequisites[0] }} À saisir d'abord dans « Suivi groupes électrogènes ».</p> }
       @if (formError) { <p class="form-error full-width" role="alert">{{ formError }}</p> }
-      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" [disabled]="saving" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }<button type="button" class="secondary-button" [disabled]="saving" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="saving || (isInitialFuelMonth && !canSetInitialStock)"><i class="solaris-icon solaris-confirm"></i> {{ saving ? 'Enregistrement…' : (editingIndex === null ? 'Enregistrer' : 'Mettre à jour') }}</button></div>
+      <div class="sheet-actions full-width">@if (editingIndex !== null) { <button type="button" class="danger-button" [disabled]="saving" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }<button type="button" class="secondary-button" [disabled]="saving" (click)="closeSheet()">Annuler</button><button type="submit" class="primary-button" [disabled]="saving || (isInitialFuelMonth && !canSetInitialStock) || missingPrerequisites.length > 0"><i class="solaris-icon solaris-confirm"></i> {{ saving ? 'Enregistrement…' : (editingIndex === null ? 'Enregistrer' : 'Mettre à jour') }}</button></div>
     </form>
   </aside>
 }@if (pendingDeletion) {

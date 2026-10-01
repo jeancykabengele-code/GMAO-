@@ -408,3 +408,7 @@ th:last-child,
 .confirm-modal h2 { margin: 16px 0 8px; }
 .confirm-modal p { margin: 0; color: var(--slate); line-height: 1.55; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.prerequisites { margin: 0; padding: 12px 14px; list-style: none; border-radius: 8px; background: #fff; display: grid; gap: 6px; font-size: 0.9rem; }
+.prerequisites .missing { color: #991b1b; }
+.prerequisites .warning { color: var(--slate); }
+.entry-order { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.8; }

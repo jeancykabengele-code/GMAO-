@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GmaoApiService } from '../data/gmao-api.service';
 import { GmaoDataStore } from '../data/gmao-data-store';
+import { GroupRhStatus, RhReading, groupRhStatus, rhMissingMessage } from '../shared/rh-readings';
 import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
@@ -152,20 +153,37 @@ export class FuelGePageComponent {
       .reduce((total, row) => total + Number(row.consommationLitres ?? 0), 0);
   }
 
+  /** Un statut RH par groupe du site (relevé du mois + relevé antérieur). */
+  get groupRhStatuses(): GroupRhStatus[] {
+    if (!this.newEntry.site || !this.newEntry.periode) return [];
+    const codes = [...new Set((this.dataStore.generatorRows as Array<{ site?: string; code?: string }>)
+      .filter((row) => row.site === this.newEntry.site && !!row.code).map((row) => String(row.code)))].sort();
+    const readings = this.dataStore.generatorReadingRows as RhReading[];
+    return codes.map((code) => groupRhStatus(readings, this.newEntry.site, code, this.newEntry.periode));
+  }
+
+  /** Groupes du site sans consommation saisie pour le mois (n'empêche pas l'enregistrement : sortie = 0). */
+  get groupsWithoutConsumption(): string[] {
+    const rows = this.dataStore.generatorFuelConsumptionRows as Array<{ site?: string; periode?: string; groupeCode?: string }>;
+    return this.groupRhStatuses
+      .filter((status) => !rows.some((row) => row.site === this.newEntry.site && row.periode === this.newEntry.periode && row.groupeCode === status.code))
+      .map((status) => status.code);
+  }
+
+  /** Prérequis bloquants, comme côté backend ; vide si l'enregistrement est possible. */
+  get missingPrerequisites(): string[] {
+    if (!this.newEntry.site || !this.newEntry.periode) return [];
+    const statuses = this.groupRhStatuses;
+    // Le premier mois d'un site sans aucune consommation n'exige pas de relevés RH.
+    if (this.isInitialFuelMonth && this.calculatedGroupConsumption === 0) return [];
+    if (!statuses.length) return ['Aucun groupe électrogène enregistré pour ce site (Suivi groupes électrogènes).'];
+    return statuses.map((status) => rhMissingMessage(status, this.newEntry.periode)).filter(Boolean);
+  }
+
   get calculatedGeneratorHours(): number | null {
-    if (!this.newEntry.site || !this.newEntry.periode) return null;
-    const rows = this.dataStore.generatorRows as Array<{ site?: string; code?: string; moisReleve?: string; rhActuel?: number }>;
-    const currentRows = rows.filter(row => row.site === this.newEntry.site && row.moisReleve === this.newEntry.periode);
-    if (!currentRows.length) return null;
-    let total = 0;
-    for (const current of currentRows) {
-      const previous = rows
-        .filter(row => row.site === this.newEntry.site && row.code === current.code && !!row.moisReleve && row.moisReleve < this.newEntry.periode)
-        .sort((a, b) => String(b.moisReleve).localeCompare(String(a.moisReleve)))[0];
-      if (!previous || Number(current.rhActuel) < Number(previous.rhActuel)) return null;
-      total += Number(current.rhActuel) - Number(previous.rhActuel);
-    }
-    return total;
+    const statuses = this.groupRhStatuses;
+    if (!statuses.length || statuses.some((status) => status.hours === null)) return null;
+    return statuses.reduce((total, status) => total + (status.hours ?? 0), 0);
   }
 
   get calculatedStockFinal(): number | null {

@@ -441,3 +441,4 @@ th:last-child,
 .confirmation-dialog { width: min(430px,100%); padding: 26px; border-radius: 14px; color: var(--anthracite); background: var(--off-white); box-shadow: 0 20px 50px rgba(0,0,0,.3); }
 .confirmation-dialog h2, .confirmation-dialog p { margin-top: 0; }
 .confirmation-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
+.entry-order { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.8; }

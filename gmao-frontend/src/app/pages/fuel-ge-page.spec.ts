@@ -4,9 +4,10 @@ import { FuelGePageComponent } from './fuel-ge-page';
 describe('FuelGePageComponent', () => {
   it('calcule les litres par heure et la disponibilité Grid depuis les relevés RH', () => {
     const store = new GmaoDataStore();
-    store.generatorRows = [
-      { site: 'Goma', code: 'GE-001', moisReleve: '2025-12', rhActuel: 200 },
-      { site: 'Goma', code: 'GE-001', moisReleve: '2026-01', rhActuel: 224 },
+    store.generatorRows = [{ site: 'Goma', code: 'GE-001' }];
+    store.generatorReadingRows = [
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2025-12', rhActuel: 200 },
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2026-01', rhActuel: 224 },
     ];
     const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Goma';
@@ -29,9 +30,10 @@ describe('FuelGePageComponent', () => {
       get isChefSite() { return false; },
     };
     const store = new GmaoDataStore(access as never);
-    store.generatorRows = [
-      { site: 'Kikwit', code: 'GE-001', moisReleve: '2025-12', rhActuel: 100 },
-      { site: 'Kikwit', code: 'GE-001', moisReleve: '2026-01', rhActuel: 110 },
+    store.generatorRows = [{ site: 'Kikwit', code: 'GE-001' }];
+    store.generatorReadingRows = [
+      { site: 'Kikwit', groupeCode: 'GE-001', periode: '2025-12', rhActuel: 100 },
+      { site: 'Kikwit', groupeCode: 'GE-001', periode: '2026-01', rhActuel: 110 },
     ];
     const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Kikwit';
@@ -60,11 +62,46 @@ describe('FuelGePageComponent', () => {
     expect(component.replacedStartMonth).toBeNull();
   });
 
+  it('liste les relevés RH manquants et bloque tant que le mois ou le précédent manque', () => {
+    const store = new GmaoDataStore();
+    store.fuelRows = [{ id: 'dec', site: 'Goma', periode: '2025-12' }] as never;
+    store.generatorRows = [{ site: 'Goma', code: 'GE-001' }, { site: 'Goma', code: 'GE-002' }];
+    store.generatorReadingRows = [
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2025-12', rhActuel: 100 },
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2026-01', rhActuel: 120 },
+    ];
+    const component = new FuelGePageComponent(store);
+    component.newEntry.site = 'Goma';
+    component.newEntry.periode = '2026-01';
+
+    expect(component.missingPrerequisites).toEqual(['Relevés RH de GE-002 manquants pour 2026-01 et pour un mois précédent.']);
+    expect(component.calculatedGeneratorHours).toBeNull();
+
+    store.generatorReadingRows = [
+      ...store.generatorReadingRows,
+      { site: 'Goma', groupeCode: 'GE-002', periode: '2025-12', rhActuel: 10 },
+      { site: 'Goma', groupeCode: 'GE-002', periode: '2026-01', rhActuel: 15 },
+    ];
+    expect(component.missingPrerequisites).toEqual([]);
+    expect(component.calculatedGeneratorHours).toBe(25);
+    expect(component.groupsWithoutConsumption).toEqual(['GE-001', 'GE-002']);
+  });
+
+  it("n'exige pas de relevés RH pour le premier mois sans consommation", () => {
+    const store = new GmaoDataStore();
+    store.generatorRows = [{ site: 'Goma', code: 'GE-001' }];
+    const component = new FuelGePageComponent(store);
+    component.newEntry.site = 'Goma';
+    component.newEntry.periode = '2026-01';
+    expect(component.missingPrerequisites).toEqual([]);
+  });
+
   it('affiche Non calculable lorsque la consommation est positive avec zéro heure', () => {
     const store = new GmaoDataStore();
-    store.generatorRows = [
-      { site: 'Goma', code: 'GE-001', moisReleve: '2025-12', rhActuel: 100 },
-      { site: 'Goma', code: 'GE-001', moisReleve: '2026-01', rhActuel: 100 },
+    store.generatorRows = [{ site: 'Goma', code: 'GE-001' }];
+    store.generatorReadingRows = [
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2025-12', rhActuel: 100 },
+      { site: 'Goma', groupeCode: 'GE-001', periode: '2026-01', rhActuel: 100 },
     ];
     const component = new FuelGePageComponent(store);
     component.newEntry.site = 'Goma';

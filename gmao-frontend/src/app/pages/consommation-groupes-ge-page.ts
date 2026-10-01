@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, Optional } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { RhReading, groupRhStatus, rhMissingMessage } from '../shared/rh-readings';
 
 interface ConsumptionRow { id?: string; site: string; periode: string; groupeCode: string; consommationLitres: number; heuresGe: number; litresHeure: number | null; commentaires?: string; }
 interface GeneratorRow { site: string; code: string; moisReleve: string; rhActuel: number; }
@@ -52,10 +53,12 @@ export class ConsommationGroupesGePageComponent {
   get pageCount(): number { return Math.max(1, Math.ceil(this.filteredRows.length / this.rowsPerPage)); }
   get visibleRows(): ConsumptionRow[] { const start = (this.currentPage - 1) * this.rowsPerPage; return this.filteredRows.slice(start, start + this.rowsPerPage); }
 
-  hours(): number | null {
-    const current = this.groups.find((group) => group.site === this.entry.site && group.code === this.entry.groupeCode && group.moisReleve === this.entry.periode);
-    const previous = this.groups.filter((group) => group.site === this.entry.site && group.code === this.entry.groupeCode && group.moisReleve < this.entry.periode).sort((left, right) => right.moisReleve.localeCompare(left.moisReleve))[0];
-    return current?.rhActuel !== undefined && previous?.rhActuel !== undefined ? Number(current.rhActuel) - Number(previous.rhActuel) : null;
+  private get rhStatus() { return groupRhStatus(this.dataStore.generatorReadingRows as RhReading[], this.entry.site, this.entry.groupeCode, this.entry.periode); }
+  hours(): number | null { return this.rhStatus.hours; }
+  /** Pourquoi l'enregistrement est impossible pour l'instant ('' si les prérequis sont réunis). */
+  get missingPrerequisite(): string {
+    if (!this.entry.site || !this.entry.periode || !this.entry.groupeCode) return '';
+    return rhMissingMessage(this.rhStatus, this.entry.periode);
   }
   litresHour(): number | null { const hours = this.hours(); const consumption = this.entry.consommationLitres ?? 0; return hours === null || (hours === 0 && consumption > 0) ? null : hours === 0 ? 0 : consumption / hours; }
   exportExcel(): void {

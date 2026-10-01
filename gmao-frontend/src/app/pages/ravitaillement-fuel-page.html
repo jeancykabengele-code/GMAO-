@@ -1,5 +1,5 @@
 <section class="ravitaillement-page"><div class="content-card">
-  <div class="page-toolbar"><div class="page-heading"><h1>Ravitaillement Fuel</h1></div><div class="view-actions">
+  <div class="page-toolbar"><div class="page-heading"><h1>Ravitaillement Fuel</h1><p class="entry-order">Les livraisons du mois alimentent automatiquement Fuel-GE (entrées de carburant).</p></div><div class="view-actions">
     <button type="button" class="view-button" [class.active]="tableOpen" (click)="toggleTable()"><i class="solaris-icon solaris-truck"></i> Tableau ravitaillement</button>
     @if (canEnterData) { <button type="button" class="primary-button" (click)="openForm()"><i class="solaris-icon solaris-add"></i> Renseigner le ravitaillement</button> }
     @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
