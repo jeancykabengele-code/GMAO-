@@ -94,7 +94,10 @@ export class ConsommationGroupesGePageComponent {
       await this.dataStore.refreshResource('fuel-ge');
       this.close();
     }
-    catch { this.error = 'Enregistrement impossible : vérifiez les relevés RH du groupe.'; }
+    catch (error) {
+      const apiError = error as { error?: { detail?: string; message?: string }; message?: string };
+      this.error = apiError?.error?.detail || apiError?.error?.message || 'Enregistrement impossible : vérifiez les relevés RH du groupe.';
+    }
     finally { this.cdr?.markForCheck(); }
   }
   requestDeletion(): void { if (this.editingRow && !this.deleting) this.deleteConfirmationOpen = true; }
