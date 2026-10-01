@@ -318,6 +318,15 @@ def _calculate_fuel_values(values, record=None, allow_initial_stock=False):
     return values
 
 
+def _round_decimal_fields(record):
+    """Ramène chaque DecimalField à sa précision avant full_clean() (valeurs déjà stockées ou calculées)."""
+    for field in record._meta.concrete_fields:
+        if isinstance(field, models.DecimalField):
+            value = getattr(record, field.attname)
+            if isinstance(value, Decimal):
+                setattr(record, field.attname, value.quantize(Decimal(1).scaleb(-field.decimal_places)))
+
+
 def _recalculate_fuel_records(site, start_period, actor_id=None):
     """Recalcule le mois modifié et tous les mois suivants d'un même site."""
     _fuel_period_bounds(start_period)
@@ -339,6 +348,7 @@ def _recalculate_fuel_records(site, start_period, actor_id=None):
         if actor_id is not None:
             fuel_record.updated_by = actor_id
             update_fields.append("updated_by")
+        _round_decimal_fields(fuel_record)
         fuel_record.full_clean()
         fuel_record.save(update_fields=update_fields)
 
@@ -557,6 +567,7 @@ def record_collection(request, resource):
                 elif model_class is PueRecord:
                     _calculate_pue_values(values)
                 record = model_class(**values, created_by=profile.id)
+                _round_decimal_fields(record)
                 record.full_clean(exclude=["updated_by"])
                 record.save(force_insert=True)
                 if model_class is GeneratorRecord:
@@ -626,6 +637,7 @@ def record_detail(request, resource, record_id):
                 for field, value in values.items():
                     setattr(record, field, value)
                 record.updated_by = profile.id
+                _round_decimal_fields(record)
                 record.full_clean()
                 record.save()
                 if model_class is GeneratorRecord:
