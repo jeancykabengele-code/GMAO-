@@ -810,29 +810,65 @@ class GeneratorConsumptionUpdateTests(TestCase):
         self.assertEqual(consumption.consommation_litres, Decimal("210.500"))
 
 
-class GeneratorRecordResetAfterReadingDeletionTests(TestCase):
-    """Régression : la fiche du groupe gardait les valeurs du dernier relevé supprimé."""
+class GeneratorRecordRemovedAfterReadingDeletionTests(TestCase):
+    """Régression : la fiche gardait le RH de la dernière PM et les valeurs du dernier relevé supprimé."""
 
-    @patch("profiles.views.profile_from_token")
-    def test_deleting_the_last_reading_clears_the_generator_record(self, profile_from_token):
-        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
-        site = "Kikwit"
-        generator = business_models.GeneratorRecord.objects.create(
+    def _generator(self, site="Kikwit"):
+        return business_models.GeneratorRecord.objects.create(
             site=site, code="GE-01", type_ge="GE", mois_releve="2026-01", rh_actuel=130, rh_derniere_pm=100,
             rh_depuis_derniere_pm=30, rh_prochaine_pm=350, etat="Normal", commentaires="ancien commentaire",
             created_by=uuid4(),
         )
+
+    @patch("profiles.views.profile_from_token")
+    def test_deleting_the_last_reading_removes_the_generator_record(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
+        self._generator()
         reading = business_models.GeneratorMonthlyReading.objects.create(
-            site=site, periode="2026-01", groupe_code="GE-01", rh_actuel=130, commentaires="ancien commentaire",
-            created_by=uuid4(),
+            site="Kikwit", periode="2026-01", groupe_code="GE-01", rh_actuel=130, created_by=uuid4(),
         )
 
         response = self.client.delete(f"/api/records/releves-rh-ge/{reading.id}", HTTP_AUTHORIZATION="Bearer valid-token")
 
         self.assertEqual(response.status_code, 200, response.content)
+        self.assertFalse(business_models.GeneratorRecord.objects.filter(site="Kikwit", code="GE-01").exists())
+
+    @patch("profiles.views.profile_from_token")
+    def test_deleting_one_of_several_readings_keeps_the_generator_record(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
+        generator = self._generator()
+        readings = [
+            business_models.GeneratorMonthlyReading.objects.create(
+                site="Kikwit", periode=periode, groupe_code="GE-01", rh_actuel=rh, created_by=uuid4(),
+            ) for periode, rh in (("2025-12", 100), ("2026-01", 130))
+        ]
+
+        response = self.client.delete(f"/api/records/releves-rh-ge/{readings[1].id}", HTTP_AUTHORIZATION="Bearer valid-token")
+
+        self.assertEqual(response.status_code, 200, response.content)
         generator.refresh_from_db()
-        self.assertEqual(generator.mois_releve, "")
-        self.assertEqual(generator.rh_actuel, Decimal("100"))
-        self.assertEqual(generator.rh_depuis_derniere_pm, Decimal("0"))
-        self.assertEqual(generator.commentaires, "")
-        self.assertEqual(generator.etat, "Normal")
+        self.assertEqual(generator.mois_releve, "2025-12")
+        self.assertEqual(generator.rh_derniere_pm, Decimal("100"))
+
+    @patch("profiles.views.profile_from_token")
+    def test_recreating_a_group_replaces_a_leftover_record_without_readings(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Kikwit", active=True)
+        self._generator()  # reliquat : aucun relevé
+        business_models.Equipment.objects.create(
+            site="Kikwit", code="GE-01", nom="Groupe électrogène", famille="Energie", localisation="Salle",
+            marque_modele="Perkins", etat="En service", criticite="Elevee", created_by=uuid4(),
+        )
+
+        response = self.client.post(
+            "/api/records/groupes-electrogenes",
+            data=json.dumps({
+                "site": "Kikwit", "code": "GE-01", "typeGe": "GE", "moisReleve": "2026-10", "rhActuel": 50,
+                "rhDernierePm": 40, "retardSignale": False, "commentaires": "",
+            }),
+            content_type="application/json", HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+        self.assertEqual(response.status_code, 201, response.content)
+        record = business_models.GeneratorRecord.objects.get(site="Kikwit", code="GE-01")
+        self.assertEqual(record.rh_derniere_pm, Decimal("40"))
+        self.assertEqual(record.commentaires, "")

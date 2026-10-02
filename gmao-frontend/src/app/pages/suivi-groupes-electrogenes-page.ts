@@ -239,7 +239,9 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     const equipment = this.availableEquipmentGroups.find((candidate) => this.equipmentKey(candidate) === key);
     if (!equipment) return;
     this.selectedGeneratorKey = key;
-    const existing = this.generatorRows.find((row) => row.site === equipment.site && row.code === equipment.code);
+    const hasReadings = this.generatorReadingRows.some((reading) => reading.site === equipment.site && reading.groupeCode === equipment.code);
+    // Une fiche sans aucun relevé est un reliquat de relevés supprimés : le groupe repart de zéro.
+    const existing = hasReadings ? this.generatorRows.find((row) => row.site === equipment.site && row.code === equipment.code) : undefined;
     if (existing) {
       this.creatingGenerator = false;
       this.loadRowInSheet(existing, true);

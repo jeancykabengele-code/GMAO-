@@ -154,6 +154,16 @@ def _assert_generator_code_unique(values, record=None):
     if records.exists():
         raise ValidationError("Un groupe électrogène utilise déjà ce code pour ce site.")
 
+def _discard_orphan_generator_records(values):
+    """Supprime les fiches d'un groupe sans aucun relevé RH (reliquats de relevés supprimés) avant d'en recréer une."""
+    site, code = values.get("site"), values.get("code")
+    if not site or not code:
+        return
+    has_reading = GeneratorMonthlyReading.objects.filter(site=site, groupe_code=code).exists()
+    if not has_reading:
+        GeneratorRecord.objects.filter(site=site, code=code).delete()
+
+
 def _calculate_generator_values(values, record=None):
     rh_actuel = values.get("rh_actuel", getattr(record, "rh_actuel", None))
     rh_derniere_pm = values.get("rh_derniere_pm", getattr(record, "rh_derniere_pm", None))
@@ -414,16 +424,8 @@ def _sync_generator_current_from_readings(site, groupe_code, actor_id=None):
     if not generator:
         return
     if not latest:
-        # Tous les relevés ont été supprimés : la fiche ne doit plus afficher les valeurs de la ligne supprimée.
-        generator.mois_releve = ""
-        generator.rh_actuel = generator.rh_derniere_pm
-        generator.rh_depuis_derniere_pm = Decimal("0")
-        generator.rh_prochaine_pm = generator.rh_derniere_pm + Decimal("250")
-        generator.etat = "Normal"
-        generator.commentaires = ""
-        if actor_id is not None:
-            generator.updated_by = actor_id
-        generator.save(update_fields=["mois_releve", "rh_actuel", "rh_depuis_derniere_pm", "rh_prochaine_pm", "etat", "commentaires", "updated_by", "updated_at"])
+        # Plus aucun relevé : la ligne de suivi n'existe plus, la fiche (dont le RH de la dernière PM) disparaît avec elle.
+        generator.delete()
         return
     values = {"rh_actuel": latest.rh_actuel}
     _calculate_generator_values(values, generator)
@@ -567,6 +569,7 @@ def record_collection(request, resource):
                     values["statut"] = "Open"
                 elif model_class is GeneratorRecord:
                     _set_generator_from_equipment(values)
+                    _discard_orphan_generator_records(values)
                     _assert_generator_code_unique(values)
                     _calculate_generator_values(values)
                 elif model_class is GeneratorMonthlyReading:

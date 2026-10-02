@@ -15,25 +15,29 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
     id: 'equipment-ge-1', site: 'Goma', code: 'DC-GOM-GE-001', nom: 'Groupe électrogène LINZ 150 KVA',
     famille: 'Energie', marqueModele: 'LINZ 150 KVA',
   });
-  it("ne reprend pas les valeurs d'un relevé supprimé quand on choisit un groupe existant", () => {
+  it("repart de zéro pour un groupe dont tous les relevés ont été supprimés", () => {
     const store = new GmaoDataStore();
     const component = new SuiviGroupesElectrogenesPageComponent(store);
-    const generator = { ...row(), rhActuel: 200, commentaires: 'ancien commentaire' };
+    const generator = { ...row(), rhActuel: 200, rhDernierePm: 13055.59, commentaires: 'ancien commentaire' };
     component.generatorRows = [generator];
     component.equipmentRows = [equipment()] as never;
     component.openEntrySheet();
     const key = component.selectedGeneratorKey;
     expect(key).toBe('equipment-ge-1');
 
-    // Tous les relevés ont été supprimés par le Manager : la fiche garde pourtant RH 200.
+    // Le Manager a supprimé tous les relevés : la fiche reliquat ne doit rien préremplir.
     component.selectEquipment(key);
+    expect(component.creatingGenerator).toBe(true);
     expect(component.newGenerator.rhActuel).toBe(0);
+    expect(component.newGenerator.rhDernierePm).toBe(0);
     expect(component.newGenerator.commentaires).toBe('');
 
     // Un relevé reste : on repart de celui-ci.
     store.generatorReadingRows = [{ site: 'Goma', groupeCode: 'DC-GOM-GE-001', periode: '2026-07', rhActuel: 150 }];
     component.selectEquipment(key);
+    expect(component.creatingGenerator).toBe(false);
     expect(component.newGenerator.rhActuel).toBe(150);
+    expect(component.newGenerator.rhDernierePm).toBe(13055.59);
     expect(component.selectedGeneratorKey).toBe('equipment-ge-1');
   });
 
