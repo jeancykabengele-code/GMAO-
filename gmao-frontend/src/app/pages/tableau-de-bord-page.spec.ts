@@ -19,7 +19,8 @@ describe('TableauDeBordPageComponent', () => {
     const store = new GmaoDataStore();
     store.equipmentRows = [{ etat: 'En service' }, { etat: 'En panne' }];
     store.ticketRows = [{ nature: 'PM' }, { nature: 'PM' }, { nature: 'Incident' }];
-    store.generatorRows = [{ etat: 'Normal' }, { etat: 'PmUrgente' }];
+    store.generatorRows = [{ site: 'Goma', code: 'GE-1', etat: 'Normal' }, { site: 'Goma', code: 'GE-2', etat: 'PmUrgente' }];
+    store.generatorReadingRows = [{ site: 'Goma', groupeCode: 'GE-1' }, { site: 'Goma', groupeCode: 'GE-2' }];
     store.problemRows = [{ statut: 'Open' }, { statut: 'Closed' }];
     const component = new TableauDeBordPageComponent(store);
 
@@ -35,6 +36,17 @@ expect(component.ticketItems.find((item) => item.label === 'WO')?.color).toBe('#
     expect(component.generatorItems.find((item) => item.label === 'A surveiller')?.color).toBe('#767676');
     expect(component.generatorTotal).toBe(2);
     expect(component.problemTotal).toBe(2);
+  });
+
+  it('ne compte pas un groupe dont tous les relevés RH ont été supprimés', () => {
+    const store = new GmaoDataStore();
+    store.generatorRows = [{ site: 'Goma', code: 'GE-1', etat: 'Normal' }, { site: 'Goma', code: 'GE-2', etat: 'Normal' }];
+    store.generatorReadingRows = [{ site: 'Goma', groupeCode: 'GE-1' }];
+    const component = new TableauDeBordPageComponent(store);
+    expect(component.generatorTotal).toBe(1);
+
+    store.generatorReadingRows = [];
+    expect(component.generatorTotal).toBe(0);
   });
 
   it('consolidates Fuel, Grid and PUE values by month', () => {
@@ -97,9 +109,10 @@ expect(component.ticketItems.find((item) => item.label === 'WO')?.color).toBe('#
       { site: 'Utex', date: '2026-08-10', nature: 'WO' },
     ];
     store.generatorRows = [
-      { site: 'Goma', moisReleve: '2026-08', etat: 'Normal' },
-      { site: 'Utex', moisReleve: '2026-08', etat: 'PmUrgente' },
+      { site: 'Goma', code: 'GE-1', moisReleve: '2026-08', etat: 'Normal' },
+      { site: 'Utex', code: 'GE-2', moisReleve: '2026-08', etat: 'PmUrgente' },
     ];
+    store.generatorReadingRows = [{ site: 'Goma', groupeCode: 'GE-1' }, { site: 'Utex', groupeCode: 'GE-2' }];
     store.problemRows = [
       { site: 'Goma', date: '2026-08-12', statut: 'Open' },
       { site: 'Utex', date: '2026-08-12', statut: 'Closed' },

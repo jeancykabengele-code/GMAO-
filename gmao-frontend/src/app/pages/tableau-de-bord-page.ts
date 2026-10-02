@@ -13,7 +13,7 @@ interface FuelBarGroup {
 }
 interface EquipmentData { site: string; etat: string; dateMiseEnService: string; }
 interface TicketData { site: string; nature: string; date: string; }
-interface GeneratorData { site: string; etat: string; moisReleve: string; }
+interface GeneratorData { site: string; code?: string; etat: string; moisReleve: string; }
 interface ProblemData { site: string; statut: string; date: string; }
 interface FuelData { site: string; periode: string; sortie: number; stockFinal: number | null; disponibiliteGrid: number; }
 interface FuelSummaryData { periode: string; stockFinal: number; sortie: number; }
@@ -47,8 +47,11 @@ export class TableauDeBordPageComponent {
   }
 
   get filteredGeneratorRows(): GeneratorData[] {
+    // Un groupe sans aucun relevé RH (relevés supprimés) n'est plus suivi : il ne compte pas.
+    const readings = this.dataStore.generatorReadingRows as Array<{ site?: string; groupeCode?: string }>;
     return (this.dataStore.generatorRows as GeneratorData[]).filter((row) =>
-      this.matchesSite(row.site) && this.matchesPeriod(row.moisReleve),
+      readings.some((reading) => reading.site === row.site && reading.groupeCode === row.code)
+      && this.matchesSite(row.site) && this.matchesPeriod(row.moisReleve),
     );
   }
 

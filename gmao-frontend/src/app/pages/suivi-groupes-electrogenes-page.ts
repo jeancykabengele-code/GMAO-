@@ -341,12 +341,14 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.saveError = '';
     try {
       await this.dataStore.deleteRecord('releves-rh-ge', this.editingRow);
-      await this.dataStore.refreshFuelJournal();
       this.deleteConfirmationOpen = false;
       this.sheetOpen = false;
       this.editingRow = null;
       this.selectingGenerator = false;
       if (this.currentPage > this.pageCount) this.currentPage = this.pageCount;
+      // Le serveur resynchronise la fiche du groupe (et le journal Fuel-GE) sur le dernier relevé restant.
+      await this.dataStore.refreshResource('groupes-electrogenes');
+      await this.dataStore.refreshFuelJournal();
     } catch (error) {
       this.deleteConfirmationOpen = false;
       const apiError = error as { error?: { detail?: string; message?: string }; message?: string };
