@@ -411,7 +411,19 @@ def _validate_monthly_reading(values, record=None):
 def _sync_generator_current_from_readings(site, groupe_code, actor_id=None):
     generator = GeneratorRecord.objects.filter(site=site, code=groupe_code).order_by("-created_at").first()
     latest = GeneratorMonthlyReading.objects.filter(site=site, groupe_code=groupe_code).order_by("-periode").first()
-    if not generator or not latest:
+    if not generator:
+        return
+    if not latest:
+        # Tous les relevés ont été supprimés : la fiche ne doit plus afficher les valeurs de la ligne supprimée.
+        generator.mois_releve = ""
+        generator.rh_actuel = generator.rh_derniere_pm
+        generator.rh_depuis_derniere_pm = Decimal("0")
+        generator.rh_prochaine_pm = generator.rh_derniere_pm + Decimal("250")
+        generator.etat = "Normal"
+        generator.commentaires = ""
+        if actor_id is not None:
+            generator.updated_by = actor_id
+        generator.save(update_fields=["mois_releve", "rh_actuel", "rh_depuis_derniere_pm", "rh_prochaine_pm", "etat", "commentaires", "updated_by", "updated_at"])
         return
     values = {"rh_actuel": latest.rh_actuel}
     _calculate_generator_values(values, generator)

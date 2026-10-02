@@ -808,3 +808,31 @@ class GeneratorConsumptionUpdateTests(TestCase):
         self.assertEqual(response.status_code, 200, response.content)
         consumption.refresh_from_db()
         self.assertEqual(consumption.consommation_litres, Decimal("210.500"))
+
+
+class GeneratorRecordResetAfterReadingDeletionTests(TestCase):
+    """Régression : la fiche du groupe gardait les valeurs du dernier relevé supprimé."""
+
+    @patch("profiles.views.profile_from_token")
+    def test_deleting_the_last_reading_clears_the_generator_record(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
+        site = "Kikwit"
+        generator = business_models.GeneratorRecord.objects.create(
+            site=site, code="GE-01", type_ge="GE", mois_releve="2026-01", rh_actuel=130, rh_derniere_pm=100,
+            rh_depuis_derniere_pm=30, rh_prochaine_pm=350, etat="Normal", commentaires="ancien commentaire",
+            created_by=uuid4(),
+        )
+        reading = business_models.GeneratorMonthlyReading.objects.create(
+            site=site, periode="2026-01", groupe_code="GE-01", rh_actuel=130, commentaires="ancien commentaire",
+            created_by=uuid4(),
+        )
+
+        response = self.client.delete(f"/api/records/releves-rh-ge/{reading.id}", HTTP_AUTHORIZATION="Bearer valid-token")
+
+        self.assertEqual(response.status_code, 200, response.content)
+        generator.refresh_from_db()
+        self.assertEqual(generator.mois_releve, "")
+        self.assertEqual(generator.rh_actuel, Decimal("100"))
+        self.assertEqual(generator.rh_depuis_derniere_pm, Decimal("0"))
+        self.assertEqual(generator.commentaires, "")
+        self.assertEqual(generator.etat, "Normal")
