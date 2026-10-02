@@ -243,7 +243,15 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     if (existing) {
       this.creatingGenerator = false;
       this.loadRowInSheet(existing, true);
+      this.selectedGeneratorKey = key;
       this.newGenerator.moisReleve = new Date().toISOString().slice(0, 7);
+      // La fiche du groupe garde les valeurs du dernier relevé, même supprimé : un nouveau relevé
+      // repart du dernier relevé encore enregistré (ou de zéro), sans le commentaire précédent.
+      const latestReading = this.generatorReadingRows
+        .filter((reading) => reading.site === existing.site && reading.groupeCode === existing.code)
+        .sort((left, right) => String(right.periode).localeCompare(String(left.periode)))[0];
+      this.newGenerator.rhActuel = latestReading ? Number(latestReading.rhActuel) : 0;
+      this.newGenerator.commentaires = '';
       return;
     }
     this.creatingGenerator = true;
