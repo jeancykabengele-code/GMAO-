@@ -70,7 +70,9 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 - Le chef de site renseigne le site, le mois et le kWh SNEL lorsque le site est raccordé ; la consommation Fuel est calculée, elle n’est jamais saisie dans cette feuille.
 - Fuel-GE additionne automatiquement les consommations par groupe GE du site pour le mois sélectionné.
 - Le stock initial, les ravitaillements du mois, les heures GE, le stock final, les litres par heure et la disponibilité Grid sont calculés par Django.
-- Le premier stock de départ est défini une seule fois par le Chef de site, le Manager ou le Chargé des opérations.
+- Le stock de départ est le stock initial du **mois le plus ancien** du site ; il est saisi par le Chef de site, le Manager ou le Chargé des opérations. Ajouter un mois plus ancien que les journaux existants (2025, 2024…) en fait le nouveau mois de départ : les mois suivants reprennent alors son stock final. Le formulaire prévient quel mois sera remplacé.
+- Le stock initial du mois le plus ancien peut être corrigé (Manager ou Chargé des opérations) ; celui des autres mois reste calculé et en lecture seule.
+- Avant d’enregistrer, le formulaire liste par groupe les relevés RH présents ou manquants (✅ / ❌), signale les groupes sans consommation (sortie comptée à 0 L) et grise **Enregistrer** tant qu’un prérequis bloquant manque.
 - Toute modification d’un ravitaillement, d’un relevé RH GE ou d’un ancien journal recalcule les journaux Fuel-GE dépendants du même site.
 - Les champs calculés sont protégés : l’API refuse toute modification manuelle de ces valeurs.
 - Le Manager et le Chargé des opérations peuvent supprimer une ligne Fuel-GE depuis le formulaire de modification. Les mois suivants sont recalculés ; la suppression est refusée si elle rend un stock de départ incohérent.
@@ -79,19 +81,24 @@ Plateforme web de reporting et de traçabilité des opérations sur les sites Da
 
 Les données sont reliées par le **site**, le **mois (`AAAA-MM`)** et, pour les relevés/consommations, le **code du groupe**. L’équipement enregistré dans **Équipements** est la source du code, du nom et du site des groupes électrogènes proposés dans **Suivi groupes électrogènes**.
 
+**Ordre de saisie conseillé pour un site :** fiche du groupe et relevés RH → ravitaillements → consommation par GE → Fuel-GE. Chaque feuille affiche une courte note de rappel et, quand un relevé RH manque, le formulaire indique lequel (groupe et mois) et bloque l’enregistrement au lieu de renvoyer une erreur.
+
 1. **Suivi groupes électrogènes** enregistre un relevé RH par groupe et par mois. Les heures d’un groupe sont calculées par `RH du mois − RH du relevé précédent`. Une référence de décembre permet donc de calculer les heures de janvier.
 2. **Consommation par groupe GE** reçoit les litres saisis pour le même groupe et le même mois. Elle reprend les heures calculées au point 1 et calcule `L/h = litres / heures`.
 3. **Ravitaillement Fuel** enregistre chaque livraison datée. Sa quantité est additionnée automatiquement dans le mois concerné ; les stocks avant/après servent de contrôle physique de la livraison et ne remplacent pas les calculs Fuel-GE.
-4. **Fuel-GE** est la synthèse mensuelle du site : `stock final = stock initial + somme des ravitaillements − somme des consommations`. Il additionne également les heures de tous les groupes et calcule la moyenne `L/h`. Dès le deuxième mois, le stock initial reprend le stock final du mois précédent.
+4. **Fuel-GE** est la synthèse mensuelle du site : `stock final = stock initial + somme des ravitaillements − somme des consommations`. Il additionne également les heures de tous les groupes et calcule la moyenne `L/h`. Dès le deuxième mois, le stock initial reprend le stock final du mois précédent. Le premier mois d’un site sans aucune consommation n’exige pas de relevés RH ; dès qu’un mois plus ancien est ajouté, les mois suivants ont besoin d’un relevé antérieur pour leurs heures GE.
 
-Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans Aiven MySQL, puis l’interface est rafraîchie.
+Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans Aiven MySQL, puis l’interface est rafraîchie (journal Fuel-GE compris, car le serveur le recalcule).
+
+**Suppression d’un relevé RH :** supprimer le dernier relevé d’un groupe supprime aussi sa fiche (dont le RH de la dernière PM), car la ligne de suivi n’existe plus. Supprimer un seul relevé parmi plusieurs resynchronise la fiche sur le dernier relevé restant. Une fiche sans aucun relevé (reliquat) n’est pas comptée au tableau de bord et est remplacée quand le groupe est recréé ; le formulaire « Renseigner un compteur » repart alors de zéro. Un Manager ou un Chargé des opérations qui utilise **Mettre à jour** sur la ligne d’un mois corrige ce relevé ; un autre mois crée un nouveau relevé (Chef de site).
+
 ### Consommation par groupe GE
 
 - Suivi mensuel de la consommation Fuel de chaque groupe électrogène.
 - Une seule ligne est autorisée par combinaison **site + mois + groupe**.
 - Le chef de site saisit les litres consommés et un commentaire facultatif.
 - Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
-- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs.
+- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs ; le formulaire indique le relevé manquant et grise **Enregistrer** tant qu’il n’est pas saisi.
 - Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
 - La table correspondante a été migrée vers Aiven MySQL.
 ### Ravitaillement Fuel
@@ -475,7 +482,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 - La période doit respecter le format `AAAA-MM`.
 - Les volumes et les heures ne peuvent pas être négatifs.
-- Pour le premier mois d’un site, le Chef de site, le Manager ou le Chargé des opérations définit une fois le stock de départ. Pour les mois suivants, `stock initial = stock final du dernier journal antérieur`.
+- Le stock de départ est le stock initial du mois le plus ancien du site (Chef de site, Manager ou Chargé des opérations). Il peut être ajouté sur un mois plus ancien que les journaux existants, ce qui recalcule les mois suivants, et il reste corrigeable tant que ce mois est le plus ancien. Pour les autres mois, `stock initial = stock final du dernier journal antérieur`, en lecture seule.
 - `ravitaillements du mois = somme des livraisons Fuel du site pendant la période`.
 - `heures GE = somme, par groupe, de RH actuel − RH du relevé précédent`.
 - `stock final = stock initial + ravitaillements − consommation` ; une consommation entraînant un stock négatif est refusée.
@@ -491,7 +498,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - Une seule ligne est autorisée par combinaison **site + mois + groupe**.
 - Le chef de site saisit les litres consommés et un commentaire facultatif.
 - Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
-- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs.
+- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs ; le formulaire indique le relevé manquant et grise **Enregistrer** tant qu’il n’est pas saisi.
 - Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
 - La table correspondante a été migrée vers Aiven MySQL.
 ### Ravitaillement Fuel
