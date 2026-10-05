@@ -11,6 +11,7 @@ from django.db import IntegrityError, connection, models, transaction
 from django.http import JsonResponse
 
 from .models import (
+    MAX_DELIVERIES_PER_MONTH,
     DatacenterProblem,
     Equipment,
     FuelDelivery,
@@ -205,11 +206,10 @@ def _fuel_period_bounds(periode):
 
 def _fuel_deliveries_total(site, periode):
     """Retourne le total des livraisons Fuel d'un site sur le mois indiqué."""
-    start, end = _fuel_period_bounds(periode)
+    _fuel_period_bounds(periode)
     result = FuelDelivery.objects.filter(
         site=site,
-        date_ravitaillement__gte=start,
-        date_ravitaillement__lt=end,
+        periode=periode,
     ).aggregate(total=models.Sum("quantite_recue"))
     return result["total"] or Decimal("0")
 
@@ -447,7 +447,34 @@ def _recalculate_fuel_records_after_reading_change(site, periode, actor_id=None)
         if not any("relevés RH" in message for message in error.messages):
             raise
 
+def _assign_delivery_period_and_rank(values, record=None):
+    """Fixe le mois et le rang (1er à 5e) du ravitaillement ; l'ancienne date reste acceptée et en donne le mois."""
+    site = values.get("site", getattr(record, "site", None))
+    delivery_date = values.get("date_ravitaillement")
+    periode = values.get("periode") or (delivery_date.strftime("%Y-%m") if delivery_date else getattr(record, "periode", None))
+    if not periode:
+        raise ValidationError("Le mois du ravitaillement est obligatoire.")
+    _fuel_period_bounds(periode)
+    rang = values.get("rang", getattr(record, "rang", None))
+    taken = FuelDelivery.objects.filter(site=site, periode=periode)
+    if record is not None:
+        taken = taken.exclude(id=record.id)
+    used = set(taken.values_list("rang", flat=True))
+    if rang in (None, ""):
+        rang = next((number for number in range(1, MAX_DELIVERIES_PER_MONTH + 1) if number not in used), None)
+        if rang is None:
+            raise ValidationError(f"Ce site a déjà {MAX_DELIVERIES_PER_MONTH} ravitaillements pour ce mois.")
+    rang = int(rang)
+    if not 1 <= rang <= MAX_DELIVERIES_PER_MONTH:
+        raise ValidationError(f"Le numéro du ravitaillement doit être compris entre 1 et {MAX_DELIVERIES_PER_MONTH}.")
+    if rang in used:
+        raise ValidationError(f"Le ravitaillement n° {rang} existe déjà pour ce site et ce mois.")
+    values["periode"] = periode
+    values["rang"] = rang
+
+
 def _calculate_fuel_delivery_values(values, record=None):
+    _assign_delivery_period_and_rank(values, record)
     quantity = values.get("quantite_recue", getattr(record, "quantite_recue", None))
     stock_before = values.get("stock_avant", getattr(record, "stock_avant", None))
     stock_after = values.get("stock_apres", getattr(record, "stock_apres", None))
@@ -597,7 +624,7 @@ def record_collection(request, resource):
                 elif model_class is GeneratorFuelConsumption:
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is FuelDelivery:
-                    _recalculate_fuel_records_after_delivery_change(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
+                    _recalculate_fuel_records_after_delivery_change(record.site, record.periode, profile.id)
                 if model_class in {GeneratorRecord, GeneratorMonthlyReading, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 notify_record_created(profile, resource, record)
@@ -627,7 +654,7 @@ def record_detail(request, resource, record_id):
             values = _clean_values(model_class, _payload(request))
             with transaction.atomic():
                 previous_site = record.site
-                previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord} else record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None)
+                previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord, FuelDelivery} else None)
                 if model_class is GeneratorRecord:
                     assert_site_access(profile, values["site"])
                     _set_generator_from_equipment(values, record)
@@ -672,7 +699,7 @@ def record_detail(request, resource, record_id):
                     _recalculate_fuel_records(record.site, record.periode, profile.id)
                 elif model_class is FuelDelivery:
                     _recalculate_fuel_records_after_delivery_change(previous_site, previous_period, profile.id)
-                    _recalculate_fuel_records_after_delivery_change(record.site, record.date_ravitaillement.strftime("%Y-%m"), profile.id)
+                    _recalculate_fuel_records_after_delivery_change(record.site, record.periode, profile.id)
                 if model_class in {GeneratorRecord, GeneratorMonthlyReading, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
                 if model_class is GeneratorRecord:
@@ -691,7 +718,7 @@ def record_detail(request, resource, record_id):
             deleted_id = str(record.id)
             deleted_site = record.site
             deleted_period = record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord} else None
-            deleted_delivery_period = record.date_ravitaillement.strftime("%Y-%m") if model_class is FuelDelivery else None
+            deleted_delivery_period = record.periode if model_class is FuelDelivery else None
             deleted_group_code = record.groupe_code if model_class is GeneratorMonthlyReading else None
             with transaction.atomic():
                 record.delete()

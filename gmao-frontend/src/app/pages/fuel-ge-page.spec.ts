@@ -116,6 +116,22 @@ describe('FuelGePageComponent', () => {
     expect(component.missingPrerequisites).toEqual([]);
   });
 
+  it('additionne les ravitaillements du mois, quel que soit leur numéro', () => {
+    const store = new GmaoDataStore();
+    store.fuelDeliveryRows = [
+      { site: 'Goma', periode: '2026-01', rang: 1, quantiteRecue: 100.5 },
+      { site: 'Goma', periode: '2026-01', rang: 4, quantiteRecue: 200 },
+      { site: 'Goma', periode: '2026-02', rang: 1, quantiteRecue: 999 },
+      { site: 'Utex', periode: '2026-01', rang: 1, quantiteRecue: 999 },
+    ];
+    const component = new FuelGePageComponent(store);
+    component.newEntry.site = 'Goma';
+    component.newEntry.periode = '2026-01';
+    expect(component.calculatedEntries).toBe(300.5);
+    component.newEntry.periode = '2026-03';
+    expect(component.calculatedEntries).toBe(0);
+  });
+
   it('affiche Non calculable lorsque la consommation est positive avec zéro heure', () => {
     const store = new GmaoDataStore();
     store.generatorRows = [{ site: 'Goma', code: 'GE-001' }];

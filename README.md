@@ -85,7 +85,7 @@ Les données sont reliées par le **site**, le **mois (`AAAA-MM`)** et, pour les
 
 1. **Suivi groupes électrogènes** enregistre un relevé RH par groupe et par mois. Les heures d’un groupe sont calculées par `RH du mois − RH du relevé précédent`. Une référence de décembre permet donc de calculer les heures de janvier.
 2. **Consommation par groupe GE** reçoit les litres saisis pour le même groupe et le même mois. Elle reprend les heures calculées au point 1 et calcule `L/h = litres / heures`.
-3. **Ravitaillement Fuel** enregistre chaque livraison datée. Sa quantité est additionnée automatiquement dans le mois concerné ; les stocks avant/après servent de contrôle physique de la livraison et ne remplacent pas les calculs Fuel-GE.
+3. **Ravitaillement Fuel** enregistre chaque livraison par **mois** et **numéro dans le mois** (1er à 5e ravitaillement), comme dans les rapports de terrain : aucune date n’est demandée. Sa quantité est additionnée automatiquement dans le mois concerné (un numéro non saisi compte pour 0) ; les stocks avant/après servent de contrôle physique de la livraison et ne remplacent pas les calculs Fuel-GE.
 4. **Fuel-GE** est la synthèse mensuelle du site : `stock final = stock initial + somme des ravitaillements − somme des consommations`. Il additionne également les heures de tous les groupes et calcule la moyenne `L/h`. Dès le deuxième mois, le stock initial reprend le stock final du mois précédent. Le premier mois d’un site sans aucune consommation n’exige pas de relevés RH ; dès qu’un mois plus ancien est ajouté, les mois suivants ont besoin d’un relevé antérieur pour leurs heures GE.
 
 Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans Aiven MySQL, puis l’interface est rafraîchie (journal Fuel-GE compris, car le serveur le recalcule).
@@ -103,7 +103,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - La table correspondante a été migrée vers Aiven MySQL.
 ### Ravitaillement Fuel
 
-- Enregistrement des livraisons entrantes de carburant par site.
+- Enregistrement des livraisons entrantes de carburant par site, par mois et par numéro de ravitaillement (1 à 5 par site et par mois, sans doublon). Les anciennes dates sont conservées en base mais ne sont plus affichées ni demandées ; l’API accepte encore une date pour en déduire le mois.
 - Les imports historiques peuvent conserver les stocks avant/après à « Non renseigné » lorsqu’ils ne sont pas disponibles.
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
@@ -503,7 +503,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - La table correspondante a été migrée vers Aiven MySQL.
 ### Ravitaillement Fuel
 
-- Enregistrement des livraisons entrantes de carburant par site.
+- Enregistrement des livraisons entrantes de carburant par site, par mois et par numéro de ravitaillement (1 à 5 par site et par mois, sans doublon). Les anciennes dates sont conservées en base mais ne sont plus affichées ni demandées ; l’API accepte encore une date pour en déduire le mois.
 - Les imports historiques peuvent conserver les stocks avant/après à « Non renseigné » lorsqu’ils ne sont pas disponibles.
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.

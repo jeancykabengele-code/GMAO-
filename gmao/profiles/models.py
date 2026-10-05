@@ -126,8 +126,15 @@ class FuelRecord(BusinessRecord):
         unique_together = ("site", "periode")
 
 
+MAX_DELIVERIES_PER_MONTH = 5
+
+
 class FuelDelivery(BusinessRecord):
-    date_ravitaillement = models.DateField()
+    # Les rapports de terrain ne donnent que le mois et le rang du ravitaillement (1er à 5e) :
+    # la date n'est conservée que pour les anciennes lignes.
+    periode = models.CharField(max_length=7)
+    rang = models.PositiveSmallIntegerField(default=1)
+    date_ravitaillement = models.DateField(null=True, blank=True)
     fournisseur = models.TextField()
     bon_livraison = models.TextField()
     type_carburant = models.TextField()
@@ -141,6 +148,7 @@ class FuelDelivery(BusinessRecord):
 
     class Meta:
         db_table = "gmao_fuel_ravitaillements"
+        unique_together = ("site", "periode", "rang")
 
 
 class GeneratorFuelConsumption(BusinessRecord):

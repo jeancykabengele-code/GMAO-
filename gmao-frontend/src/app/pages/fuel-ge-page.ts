@@ -141,8 +141,8 @@ export class FuelGePageComponent {
 
   get calculatedEntries(): number {
     if (!this.newEntry.site || !this.newEntry.periode) return 0;
-    return (this.dataStore.fuelDeliveryRows as Array<{ site?: string; dateRavitaillement?: string; quantiteRecue?: number }>)
-      .filter(row => row.site === this.newEntry.site && row.dateRavitaillement?.startsWith(this.newEntry.periode))
+    return (this.dataStore.fuelDeliveryRows as Array<{ site?: string; periode?: string; quantiteRecue?: number }>)
+      .filter(row => row.site === this.newEntry.site && row.periode === this.newEntry.periode)
       .reduce((total, row) => total + Number(row.quantiteRecue ?? 0), 0);
   }
 

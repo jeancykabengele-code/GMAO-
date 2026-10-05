@@ -54,7 +54,7 @@ class GridConnectedAndSiteRenameTests(TestCase):
             famille="Energie", localisation="Salle", marque_modele="X", etat="Bon", criticite="Haute",
         )
         FuelDelivery.objects.create(
-            site="Ancien", created_by=self.administrator.id, date_ravitaillement=date(2026, 1, 15),
+            site="Ancien", created_by=self.administrator.id, periode="2026-01", rang=1, date_ravitaillement=date(2026, 1, 15),
             fournisseur="Total", bon_livraison="BL-1", type_carburant="Diesel",
             quantite_recue=Decimal("10"), receptionne_par="Agent",
         )
@@ -81,7 +81,7 @@ class GridConnectedAndSiteRenameTests(TestCase):
     def test_site_with_a_delivery_or_a_reading_cannot_be_deleted(self):
         Site.objects.create(name="Livraison", code="LIV", active=True)
         FuelDelivery.objects.create(
-            site="Livraison", created_by=self.administrator.id, date_ravitaillement=date(2026, 2, 1),
+            site="Livraison", created_by=self.administrator.id, periode="2026-02", rang=1,
             fournisseur="Total", bon_livraison="BL-2", type_carburant="Diesel",
             quantite_recue=Decimal("5"), receptionne_par="Agent",
         )
