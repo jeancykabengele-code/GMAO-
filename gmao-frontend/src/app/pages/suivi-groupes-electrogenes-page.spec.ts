@@ -41,6 +41,26 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
     expect(component.selectedGeneratorKey).toBe('equipment-ge-1');
   });
 
+  it('permet au chef de site de corriger un relevé RH déjà enregistré de son site, sans en créer un second', async () => {
+    const access = {
+      get profile() { return { permissions: {} }; }, get allowedSites() { return ['Goma']; },
+      get canModifyExisting() { return false; }, get canEnterSiteData() { return true; },
+      get canExportData() { return false; }, get isChefSite() { return true; },
+    };
+    const store = new GmaoDataStore(access as never);
+    store.generatorRows = [row()];
+    store.generatorReadingRows = [{ id: 'r1', site: 'Goma', groupeCode: 'DC-GOM-GE-001', periode: '2026-08', rhActuel: 200, commentaires: '' }];
+    const component = new SuiviGroupesElectrogenesPageComponent(store);
+
+    component.openSheet(component.readingHistory[0]);
+    component.newGenerator.rhActuel = 215.5;
+    await component.saveGenerator();
+
+    expect(component.saveError).toBe('');
+    expect(store.generatorReadingRows).toHaveLength(1);
+    expect((store.generatorReadingRows[0] as { rhActuel: number }).rhActuel).toBe(215.5);
+  });
+
   it('calcule les RH depuis la PM et la prochaine PM', () => {
     const component = new SuiviGroupesElectrogenesPageComponent();
     component.openSheet(row());

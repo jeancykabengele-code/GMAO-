@@ -35,6 +35,7 @@ from .permissions import (
     assert_can_delete_equipment,
     assert_can_delete_fuel_record,
     assert_can_delete_ticket,
+    assert_can_correct_reading,
     assert_can_modify,
     assert_site_access,
 )
@@ -661,7 +662,7 @@ def record_detail(request, resource, record_id):
                     _assert_generator_code_unique(values, record)
                     _calculate_generator_values(values, record)
                 elif model_class is GeneratorMonthlyReading:
-                    assert_can_modify(profile, values["site"])
+                    assert_can_correct_reading(profile, values["site"])
                     _validate_monthly_reading(values, record)
                 elif model_class is FuelRecord:
                     assert_can_modify(profile, values["site"])

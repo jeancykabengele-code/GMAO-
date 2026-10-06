@@ -942,3 +942,48 @@ class FuelDeliveryMonthAndRankTests(TestCase):
         journal = business_models.FuelRecord.objects.get(site="Goma", periode="2026-01")
         self.assertEqual(journal.entree, Decimal("250.500"))
         self.assertEqual(journal.stock_final, Decimal("1250.500"))
+
+
+class ReadingCorrectionPermissionTests(TestCase):
+    """Le Chef de site corrige les relevés RH de son site ; les autres sites et la suppression restent protégés."""
+
+    def _reading(self, site="Goma"):
+        business_models.GeneratorRecord.objects.get_or_create(
+            site=site, code="GE-01", defaults=dict(type_ge="GE", mois_releve="2026-01", rh_actuel=0, rh_derniere_pm=0,
+                rh_depuis_derniere_pm=0, rh_prochaine_pm=250, etat="Normal", created_by=uuid4()),
+        )
+        return business_models.GeneratorMonthlyReading.objects.create(
+            site=site, periode="2026-01", groupe_code="GE-01", rh_actuel=Decimal("100"), created_by=uuid4(),
+        )
+
+    def _put(self, reading, rh):
+        return self.client.put(
+            f"/api/records/releves-rh-ge/{reading.id}",
+            data=json.dumps({"site": reading.site, "periode": "2026-01", "groupeCode": "GE-01", "rhActuel": rh}),
+            content_type="application/json", HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+
+    @patch("profiles.views.profile_from_token")
+    def test_chef_site_can_correct_a_reading_of_its_own_site(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
+        reading = self._reading()
+        response = self._put(reading, 120.5)
+        self.assertEqual(response.status_code, 200, response.content)
+        reading.refresh_from_db()
+        self.assertEqual(reading.rh_actuel, Decimal("120.50"))
+
+    @patch("profiles.views.profile_from_token")
+    def test_chef_site_cannot_correct_a_reading_of_another_site(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
+        reading = self._reading("Utex")
+        self.assertEqual(self._put(reading, 120).status_code, 403)
+        reading.refresh_from_db()
+        self.assertEqual(reading.rh_actuel, Decimal("100.00"))
+
+    @patch("profiles.views.profile_from_token")
+    def test_chef_site_still_cannot_delete_a_reading(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
+        reading = self._reading()
+        response = self.client.delete(f"/api/records/releves-rh-ge/{reading.id}", HTTP_AUTHORIZATION="Bearer valid-token")
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(business_models.GeneratorMonthlyReading.objects.filter(id=reading.id).exists())

@@ -106,7 +106,7 @@ export class GmaoDataStore {
 
   async updateRecord(resource: GmaoResource, original: object, changes: object): Promise<PersistedRow> {
     const originalRow = original as PersistedRow;
-    if (!this.canModifyExisting && !(resource === 'groupes-electrogenes' && this.canUpdateGenerators)) return originalRow;
+    if (!this.canModifyExisting && !((resource === 'groupes-electrogenes' || resource === 'releves-rh-ge') && this.canUpdateGenerators)) return originalRow;
     const prepared = this.forceCurrentSite(changes);
     const saved = this.api && originalRow.id
       ? await this.api.update(resource, originalRow.id, prepared)

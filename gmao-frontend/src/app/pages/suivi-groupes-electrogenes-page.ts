@@ -319,7 +319,7 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
       // un autre mois, ou le choix d'un groupe, crée un nouveau relevé.
       const editedReading = this.editingRow as (GeneratorRow & MonthlyReadingRow) | null;
       const correctsExistingReading = !this.selectingGenerator && !this.creatingGenerator && !!editedReading?.id
-        && editedReading.moisReleve === this.newGenerator.moisReleve && this.dataStore.canModifyExisting;
+        && editedReading.moisReleve === this.newGenerator.moisReleve && this.dataStore.canUpdateGenerators;
       if (correctsExistingReading && editedReading) await this.dataStore.updateRecord('releves-rh-ge', editedReading, reading);
       else await this.dataStore.createRecord('releves-rh-ge', reading);
       await this.dataStore.refreshResource('groupes-electrogenes');

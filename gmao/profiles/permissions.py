@@ -76,6 +76,13 @@ def assert_can_create(profile: UserProfile, site: str) -> None:
     assert_site_access(profile, site)
 
 
+def assert_can_correct_reading(profile: UserProfile, site: str) -> None:
+    """Un relevé RH peut être corrigé par un rôle global ou par le Chef de site, sur son propre site."""
+    assert_site_access(profile, site)
+    if profile.role not in GLOBAL_ROLES and profile.role != "chef_site":
+        raise PermissionDeniedError("Ce profil ne peut pas corriger un relevé RH.")
+
+
 def assert_can_modify(profile: UserProfile, site: str) -> None:
     assert_site_access(profile, site)
     if profile.role not in GLOBAL_ROLES:
