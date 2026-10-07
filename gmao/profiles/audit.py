@@ -2,7 +2,6 @@ import json
 from datetime import date
 
 from django.core.exceptions import ValidationError
-from django.db.models import Q
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
 
@@ -15,6 +14,8 @@ from .views import require_authenticated_user
 
 FORBIDDEN_DETAIL_KEYS = ("password", "token", "secret", "authorization", "credential")
 ALLOWED_RESULTS = {"success", "failure", "blocked"}
+# Ces événements alimentent la feuille « Historique RH » et non le journal d’audit.
+RH_HISTORY_ACTIONS = ("rh_reading_create", "rh_reading_update")
 
 
 def _safe_details(details):
@@ -91,7 +92,7 @@ def audit_collection(request):
     try:
         limit = min(max(int(request.GET.get("limit", "50")), 1), 100)
         offset = max(int(request.GET.get("offset", "0")), 0)
-        queryset = AuditLog.objects.all()
+        queryset = AuditLog.objects.exclude(action__in=RH_HISTORY_ACTIONS)
         if action := request.GET.get("action", "").strip():
             queryset = queryset.filter(action=action)
         if result := request.GET.get("result", "").strip():
@@ -102,11 +103,6 @@ def audit_collection(request):
             queryset = queryset.filter(actor_email__icontains=actor)
         if target_type := request.GET.get("targetType", "").strip():
             queryset = queryset.filter(target_type=target_type)
-        for parameter, key in (("site", "site"), ("group", "groupeCode")):
-            if wanted := request.GET.get(parameter, "").strip():
-                queryset = queryset.filter(
-                    Q(**{f"details__{key}": wanted}) | Q(**{f"details__old__{key}": wanted}) | Q(**{f"details__new__{key}": wanted})
-                )
         if start := _date_parameter(request, "from"):
             queryset = queryset.filter(created_at__date__gte=start)
         if end := _date_parameter(request, "to"):

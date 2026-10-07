@@ -10,6 +10,7 @@ from login_guard.limiter import Admission
 from login_guard.models import AuditLog
 
 from .audit import audit_collection, record_audit
+from .rh_history import rh_history_collection
 from .local_auth import LocalAuthenticationError
 from .views import local_login
 
@@ -101,15 +102,28 @@ class LoginAuditTests(SimpleTestCase):
         self.assertNotIn("not-logged", repr(audit.call_args))
 
 
-class AuditSiteAndGroupFilterTests(TestCase):
-    def test_filters_by_site_and_group_in_old_and_new_values(self):
-        manager = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager")
-        AuditLog.objects.create(action="rh_reading_update", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1",
-            details={"old": {"site": "Goma", "groupeCode": "GE-01"}, "new": {"site": "Goma", "groupeCode": "GE-01"}})
+class RhHistoryTests(TestCase):
+    def _request(self, query=None):
+        request = RequestFactory().get("/api/rh-history", query or {})
+        request.gmao_profile = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager")
+        return request
+
+    def test_history_is_separate_from_the_audit_log_and_filterable(self):
+        AuditLog.objects.create(action="rh_reading_update", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1", actor_email="chef@example.com",
+            details={"old": {"site": "Goma", "groupeCode": "GE-01", "periode": "2026-01", "rhActuel": "100.00", "commentaires": ""},
+                     "new": {"site": "Goma", "groupeCode": "GE-01", "periode": "2026-01", "rhActuel": "120.50", "commentaires": "corrigé"}})
         AuditLog.objects.create(action="record_delete", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1",
-            details={"site": "Utex", "old": {"site": "Utex", "groupeCode": "GE-02"}})
+            details={"site": "Utex", "old": {"site": "Utex", "groupeCode": "GE-02", "periode": "2026-02", "rhActuel": "50.00", "commentaires": ""}})
+        AuditLog.objects.create(action="record_delete", target_type="tickets", result="success", ip_address="1.1.1.1", details={"site": "Goma"})
+
+        audit = json.loads(audit_collection.__wrapped__.__wrapped__(self._request()).content)
+        self.assertEqual([item["action"] for item in audit["items"]].count("rh_reading_update"), 0)
+
+        history = json.loads(rh_history_collection.__wrapped__.__wrapped__(self._request()).content)
+        self.assertEqual(history["total"], 2)
+        update = next(item for item in history["items"] if item["kind"] == "update")
+        self.assertEqual((update["oldRh"], update["newRh"], update["groupeCode"], update["actorEmail"]), ("100.00", "120.50", "GE-01", "chef@example.com"))
+        self.assertEqual(next(item for item in history["items"] if item["kind"] == "delete")["oldRh"], "50.00")
         for query, expected in (({"site": "Goma"}, 1), ({"group": "GE-02"}, 1), ({"site": "Utex", "group": "GE-01"}, 0)):
-            request = RequestFactory().get("/api/audit-logs", query)
-            request.gmao_profile = manager
-            body = json.loads(audit_collection.__wrapped__.__wrapped__(request).content)
+            body = json.loads(rh_history_collection.__wrapped__.__wrapped__(self._request(query)).content)
             self.assertEqual(body["total"], expected, query)

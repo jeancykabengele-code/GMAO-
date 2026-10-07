@@ -8,4 +8,6 @@ Le modèle Django interdit `save()`, `update()` et `delete()` sur une entrée ex
 
 Événements couverts : connexions réussies, refusées ou bloquées, changements et réinitialisations de mot de passe, création/modification/suppression de comptes, suppressions de sites et suppressions de fiches métier.
 
-Historique des relevés RH : la création (`rh_reading_create`), la correction (`rh_reading_update`, avec les valeurs `old` et `new`) et la suppression (`record_delete`, avec `old`) d’un relevé RH mensuel sont journalisées. L’Administrateur retrouve ainsi l’ancien compteur RH en filtrant la cible `releves-rh-ge`.
+## Historique RH
+
+L’Administrateur consulte les modifications des relevés RH dans **Administration → Historique RH** (`GET /api/rh-history`), une feuille distincte du journal d’audit. La saisie (`rh_reading_create`), la correction (`rh_reading_update`, ancien et nouveau compteur) et la suppression d’un relevé (`record_delete` sur `releves-rh-ge`, avec l’ancien compteur) y apparaissent avec la date, l’auteur, le site, le groupe et le mois, et se filtrent par site, groupe et période. Les événements restent stockés dans la table append-only `audit_log`, mais le journal d’audit n’affiche plus les saisies et corrections de relevés RH. Seules les modifications faites après la mise en service de cet historique sont disponibles.
