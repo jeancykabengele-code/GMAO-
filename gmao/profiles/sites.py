@@ -25,7 +25,7 @@ from .models import (
 )
 from .audit import record_audit
 from .permissions import assert_global_page_access, assert_manage_users
-from .records import _recalculate_fuel_records
+from .records.fuel import _recalculate_fuel_records
 from .views import require_authenticated_user
 
 

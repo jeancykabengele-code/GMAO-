@@ -14,7 +14,7 @@ from login_guard.models import AuditLog
 
 from .local_auth import issue_token, set_local_password
 from .models import Equipment, FuelDelivery, FuelRecord, GeneratorMonthlyReading, Notification, Site, UserProfile
-from .records import _calculate_fuel_values
+from .records.fuel import _calculate_fuel_values
 
 mark_off_grid_sites = importlib.import_module(
     "profiles.migrations.0005_site_grid_and_unique_accounts"
@@ -112,10 +112,10 @@ class GridConnectedAndSiteRenameTests(TestCase):
         self.assertEqual(record.disponibilite_grid, Decimal("0"))
 
         with (
-            patch("profiles.records._generator_hours_total", return_value=Decimal("10")),
-            patch("profiles.records._fuel_deliveries_total", return_value=Decimal("0")),
-            patch("profiles.records._previous_fuel_final_stock", return_value=Decimal("10")),
-            patch("profiles.records._generator_fuel_consumption_total", return_value=Decimal("0")),
+            patch("profiles.records.fuel._generator_hours_total", return_value=Decimal("10")),
+            patch("profiles.records.fuel._fuel_deliveries_total", return_value=Decimal("0")),
+            patch("profiles.records.fuel._previous_fuel_final_stock", return_value=Decimal("10")),
+            patch("profiles.records.fuel._generator_fuel_consumption_total", return_value=Decimal("0")),
         ):
             values = _calculate_fuel_values({
                 "site": "Kikwit", "periode": "2026-02", "sortie": Decimal("0"), "snel_kwh": Decimal("50"),

@@ -1,0 +1,14 @@
+[run]
+source = profiles, login_guard, gmao_backend
+omit =
+    */migrations/*
+    */tests.py
+    */test_*.py
+    gmao_backend/asgi.py
+    gmao_backend/wsgi.py
+    gmao_backend/mysql_test_settings.py
+
+[report]
+fail_under = 80
+show_missing = False
+skip_empty = True

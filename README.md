@@ -534,12 +534,24 @@ npm run build
 
 Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
 
-État vérifié au 29 septembre 2026 :
+Couverture et parcours de bout en bout :
 
-- 19 fichiers de tests frontend réussis ;
-- 72 tests frontend réussis dans 19 fichiers ;
+```powershell
+npm run test:coverage   # couverture Vitest, seuils minimaux dans angular.json
+npm run test:csp        # CSP et navigation dans Chromium, API simulée
+npm run test:e2e        # vrai backend Django + vrai navigateur (voir ci-dessous)
+```
+
+État vérifié au 7 octobre 2026 :
+
+- 23 fichiers et 96 tests frontend réussis ;
+- couverture frontend : 29 % des instructions, 47 % des lignes (seuils de non-régression à 28 % et 45 % ; les pages d'administration et plusieurs pages métier restent peu testées) ;
 - compilation Angular de production réussie sans avertissement de budget ;
 - seuils de budget calibrés à 1,2 Mo pour le bundle initial et 10 Ko par feuille de style.
+
+#### Test de bout en bout
+
+`npm run test:e2e` démarre un backend Django sur une base SQLite jetable (`gmao/scripts/seed_e2e.py`, qui refuse de s'exécuter sans `GMAO_SQLITE_PATH`), compile Angular vers ce backend, puis pilote Chromium : un chef de site saisit et corrige un relevé RH et crée un équipement, n'a pas accès à l'administration, et l'Administrateur retrouve l'ancienne et la nouvelle valeur dans **Administration → Historique des modifications**, sans qu'elles apparaissent dans le journal d'audit. Les comptes de test et leurs mots de passe sont générés à chaque exécution et ne sont jamais écrits dans le dépôt. Le test s'exécute aussi dans le job `e2e` de la CI ; le déploiement Render attend sa réussite.
 
 ### Backend
 
@@ -548,6 +560,16 @@ cd gmao
 $env:DJANGO_DEBUG = 'true' # Uniquement pour les tests en développement local
 .\.venv\Scripts\python.exe manage.py test
 ```
+
+Mesure de la couverture (configuration dans `gmao/.coveragerc`, seuil de 80 %, mesuré à 82 % le 7 octobre 2026) :
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install coverage
+.\.venv\Scripts\python.exe -m coverage run manage.py test
+.\.venv\Scripts\python.exe -m coverage report
+```
+
+Organisation du code des fiches métier : l'API des fiches est le paquet `gmao/profiles/records/` (`constants`, `serialization`, `equipment`, `generators`, `fuel`, `deliveries`, `pue`, `endpoints`) et les tests sont répartis par domaine dans `gmao/profiles/test_*.py`.
 
 Avant une livraison, vérifier au minimum :
 

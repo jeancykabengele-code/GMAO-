@@ -32,3 +32,8 @@ gmao/backups/
 
 # Marqueur de version généré à chaque build (voir scripts/generate-environment.mjs)
 gmao-frontend/public/version.json
+
+# Couverture de tests
+.coverage
+gmao/.coverage
+**/dist-e2e/
