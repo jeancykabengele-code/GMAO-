@@ -23,6 +23,7 @@ export class AppComponent {
   readonly versionCheck = inject(VersionCheckService);
 
   maintenanceOpen = true;
+  administrationOpen = true;
   loggingOut = false;
   sidebarHidden = false;
 

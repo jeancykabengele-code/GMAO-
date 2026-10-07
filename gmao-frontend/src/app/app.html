@@ -115,7 +115,21 @@
         <a routerLink="/documentations" routerLinkActive="active"><i class="solaris-icon solaris-documentation"></i><span>Documentations</span></a>
       }
       @if (access.canAccessAdministration) {
-        <a routerLink="/administration" routerLinkActive="active"><i class="solaris-icon solaris-security-approved"></i><span>Administration</span></a>
+        <button type="button" class="nav-parent" [attr.aria-expanded]="administrationOpen" (click)="administrationOpen = !administrationOpen">
+          <i class="solaris-icon solaris-security-approved"></i><span>Administration</span>
+          <i class="solaris-icon chevron" [class.solaris-chevron-down]="administrationOpen" [class.solaris-chevron-right]="!administrationOpen"></i>
+        </button>
+        @if (administrationOpen) {
+          <div class="subnav">
+            <a routerLink="/administration/sites" routerLinkActive="active">Gestion des sites</a>
+            @if (access.canManageUsers) { <a routerLink="/administration/utilisateurs" routerLinkActive="active">Gestion des utilisateurs</a> }
+            @if (access.canViewAuditLog) {
+              <a routerLink="/administration/journal-audit" routerLinkActive="active">Journal d’audit</a>
+              <a routerLink="/administration/historique-rh" routerLinkActive="active">Historique RH</a>
+            }
+            @if (access.canManageUsers) { <a routerLink="/administration/sauvegardes" routerLinkActive="active">Sauvegardes</a> }
+          </div>
+        }
       }
       <a routerLink="/a-propos" routerLinkActive="active"><i class="solaris-icon solaris-information"></i><span>À propos</span></a>
       <button type="button" class="nav-parent logout-button" [disabled]="loggingOut" (click)="logout()">

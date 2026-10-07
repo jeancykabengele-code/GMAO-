@@ -127,19 +127,18 @@ describe('App routing shell', () => {
     expect(compiled.textContent).toContain('Bienvenue dans votre espace de travail.');
   });
 
-  it('gives the administrator a Sauvegardes tab alongside the other administration tabs', async () => {
+  it('lists every administration sheet in the sidebar for the administrator', async () => {
     authenticatedState.set(true);
     profileState.set({ ...managerProfile, id: 'admin-1', role: 'administrator', site: null });
 
     const compiled = await renderRoute('/administration');
-    expect(compiled.querySelector('a[href="/administration"]')).toBeTruthy();
     expect(compiled.querySelector('app-sites-admin-page')).toBeTruthy();
-    expect(compiled.querySelector('a[routerLink="utilisateurs"]')).toBeTruthy();
-    expect(compiled.querySelector('a[routerLink="journal-audit"]')).toBeTruthy();
-    expect(compiled.querySelector('a[routerLink="sauvegardes"]')).toBeTruthy();
+    for (const sheet of ['sites', 'utilisateurs', 'journal-audit', 'historique-rh', 'sauvegardes']) {
+      expect(compiled.querySelector(`.subnav a[href="/administration/${sheet}"]`)).toBeTruthy();
+    }
   });
 
-  it('keeps the Sauvegardes tab hidden and the route denied for the manager once handoff has happened', async () => {
+  it('keeps the Sauvegardes sidebar entry hidden and the route denied for the manager once handoff has happened', async () => {
     authenticatedState.set(true);
     profileState.set({
       ...managerProfile,
@@ -153,7 +152,7 @@ describe('App routing shell', () => {
     const compiled = await renderRoute('/administration/sauvegardes');
     const router = TestBed.inject(Router);
     expect(router.url).toBe('/accueil');
-    expect(compiled.querySelector('a[routerLink="sauvegardes"]')).toBeNull();
+    expect(compiled.querySelector('a[href="/administration/sauvegardes"]')).toBeNull();
   });
 
   it('sends a user with a pending forced password change back to connexion instead of any internal page', async () => {
