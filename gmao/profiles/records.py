@@ -26,6 +26,7 @@ from .models import (
     Site,
     Ticket,
 )
+from .audit import record_audit
 from .notifications import notify_generator_alert, notify_record_created
 from .permissions import (
     GLOBAL_ROLES,
@@ -441,6 +442,17 @@ def _sync_generator_current_from_readings(site, groupe_code, actor_id=None):
     generator.save(update_fields=["mois_releve", "rh_actuel", "rh_depuis_derniere_pm", "rh_prochaine_pm", "etat", "commentaires", "updated_by", "updated_at"])
 
 
+def _reading_snapshot(record):
+    """Valeurs d'un relevé RH conservées dans le journal d'audit pour l'historique des corrections."""
+    return {
+        "site": record.site,
+        "periode": record.periode,
+        "groupeCode": record.groupe_code,
+        "rhActuel": record.rh_actuel,
+        "commentaires": record.commentaires,
+    }
+
+
 def _recalculate_fuel_records_after_reading_change(site, periode, actor_id=None):
     try:
         _recalculate_fuel_records(site, periode, actor_id)
@@ -628,6 +640,8 @@ def record_collection(request, resource):
                     _recalculate_fuel_records_after_delivery_change(record.site, record.periode, profile.id)
                 if model_class in {GeneratorRecord, GeneratorMonthlyReading, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
+                if model_class is GeneratorMonthlyReading:
+                    record_audit(request, "rh_reading_create", resource, record.id, details={"new": _reading_snapshot(record)})
                 notify_record_created(profile, resource, record)
                 if model_class is GeneratorRecord:
                     notify_generator_alert(profile, record)
@@ -655,6 +669,7 @@ def record_detail(request, resource, record_id):
             values = _clean_values(model_class, _payload(request))
             with transaction.atomic():
                 previous_site = record.site
+                old_reading = _reading_snapshot(record) if model_class is GeneratorMonthlyReading else None
                 previous_period = (record.mois_releve if model_class is GeneratorRecord else record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord, FuelDelivery} else None)
                 if model_class is GeneratorRecord:
                     assert_site_access(profile, values["site"])
@@ -703,11 +718,12 @@ def record_detail(request, resource, record_id):
                     _recalculate_fuel_records_after_delivery_change(record.site, record.periode, profile.id)
                 if model_class in {GeneratorRecord, GeneratorMonthlyReading, FuelRecord, FuelDelivery, PueRecord}:
                     record.refresh_from_db()
+                if old_reading is not None:
+                    record_audit(request, "rh_reading_update", resource, record.id, details={"old": old_reading, "new": _reading_snapshot(record)})
                 if model_class is GeneratorRecord:
                     notify_generator_alert(profile, record)
             return JsonResponse(_serialize(record))
         if request.method == "DELETE":
-            from .audit import record_audit
             if model_class is Equipment:
                 assert_can_delete_equipment(profile)
             elif model_class is FuelRecord:
@@ -718,6 +734,7 @@ def record_detail(request, resource, record_id):
                 assert_can_delete(profile)
             deleted_id = str(record.id)
             deleted_site = record.site
+            deleted_reading = _reading_snapshot(record) if model_class is GeneratorMonthlyReading else None
             deleted_period = record.periode if model_class in {GeneratorMonthlyReading, GeneratorFuelConsumption, FuelRecord} else None
             deleted_delivery_period = record.periode if model_class is FuelDelivery else None
             deleted_group_code = record.groupe_code if model_class is GeneratorMonthlyReading else None
@@ -729,7 +746,7 @@ def record_detail(request, resource, record_id):
                     _recalculate_fuel_records_after_reading_change(deleted_site, deleted_period, profile.id)
                 if deleted_delivery_period:
                     _recalculate_fuel_records_after_delivery_change(deleted_site, deleted_delivery_period, profile.id)
-                record_audit(request, "record_delete", resource, deleted_id, details={"site": deleted_site})
+                record_audit(request, "record_delete", resource, deleted_id, details={"site": deleted_site, **({"old": deleted_reading} if deleted_reading else {})})
             return JsonResponse({"status": "deleted", "id": deleted_id})
         return JsonResponse({"detail": "Méthode non autorisée."}, status=405)
     except (ValidationError, PermissionDeniedError) as error:

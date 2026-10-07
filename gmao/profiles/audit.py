@@ -2,6 +2,7 @@ import json
 from datetime import date
 
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
 
@@ -101,6 +102,11 @@ def audit_collection(request):
             queryset = queryset.filter(actor_email__icontains=actor)
         if target_type := request.GET.get("targetType", "").strip():
             queryset = queryset.filter(target_type=target_type)
+        for parameter, key in (("site", "site"), ("group", "groupeCode")):
+            if wanted := request.GET.get(parameter, "").strip():
+                queryset = queryset.filter(
+                    Q(**{f"details__{key}": wanted}) | Q(**{f"details__old__{key}": wanted}) | Q(**{f"details__new__{key}": wanted})
+                )
         if start := _date_parameter(request, "from"):
             queryset = queryset.filter(created_at__date__gte=start)
         if end := _date_parameter(request, "to"):

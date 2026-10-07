@@ -99,3 +99,17 @@ class LoginAuditTests(SimpleTestCase):
         audit.assert_called_once()
         self.assertEqual(audit.call_args.kwargs["result"], "failure")
         self.assertNotIn("not-logged", repr(audit.call_args))
+
+
+class AuditSiteAndGroupFilterTests(TestCase):
+    def test_filters_by_site_and_group_in_old_and_new_values(self):
+        manager = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager")
+        AuditLog.objects.create(action="rh_reading_update", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1",
+            details={"old": {"site": "Goma", "groupeCode": "GE-01"}, "new": {"site": "Goma", "groupeCode": "GE-01"}})
+        AuditLog.objects.create(action="record_delete", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1",
+            details={"site": "Utex", "old": {"site": "Utex", "groupeCode": "GE-02"}})
+        for query, expected in (({"site": "Goma"}, 1), ({"group": "GE-02"}, 1), ({"site": "Utex", "group": "GE-01"}, 0)):
+            request = RequestFactory().get("/api/audit-logs", query)
+            request.gmao_profile = manager
+            body = json.loads(audit_collection.__wrapped__.__wrapped__(request).content)
+            self.assertEqual(body["total"], expected, query)

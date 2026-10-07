@@ -8,6 +8,7 @@ from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase, TestCase
 
+from login_guard.models import AuditLog
 from .records import (
     _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_delivery_values, _calculate_fuel_values, _calculate_generator_values, _calculate_pue_values, _recalculate_fuel_records, _recalculate_fuel_records_after_delivery_change,
     _clean_values, _fuel_deliveries_total, _generator_fuel_consumption_total, _generator_hours_total, _next_equipment_code,
@@ -987,3 +988,13 @@ class ReadingCorrectionPermissionTests(TestCase):
         response = self.client.delete(f"/api/records/releves-rh-ge/{reading.id}", HTTP_AUTHORIZATION="Bearer valid-token")
         self.assertEqual(response.status_code, 403)
         self.assertTrue(business_models.GeneratorMonthlyReading.objects.filter(id=reading.id).exists())
+
+    @patch("profiles.views.profile_from_token")
+    def test_reading_correction_keeps_the_previous_value_in_the_audit_log(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
+        reading = self._reading()
+        self.assertEqual(self._put(reading, 120.5).status_code, 200)
+        entry = AuditLog.objects.get(action="rh_reading_update", target_id=str(reading.id))
+        self.assertEqual(entry.details["old"]["rhActuel"], "100.00")
+        self.assertEqual(entry.details["new"]["rhActuel"], "120.50")
+        self.assertEqual(entry.details["old"]["groupeCode"], "GE-01")
