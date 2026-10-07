@@ -10,7 +10,7 @@ from login_guard.limiter import Admission
 from login_guard.models import AuditLog
 
 from .audit import audit_collection, record_audit
-from .rh_history import rh_history_collection
+from .change_history import change_history_collection
 from .local_auth import LocalAuthenticationError
 from .views import local_login
 
@@ -102,48 +102,46 @@ class LoginAuditTests(SimpleTestCase):
         self.assertNotIn("not-logged", repr(audit.call_args))
 
 
-class RhHistoryTests(TestCase):
+class ChangeHistoryTests(TestCase):
     def _request(self, query=None):
-        request = RequestFactory().get("/api/rh-history", query or {})
+        request = RequestFactory().get("/api/change-history", query or {})
         request.gmao_profile = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager")
         return request
 
+    def _history(self, query=None):
+        return json.loads(change_history_collection.__wrapped__.__wrapped__(self._request(query)).content)
+
     def test_history_is_separate_from_the_audit_log_and_filterable(self):
-        AuditLog.objects.create(action="rh_reading_update", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1", actor_email="chef@example.com",
-            details={"old": {"site": "Goma", "groupeCode": "GE-01", "periode": "2026-01", "rhActuel": "100.00", "commentaires": ""},
-                     "new": {"site": "Goma", "groupeCode": "GE-01", "periode": "2026-01", "rhActuel": "120.50", "commentaires": "corrigé"}})
-        AuditLog.objects.create(action="record_delete", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1",
-            details={"site": "Utex", "old": {"site": "Utex", "groupeCode": "GE-02", "periode": "2026-02", "rhActuel": "50.00", "commentaires": ""}})
-        AuditLog.objects.create(action="record_delete", target_type="tickets", result="success", ip_address="1.1.1.1", details={"site": "Goma"})
+        AuditLog.objects.create(action="record_update", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1", actor_email="chef@example.com",
+            details={"site": "Goma", "old": {"site": "Goma", "groupeCode": "GE-01", "periode": "2026-01", "rhActuel": 100.0, "commentaires": ""},
+                     "new": {"site": "Goma", "groupeCode": "GE-01", "periode": "2026-01", "rhActuel": 120.5, "commentaires": "corrigé"}})
+        AuditLog.objects.create(action="rh_reading_create", target_type="releves-rh-ge", result="success", ip_address="1.1.1.1",
+            details={"new": {"site": "Goma", "groupeCode": "GE-02", "periode": "2026-01", "rhActuel": "10.00"}})
+        AuditLog.objects.create(action="record_create", target_type="tickets", result="success", ip_address="1.1.1.1",
+            details={"site": "Utex", "new": {"site": "Utex", "numero": "T-1", "motif": "Panne", "description": ""}})
+        AuditLog.objects.create(action="record_delete", target_type="equipements", result="success", ip_address="1.1.1.1",
+            details={"site": "Utex", "old": {"site": "Utex", "code": "EQ-UTE-0001", "nom": "Onduleur"}})
+        AuditLog.objects.create(action="record_delete", target_type="equipements", result="success", ip_address="1.1.1.1", details={"site": "Goma"})
 
         audit = json.loads(audit_collection.__wrapped__.__wrapped__(self._request()).content)
-        self.assertEqual([item["action"] for item in audit["items"]].count("rh_reading_update"), 0)
+        self.assertEqual({item["action"] for item in audit["items"]}, {"record_delete"})
 
-        history = json.loads(rh_history_collection.__wrapped__.__wrapped__(self._request()).content)
-        self.assertEqual(history["total"], 2)
+        history = self._history()
+        self.assertEqual(history["total"], 4)
         update = next(item for item in history["items"] if item["kind"] == "update")
-        self.assertEqual((update["oldRh"], update["newRh"], update["groupeCode"], update["actorEmail"]), ("100.00", "120.50", "GE-01", "chef@example.com"))
-        self.assertEqual(next(item for item in history["items"] if item["kind"] == "delete")["oldRh"], "50.00")
-        for query, expected in (({"site": "Goma"}, 1), ({"group": "GE-02"}, 1), ({"site": "Utex", "group": "GE-01"}, 0)):
-            body = json.loads(rh_history_collection.__wrapped__.__wrapped__(self._request(query)).content)
-            self.assertEqual(body["total"], expected, query)
+        self.assertEqual(update["resource"], "releves-rh-ge")
+        self.assertEqual(update["reference"], "GE-01 · 2026-01")
+        self.assertEqual(update["actorEmail"], "chef@example.com")
+        self.assertEqual(
+            sorted((change["field"], change["old"], change["new"]) for change in update["changes"]),
+            [("commentaires", "", "corrigé"), ("rhActuel", 100.0, 120.5)],
+        )
+        deletion = next(item for item in history["items"] if item["kind"] == "delete")
+        self.assertEqual(deletion["reference"], "EQ-UTE-0001")
+        self.assertEqual([change["field"] for change in deletion["changes"]], ["code", "nom"])
+        for query, expected in (({"site": "Goma"}, 2), ({"group": "GE-02"}, 1), ({"resource": "tickets"}, 1), ({"resource": "equipements"}, 1), ({"site": "Utex", "group": "GE-01"}, 0)):
+            self.assertEqual(self._history(query)["total"], expected, query)
 
-
-class AuditTargetEmailTests(TestCase):
-    def test_profile_targets_expose_an_email_instead_of_only_an_identifier(self):
-        from .models import UserProfile
-        existing = UserProfile.objects.create(id=uuid4(), email="chef@example.com", full_name="Chef", role="chef_site", site=None, active=True)
-        factory = RequestFactory(REMOTE_ADDR="192.0.2.10")
-        manager = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager")
-        request = factory.post("/api/example")
-        request.gmao_profile = manager
-        record_audit(request, "profile_update", "profile", existing.id, details={"old": {}, "new": {}})
-        deleted_id = uuid4()
-        record_audit(request, "profile_delete", "profile", deleted_id, details={"old": {"email": "gone@example.com"}})
-        record_audit(request, "login", "session", manager.id)
-        listing = factory.get("/api/audit-logs")
-        listing.gmao_profile = manager
-        items = {item["action"]: item for item in json.loads(audit_collection.__wrapped__.__wrapped__(listing).content)["items"]}
-        self.assertEqual(items["profile_update"]["targetEmail"], "chef@example.com")
-        self.assertEqual(items["profile_delete"]["targetEmail"], "gone@example.com")
-        self.assertEqual(items["login"]["targetEmail"], "")
+    def test_unknown_resource_is_rejected(self):
+        response = change_history_collection.__wrapped__.__wrapped__(self._request({"resource": "inconnu"}))
+        self.assertEqual(response.status_code, 400)

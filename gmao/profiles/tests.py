@@ -990,11 +990,34 @@ class ReadingCorrectionPermissionTests(TestCase):
         self.assertTrue(business_models.GeneratorMonthlyReading.objects.filter(id=reading.id).exists())
 
     @patch("profiles.views.profile_from_token")
-    def test_reading_correction_keeps_the_previous_value_in_the_audit_log(self, profile_from_token):
+    def test_reading_correction_keeps_the_previous_value_in_the_history(self, profile_from_token):
         profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
         reading = self._reading()
         self.assertEqual(self._put(reading, 120.5).status_code, 200)
-        entry = AuditLog.objects.get(action="rh_reading_update", target_id=str(reading.id))
-        self.assertEqual(entry.details["old"]["rhActuel"], "100.00")
-        self.assertEqual(entry.details["new"]["rhActuel"], "120.50")
-        self.assertEqual(entry.details["old"]["groupeCode"], "GE-01")
+        entry = AuditLog.objects.get(action="record_update", target_id=str(reading.id))
+        self.assertEqual(entry.target_type, "releves-rh-ge")
+        self.assertEqual(entry.details["old"]["rhActuel"], 100.0)
+        self.assertEqual(entry.details["new"]["rhActuel"], 120.5)
+        self.assertEqual(entry.details["new"]["groupeCode"], "GE-01")
+        self.assertNotIn("updatedAt", entry.details["new"])
+
+    @patch("profiles.views.profile_from_token")
+    def test_unchanged_save_and_other_resources_are_handled_by_the_history(self, profile_from_token):
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
+        reading = self._reading()
+        self.assertEqual(self._put(reading, 100).status_code, 200)
+        self.assertFalse(AuditLog.objects.filter(action="record_update").exists())
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
+        created = self.client.post(
+            "/api/records/equipements",
+            data=json.dumps({"site": "Goma", "nom": "Onduleur A", "famille": "Energie", "localisation": "Salle 1", "marqueModele": "X1", "etat": "Actif", "criticite": "Haute"}),
+            content_type="application/json", HTTP_AUTHORIZATION="Bearer valid-token",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        entry = AuditLog.objects.get(action="record_create", target_type="equipements")
+        self.assertEqual(entry.details["new"]["nom"], "Onduleur A")
+        self.assertEqual(entry.details["site"], "Goma")
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
+        deleted = self.client.delete(f"/api/records/equipements/{created.json()['id']}", HTTP_AUTHORIZATION="Bearer valid-token")
+        self.assertEqual(deleted.status_code, 200, deleted.content)
+        self.assertEqual(AuditLog.objects.get(action="record_delete", target_type="equipements").details["old"]["nom"], "Onduleur A")

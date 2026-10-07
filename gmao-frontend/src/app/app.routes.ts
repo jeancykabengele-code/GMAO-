@@ -35,7 +35,7 @@ export const routes: Routes = [
           { path: 'sites', loadComponent: () => import('./pages/sites-admin-page').then((module) => module.SitesAdminPageComponent), canActivate: [manageUsersGuard] },
           { path: 'utilisateurs', loadComponent: () => import('./pages/users-admin-page').then((module) => module.UsersAdminPageComponent), canActivate: [manageUsersGuard] },
           { path: 'journal-audit', loadComponent: () => import('./pages/audit-log-page').then((module) => module.AuditLogPageComponent), canActivate: [auditLogGuard] },
-          { path: 'historique-rh', loadComponent: () => import('./pages/rh-history-page').then((module) => module.RhHistoryPageComponent), canActivate: [auditLogGuard] },
+          { path: 'historique-modifications', loadComponent: () => import('./pages/change-history-page').then((module) => module.ChangeHistoryPageComponent), canActivate: [auditLogGuard] },
           { path: 'sauvegardes', loadComponent: () => import('./pages/backups-page').then((module) => module.BackupsPageComponent), canActivate: [manageUsersGuard] },
         ],
       },

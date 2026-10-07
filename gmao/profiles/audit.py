@@ -16,8 +16,8 @@ from .views import require_authenticated_user
 
 FORBIDDEN_DETAIL_KEYS = ("password", "token", "secret", "authorization", "credential")
 ALLOWED_RESULTS = {"success", "failure", "blocked"}
-# Ces événements alimentent la feuille « Historique RH » et non le journal d’audit.
-RH_HISTORY_ACTIONS = ("rh_reading_create", "rh_reading_update")
+# Ces événements alimentent la feuille « Historique des modifications » et non le journal d’audit.
+RH_HISTORY_ACTIONS = ("record_create", "record_update", "rh_reading_create", "rh_reading_update")
 
 
 def _safe_details(details):

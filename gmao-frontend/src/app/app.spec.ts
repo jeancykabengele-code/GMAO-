@@ -133,7 +133,7 @@ describe('App routing shell', () => {
 
     const compiled = await renderRoute('/administration');
     expect(compiled.querySelector('app-sites-admin-page')).toBeTruthy();
-    for (const sheet of ['sites', 'utilisateurs', 'journal-audit', 'historique-rh', 'sauvegardes']) {
+    for (const sheet of ['sites', 'utilisateurs', 'journal-audit', 'historique-modifications', 'sauvegardes']) {
       expect(compiled.querySelector(`.subnav a[href="/administration/${sheet}"]`)).toBeTruthy();
     }
   });

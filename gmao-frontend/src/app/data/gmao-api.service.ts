@@ -22,9 +22,10 @@ export type PersistedRow = Record<string, unknown> & { id?: string; site?: strin
 export interface SiteRecord { name: string; code: string; active: boolean; gridConnected: boolean; }
 export interface ProfileRecord { id: string; email: string; fullName: string; role: string; site: string | null; active: boolean; createdAt?: string | null; }
 export interface AuditLogRecord { id: number; actorId: string | null; actorEmail: string; action: string; targetType: string; targetId: string; targetEmail?: string; result: 'success' | 'failure' | 'blocked'; ipAddress: string; details: Record<string, unknown>; createdAt: string; }
-export interface RhHistoryRecord { id: number; createdAt: string; actorEmail: string; kind: 'create' | 'update' | 'delete'; site: string; groupeCode: string; periode: string; oldRh: string | null; newRh: string | null; oldCommentaires: string; newCommentaires: string; }
-export interface RhHistoryPage { items: RhHistoryRecord[]; total: number; limit: number; offset: number; }
-export interface RhHistoryFilters { site?: string; group?: string; from?: string; to?: string; limit?: number; offset?: number; }
+export interface ChangeHistoryChange { field: string; old: unknown; new: unknown; }
+export interface ChangeHistoryRecord { id: number; createdAt: string; actorEmail: string; kind: 'create' | 'update' | 'delete'; resource: string; site: string; reference: string; changes: ChangeHistoryChange[]; }
+export interface ChangeHistoryPage { items: ChangeHistoryRecord[]; total: number; limit: number; offset: number; }
+export interface ChangeHistoryFilters { resource?: string; site?: string; group?: string; from?: string; to?: string; limit?: number; offset?: number; }
 export interface AuditLogPage { items: AuditLogRecord[]; total: number; limit: number; offset: number; }
 export interface AuditLogFilters { action?: string; result?: string; actor?: string; targetType?: string; from?: string; to?: string; limit?: number; offset?: number; }
 
@@ -79,12 +80,12 @@ export class GmaoApiService {
     }));
   }
 
-  async listRhHistory(filters: RhHistoryFilters = {}): Promise<RhHistoryPage> {
+  async listChangeHistory(filters: ChangeHistoryFilters = {}): Promise<ChangeHistoryPage> {
     const parameters: Record<string, string> = {};
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== '') parameters[key] = String(value);
     });
-    return firstValueFrom(this.http.get<RhHistoryPage>(`${environment.apiUrl}/api/rh-history`, {
+    return firstValueFrom(this.http.get<ChangeHistoryPage>(`${environment.apiUrl}/api/change-history`, {
       headers: await this.authHeaders(),
       params: parameters,
     }));

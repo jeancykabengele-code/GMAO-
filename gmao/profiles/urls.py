@@ -4,7 +4,7 @@ from .audit import audit_collection
 from .backups import backup_export, scheduled_backup_export
 from .notifications import mark_all_notifications_read, mark_notification_read, notification_collection
 from .records import record_collection, record_detail
-from .rh_history import rh_history_collection
+from .change_history import change_history_collection
 from .sites import site_collection, site_detail
 from .users_admin import profile_collection, profile_delete, profile_detail, profile_password
 from .views import current_user, local_change_password, local_login, local_logout
@@ -27,7 +27,7 @@ urlpatterns = [
     path('profiles/<uuid:profile_id>/delete', profile_delete),
     path('profiles/<uuid:profile_id>/password', profile_password),
     path('audit-logs', audit_collection),
-    path('rh-history', rh_history_collection),
+    path('change-history', change_history_collection),
     path("records/<slug:resource>", record_collection),
     path("records/<slug:resource>/<uuid:record_id>", record_detail),
 ]

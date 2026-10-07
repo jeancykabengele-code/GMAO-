@@ -8,6 +8,10 @@ Le modèle Django interdit `save()`, `update()` et `delete()` sur une entrée ex
 
 Événements couverts : connexions réussies, refusées ou bloquées, changements et réinitialisations de mot de passe, création/modification/suppression de comptes, suppressions de sites et suppressions de fiches métier.
 
-## Historique RH
+## Historique des modifications
 
-L’Administrateur consulte les modifications des relevés RH dans **Administration → Historique RH** (`GET /api/rh-history`), une feuille distincte du journal d’audit. La saisie (`rh_reading_create`), la correction (`rh_reading_update`, ancien et nouveau compteur) et la suppression d’un relevé (`record_delete` sur `releves-rh-ge`, avec l’ancien compteur) y apparaissent avec la date, l’auteur, le site, le groupe et le mois, et se filtrent par site, groupe et période. Les événements restent stockés dans la table append-only `audit_log`, mais le journal d’audit n’affiche plus les saisies et corrections de relevés RH. Seules les modifications faites après la mise en service de cet historique sont disponibles.
+L’Administrateur consulte les modifications de toutes les fiches métier dans **Administration → Historique des modifications** (`GET /api/change-history`), une feuille distincte du journal d’audit : relevés RH, groupes électrogènes, Fuel-GE, ravitaillements, consommation par GE, PUE, équipements, tickets, interventions, pièces de rechange et problèmes Data Center.
+
+Chaque création (`record_create`), modification (`record_update`, ancienne et nouvelle valeur de chaque champ) et suppression (`record_delete`, avec les valeurs supprimées) est conservée avec l’auteur, la date, le site et une référence de la fiche (code, numéro, groupe, mois…). Une sauvegarde qui ne change aucune valeur n’est pas enregistrée. La feuille se filtre par type de fiche, site, groupe GE et période.
+
+Les événements restent stockés dans la table append-only `audit_log`, mais le journal d’audit n’affiche ni les créations ni les modifications de fiches (les suppressions y restent). Les valeurs recalculées automatiquement sur d’autres fiches (par exemple le stock final d’un mois suivant) ne sont pas enregistrées séparément : seule l’action de l’utilisateur l’est, avec les valeurs de la fiche après recalcul. Les textes de plus de 500 caractères sont tronqués. Seules les modifications faites après la mise en service de cet historique sont disponibles.
