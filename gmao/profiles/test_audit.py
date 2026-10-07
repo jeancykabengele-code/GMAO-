@@ -127,3 +127,23 @@ class RhHistoryTests(TestCase):
         for query, expected in (({"site": "Goma"}, 1), ({"group": "GE-02"}, 1), ({"site": "Utex", "group": "GE-01"}, 0)):
             body = json.loads(rh_history_collection.__wrapped__.__wrapped__(self._request(query)).content)
             self.assertEqual(body["total"], expected, query)
+
+
+class AuditTargetEmailTests(TestCase):
+    def test_profile_targets_expose_an_email_instead_of_only_an_identifier(self):
+        from .models import UserProfile
+        existing = UserProfile.objects.create(id=uuid4(), email="chef@example.com", full_name="Chef", role="chef_site", site=None, active=True)
+        factory = RequestFactory(REMOTE_ADDR="192.0.2.10")
+        manager = SimpleNamespace(id=uuid4(), email="manager@example.com", role="manager")
+        request = factory.post("/api/example")
+        request.gmao_profile = manager
+        record_audit(request, "profile_update", "profile", existing.id, details={"old": {}, "new": {}})
+        deleted_id = uuid4()
+        record_audit(request, "profile_delete", "profile", deleted_id, details={"old": {"email": "gone@example.com"}})
+        record_audit(request, "login", "session", manager.id)
+        listing = factory.get("/api/audit-logs")
+        listing.gmao_profile = manager
+        items = {item["action"]: item for item in json.loads(audit_collection.__wrapped__.__wrapped__(listing).content)["items"]}
+        self.assertEqual(items["profile_update"]["targetEmail"], "chef@example.com")
+        self.assertEqual(items["profile_delete"]["targetEmail"], "gone@example.com")
+        self.assertEqual(items["login"]["targetEmail"], "")

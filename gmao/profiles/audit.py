@@ -1,5 +1,6 @@
 import json
 from datetime import date
+from uuid import UUID
 
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
@@ -8,6 +9,7 @@ from django.utils.dateparse import parse_date
 from login_guard.limiter import client_address
 from login_guard.models import AuditLog
 
+from .models import UserProfile
 from .permissions import assert_view_audit_log
 from .views import require_authenticated_user
 
@@ -56,7 +58,25 @@ def record_audit(request, action, target_type, target_id="", result="success", d
     )
 
 
-def _serialize(entry):
+def _profile_emails(entries):
+    """Adresses e-mail des comptes ciblés, pour afficher autre chose qu'un identifiant."""
+    ids = set()
+    for entry in entries:
+        if entry.target_type == "profile":
+            try:
+                ids.add(UUID(entry.target_id))
+            except ValueError:
+                pass
+    return {str(profile_id): email for profile_id, email in UserProfile.objects.filter(id__in=ids).values_list("id", "email")}
+
+
+def _target_email(entry, emails):
+    details = entry.details if isinstance(entry.details, dict) else {}
+    old = details.get("old") if isinstance(details.get("old"), dict) else {}
+    return emails.get(entry.target_id) or details.get("targetEmail") or details.get("email") or old.get("email") or ""
+
+
+def _serialize(entry, emails=None):
     return {
         "id": entry.id,
         "actorId": str(entry.actor_id) if entry.actor_id else None,
@@ -64,6 +84,7 @@ def _serialize(entry):
         "action": entry.action,
         "targetType": entry.target_type,
         "targetId": entry.target_id,
+        "targetEmail": _target_email(entry, emails or {}) if entry.target_type == "profile" else "",
         "result": entry.result,
         "ipAddress": entry.ip_address,
         "details": entry.details,
@@ -108,7 +129,9 @@ def audit_collection(request):
         if end := _date_parameter(request, "to"):
             queryset = queryset.filter(created_at__date__lte=end)
         total = queryset.count()
-        items = [_serialize(entry) for entry in queryset[offset:offset + limit]]
+        page = list(queryset[offset:offset + limit])
+        emails = _profile_emails(page)
+        items = [_serialize(entry, emails) for entry in page]
         return JsonResponse({"items": items, "total": total, "limit": limit, "offset": offset})
     except (TypeError, ValueError, ValidationError) as error:
         detail = error.messages[0] if isinstance(error, ValidationError) else str(error)

@@ -58,6 +58,7 @@ export class AuditLogPageComponent {
   actionLabel(action: string): string { return ({ login: 'Connexion', logout: 'Déconnexion', password_change: 'Changement de mot de passe', password_reset: 'Réinitialisation de mot de passe', profile_create: 'Création de compte', profile_update: 'Modification de compte', profile_delete: 'Suppression de compte', record_delete: 'Suppression métier', site_create: 'Création de site', site_update: 'Modification de site', site_delete: 'Suppression de site', backup_export: 'Sauvegarde générée' } as Record<string, string>)[action] || action; }
   targetLabel(entry: AuditLogRecord): string {
     if (entry.targetType === 'session') return 'Session de connexion';
+    if (entry.targetType === 'profile' && entry.targetEmail) return 'Compte · ' + entry.targetEmail;
     return entry.targetType + (entry.targetId ? ' · ' + entry.targetId : '');
   }
   resultLabel(result: string): string { return ({ success: 'Réussite', failure: 'Échec', blocked: 'Bloqué' } as Record<string, string>)[result] || result; }
