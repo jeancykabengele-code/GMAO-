@@ -54,6 +54,7 @@ try {
       else if (url.pathname.endsWith('/me')) data = profile;
       else if (url.pathname.includes('/notifications')) data = { items: [], unreadCount: 0 };
       else if (url.pathname.endsWith('/audit-logs')) data = { items: [], total: 0, limit: 50, offset: 0 };
+      else if (url.pathname.endsWith('/rh-history')) data = { items: [], total: 0, limit: 50, offset: 0 };
       else if (url.pathname.endsWith('/sites')) data = [{ name: 'Goma', code: 'GOM', active: true }];
       await route.fulfill({ status: 200, headers, contentType: 'application/json', body: JSON.stringify(data) });
     } else if (url.origin === origin || url.protocol === 'blob:') {
@@ -94,7 +95,7 @@ try {
   await page.locator('.sidebar').waitFor();
   assert.equal(await page.evaluate(key => localStorage.getItem(key), tokenKey), null);
   assert.equal(await page.evaluate(key => sessionStorage.getItem(key), tokenKey), 'csp-fake-tab-token');
-  for (const path of ['accueil', 'equipements', 'gestion-tickets', 'maintenance/interventions-realisees', 'maintenance/suivi-groupes-electrogenes', 'pieces-rechange', 'fuel-ge', 'consommation-groupes-ge', 'pue', 'ravitaillement-fuel', 'problemes-datacenter', 'administration/sites', 'administration/utilisateurs', 'administration/journal-audit', 'documentations']) {
+  for (const path of ['accueil', 'equipements', 'gestion-tickets', 'maintenance/interventions-realisees', 'maintenance/suivi-groupes-electrogenes', 'pieces-rechange', 'fuel-ge', 'consommation-groupes-ge', 'pue', 'ravitaillement-fuel', 'problemes-datacenter', 'administration/sites', 'administration/utilisateurs', 'administration/journal-audit', 'administration/historique-rh', 'documentations']) {
     await page.goto(`${base}/${path}`, { waitUntil: 'domcontentloaded' });
     await page.locator('.sidebar').waitFor();
     await page.locator('main > router-outlet + *').waitFor();
