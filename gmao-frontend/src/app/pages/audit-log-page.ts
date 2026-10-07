@@ -22,7 +22,7 @@ import { AuditLogRecord, GmaoApiService } from '../data/gmao-api.service';
       <div class="card">
         @if (loading) { <p class="empty">Chargement…</p> }
         @else { <div class="table-wrap"><table><thead><tr><th>Date</th><th>Acteur</th><th>Action</th><th>Cible</th><th>Résultat</th><th>Adresse IP</th><th>Détails</th></tr></thead><tbody>
-          @for (entry of entries; track entry.id) { <tr><td>{{ entry.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</td><td>{{ entry.actorEmail || 'Inconnu' }}</td><td>{{ actionLabel(entry.action) }}</td><td>{{ entry.targetType }}{{ entry.targetId ? ' · ' + entry.targetId : '' }}</td><td><span class="result" [class.failure]="entry.result === 'failure'" [class.blocked]="entry.result === 'blocked'">{{ resultLabel(entry.result) }}</span></td><td>{{ entry.ipAddress }}</td><td class="details">{{ detailsLabel(entry.details) }}</td></tr> }
+          @for (entry of entries; track entry.id) { <tr><td>{{ entry.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</td><td>{{ entry.actorEmail || 'Inconnu' }}</td><td>{{ actionLabel(entry.action) }}</td><td>{{ targetLabel(entry) }}</td><td><span class="result" [class.failure]="entry.result === 'failure'" [class.blocked]="entry.result === 'blocked'">{{ resultLabel(entry.result) }}</span></td><td>{{ entry.ipAddress }}</td><td class="details">{{ detailsLabel(entry.details) }}</td></tr> }
           @empty { <tr><td colspan="7" class="empty">Aucun événement pour ces filtres.</td></tr> }
         </tbody></table></div> }
         <footer class="pagination"><span>{{ total }} événement{{ total > 1 ? 's' : '' }}</span><div><button type="button" class="secondary" [disabled]="offset === 0" (click)="previousPage()">Précédent</button><button type="button" class="secondary" [disabled]="offset + limit >= total" (click)="nextPage()">Suivant</button></div></footer>
@@ -34,7 +34,7 @@ import { AuditLogRecord, GmaoApiService } from '../data/gmao-api.service';
 export class AuditLogPageComponent {
   private readonly api = inject(GmaoApiService);
   private readonly cdr = inject(ChangeDetectorRef);
-  readonly actions = ['login', 'password_change', 'password_reset', 'profile_create', 'profile_update', 'profile_delete', 'record_delete', 'site_create', 'site_update', 'site_delete', 'backup_export'];
+  readonly actions = ['login', 'logout', 'password_change', 'password_reset', 'profile_create', 'profile_update', 'profile_delete', 'record_delete', 'site_create', 'site_update', 'site_delete', 'backup_export'];
   readonly limit = 50;
   entries: AuditLogRecord[] = [];
   total = 0;
@@ -55,7 +55,11 @@ export class AuditLogPageComponent {
   resetFilters(): void { this.filters = { from: '', to: '', actor: '', targetType: '', action: '', result: '' }; this.offset = 0; void this.load(); }
   previousPage(): void { this.offset = Math.max(0, this.offset - this.limit); void this.load(); }
   nextPage(): void { if (this.offset + this.limit < this.total) { this.offset += this.limit; void this.load(); } }
-  actionLabel(action: string): string { return ({ login: 'Connexion', password_change: 'Changement de mot de passe', password_reset: 'Réinitialisation de mot de passe', profile_create: 'Création de compte', profile_update: 'Modification de compte', profile_delete: 'Suppression de compte', record_delete: 'Suppression métier', site_create: 'Création de site', site_update: 'Modification de site', site_delete: 'Suppression de site', backup_export: 'Sauvegarde générée' } as Record<string, string>)[action] || action; }
+  actionLabel(action: string): string { return ({ login: 'Connexion', logout: 'Déconnexion', password_change: 'Changement de mot de passe', password_reset: 'Réinitialisation de mot de passe', profile_create: 'Création de compte', profile_update: 'Modification de compte', profile_delete: 'Suppression de compte', record_delete: 'Suppression métier', site_create: 'Création de site', site_update: 'Modification de site', site_delete: 'Suppression de site', backup_export: 'Sauvegarde générée' } as Record<string, string>)[action] || action; }
+  targetLabel(entry: AuditLogRecord): string {
+    if (entry.targetType === 'session') return 'Session de connexion';
+    return entry.targetType + (entry.targetId ? ' · ' + entry.targetId : '');
+  }
   resultLabel(result: string): string { return ({ success: 'Réussite', failure: 'Échec', blocked: 'Bloqué' } as Record<string, string>)[result] || result; }
   detailsLabel(details: Record<string, unknown>): string { return Object.keys(details || {}).length ? JSON.stringify(details) : '—'; }
 }
