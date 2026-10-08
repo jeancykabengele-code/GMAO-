@@ -249,14 +249,18 @@ td:nth-child(8) {
 }
 
 .pm-state {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.pm-normal { color: #166534; }
-.pm-watch { color: #a16207; }
-.pm-urgent { color: #c91400; }
-.pm-overdue { color: #b91c1c; }
+/* Codes couleurs de la colonne État : Normal (vert), À venir (gris), Urgente (jaune), Dépassé (rouge). */
+.pm-normal { color: #14532d; background: #dcfce7; }
+.pm-watch { color: #374151; background: #e5e7eb; }
+.pm-urgent { color: #713f12; background: #fde047; }
+.pm-overdue { color: #7f1d1d; background: #fecaca; }
 
 
 
@@ -429,6 +433,12 @@ td:nth-child(8) {
   gap: 12px;
   margin-top: 22px;
 }
+.form-hint {
+  margin: 0;
+  color: #854d0e;
+  font-weight: 700;
+}
+
 .form-error {
   margin: 0;
   color: #b91c1c;

@@ -121,6 +121,66 @@ class ReadingCorrectionPermissionTests(TestCase):
         self.assertTrue(business_models.GeneratorMonthlyReading.objects.filter(id=reading.id).exists())
 
     @patch("profiles.views.profile_from_token")
+    def test_lowering_a_reading_needs_the_manager_approval(self, profile_from_token):
+        reading = self._reading()
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
+        refused = self._put(reading, 90)
+        self.assertEqual(refused.status_code, 400)
+        self.assertIn("approuvée par le Manager GMAO", refused.json()["detail"])
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="charge_operations", site=None, active=True)
+        self.assertEqual(self._put(reading, 90).status_code, 400)
+        reading.refresh_from_db()
+        self.assertEqual(reading.rh_actuel, Decimal("100.00"))
+
+        profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="manager", site=None, active=True)
+        approved = self._put(reading, 90)
+        self.assertEqual(approved.status_code, 200, approved.content)
+        reading.refresh_from_db()
+        self.assertEqual(reading.rh_actuel, Decimal("90.00"))
+
+    @patch("profiles.views.profile_from_token")
+    def test_new_month_lower_than_the_previous_reading_needs_the_manager_approval(self, profile_from_token):
+        self._reading()
+
+        def post(role):
+            profile_from_token.return_value = SimpleNamespace(id=uuid4(), role=role, site="Goma" if role == "chef_site" else None, active=True)
+            return self.client.post(
+                "/api/records/releves-rh-ge",
+                data=json.dumps({"site": "Goma", "periode": "2026-02", "groupeCode": "GE-01", "rhActuel": 80}),
+                content_type="application/json", HTTP_AUTHORIZATION="Bearer valid-token",
+            )
+
+        refused = post("chef_site")
+        self.assertEqual(refused.status_code, 400)
+        self.assertIn("approuvée par le Manager GMAO", refused.json()["detail"])
+        self.assertFalse(business_models.GeneratorMonthlyReading.objects.filter(periode="2026-02").exists())
+
+    @patch("profiles.views.profile_from_token")
+    def test_generator_sheet_rh_cannot_be_lowered_without_the_manager(self, profile_from_token):
+        reading = self._reading()
+        business_models.Equipment.objects.create(
+            site="Goma", code="GE-01", nom="Groupe électrogène", famille="Energie", localisation="Salle GE",
+            marque_modele="Groupe", etat="Actif", criticite="Haute", created_by=uuid4(),
+        )
+        generator = business_models.GeneratorRecord.objects.get(site="Goma", code="GE-01")
+        generator.rh_actuel = reading.rh_actuel
+        generator.save()
+
+        def put(role):
+            profile_from_token.return_value = SimpleNamespace(id=uuid4(), role=role, site=None, active=True)
+            return self.client.put(
+                f"/api/records/groupes-electrogenes/{generator.id}",
+                data=json.dumps({"site": "Goma", "code": "GE-01", "moisReleve": "2026-01", "rhActuel": 50, "rhDernierePm": 0}),
+                content_type="application/json", HTTP_AUTHORIZATION="Bearer valid-token",
+            )
+
+        refused = put("charge_operations")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertIn("approuvée par le Manager GMAO", refused.json()["detail"])
+        generator.refresh_from_db()
+        self.assertEqual(generator.rh_actuel, Decimal("100.00"))
+
+    @patch("profiles.views.profile_from_token")
     def test_reading_correction_keeps_the_previous_value_in_the_history(self, profile_from_token):
         profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Goma", active=True)
         reading = self._reading()

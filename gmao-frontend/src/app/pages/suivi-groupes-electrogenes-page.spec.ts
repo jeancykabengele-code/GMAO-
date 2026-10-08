@@ -72,6 +72,21 @@ describe('SuiviGroupesElectrogenesPageComponent', () => {
     expect(component.previewState).toBe('ASurveiller');
   });
 
+  it('affiche les libellés d’état demandés et signale un RH inférieur à la valeur enregistrée', () => {
+    const component = new SuiviGroupesElectrogenesPageComponent();
+    component.openSheet(row());
+
+    expect(component.pmStateLabel('Normal')).toBe('Normal');
+    expect(component.pmStateLabel('ASurveiller')).toBe('À venir');
+    expect(component.pmStateLabel('PmUrgente')).toBe('Urgente');
+    expect(component.pmStateLabel('PmDepassee')).toBe('Dépassé');
+    const recorded = Number(component.editingRow?.rhActuel);
+    component.newGenerator.rhActuel = recorded;
+    expect(component.lowerThanRecorded).toBe(false);
+    component.newGenerator.rhActuel = recorded - 1;
+    expect(component.lowerThanRecorded).toBe(true);
+  });
+
   it('classe les seuils PM et tient compte du retard signalé', () => {
     const component = new SuiviGroupesElectrogenesPageComponent();
     component.openSheet(row());

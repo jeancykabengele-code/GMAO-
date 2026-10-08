@@ -188,8 +188,8 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
         { header: 'Mois relevé', value: (row) => row.moisReleve },
         { header: 'RH actuel', value: (row) => row.rhActuel },
         { header: 'RH dernière PM', value: (row) => row.rhDernierePm },
-        { header: 'RH depuis PM', value: (row) => row.rhDepuisDernierePm },
-        { header: 'Prochaine PM', value: (row) => row.rhProchainePm },
+        { header: 'RH. depuis dernière PM', value: (row) => row.rhDepuisDernierePm },
+        { header: 'RH. Prochaine PM', value: (row) => row.rhProchainePm },
         { header: 'État', value: (row) => this.pmStateLabel(row.etat) },
         { header: 'Commentaires', value: (row) => row.commentaires },
       ],
@@ -279,6 +279,12 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
     this.selectingGenerator = false;
     this.creatingGenerator = false;
   }
+  get lowerThanRecorded(): boolean {
+    const recorded = Number(this.editingRow?.rhActuel);
+    return !this.creatingGenerator && Number.isFinite(recorded) && this.newGenerator.rhActuel !== null
+      && String(this.newGenerator.rhActuel) !== '' && Number(this.newGenerator.rhActuel) < recorded;
+  }
+
   get previewRhDepuisPm(): number {
     return Math.max(0, Number(this.newGenerator.rhActuel || 0) - Number(this.newGenerator.rhDernierePm || 0));
   }
@@ -375,9 +381,9 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
 
   pmStateLabel(state: PmState): string {
     const labels: Record<PmState, string> = {
-      PmDepassee: 'PM dépassée',
-      PmUrgente: 'PM urgente',
-      ASurveiller: 'À surveiller',
+      PmDepassee: 'Dépassé',
+      PmUrgente: 'Urgente',
+      ASurveiller: 'À venir',
       Normal: 'Normal',
     };
     return labels[state];

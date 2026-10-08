@@ -9,10 +9,10 @@ from django.http import JsonResponse
 from ..audit import record_audit
 from ..models import DatacenterProblem, Equipment, FuelDelivery, FuelRecord, GeneratorFuelConsumption, GeneratorMonthlyReading, GeneratorRecord, PueRecord, Ticket
 from ..notifications import notify_generator_alert, notify_record_created
-from ..permissions import GLOBAL_ROLES, PermissionDeniedError, assert_can_correct_reading, assert_can_create, assert_can_delete, assert_can_delete_equipment, assert_can_delete_fuel_record, assert_can_delete_ticket, assert_can_modify, assert_site_access
+from ..permissions import GLOBAL_ROLES, PermissionDeniedError, assert_can_correct_reading, assert_can_create, assert_can_delete, assert_can_delete_equipment, assert_can_delete_fuel_record, assert_can_delete_ticket, assert_can_modify, assert_site_access, can_approve_rh_decrease
 from ..views import require_authenticated_user
 from .fuel import _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_values, _calculate_generator_fuel_consumption, _recalculate_fuel_records, _recalculate_fuel_records_after_reading_change
-from .generators import _assert_generator_code_unique, _calculate_generator_values, _discard_orphan_generator_records, _set_generator_from_equipment, _sync_generator_current_from_readings, _validate_monthly_reading
+from .generators import _assert_generator_code_unique, _calculate_generator_values, _discard_orphan_generator_records, _assert_generator_rh_not_lowered, _set_generator_from_equipment, _sync_generator_current_from_readings, _validate_monthly_reading
 from .deliveries import _calculate_fuel_delivery_values, _recalculate_fuel_records_after_delivery_change
 from .pue import _calculate_pue_values
 from .serialization import _clean_values, _error, _history_snapshot, _payload, _resource_model, _round_decimal_fields, _serialize
@@ -57,7 +57,7 @@ def record_collection(request, resource):
                     _assert_generator_code_unique(values)
                     _calculate_generator_values(values)
                 elif model_class is GeneratorMonthlyReading:
-                    _validate_monthly_reading(values)
+                    _validate_monthly_reading(values, allow_decrease=can_approve_rh_decrease(profile))
                 elif model_class is FuelRecord:
                     _assert_fuel_manual_fields_are_not_sent(values)
                     _calculate_fuel_values(values, allow_initial_stock=profile.role in (GLOBAL_ROLES | {"chef_site"}))
@@ -119,10 +119,11 @@ def record_detail(request, resource, record_id):
                     assert_site_access(profile, values["site"])
                     _set_generator_from_equipment(values, record)
                     _assert_generator_code_unique(values, record)
+                    _assert_generator_rh_not_lowered(values, record, can_approve_rh_decrease(profile))
                     _calculate_generator_values(values, record)
                 elif model_class is GeneratorMonthlyReading:
                     assert_can_correct_reading(profile, values["site"])
-                    _validate_monthly_reading(values, record)
+                    _validate_monthly_reading(values, record, allow_decrease=can_approve_rh_decrease(profile))
                 elif model_class is FuelRecord:
                     assert_can_modify(profile, values["site"])
                     _assert_fuel_manual_fields_are_not_sent(values, record)

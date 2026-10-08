@@ -447,19 +447,21 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 ### Groupes électrogènes
 
-- `RH depuis dernière PM = RH actuel - RH dernière PM`.
-- `RH prochaine PM = RH dernière PM + 250`.
-- État **Normal** avant 175 heures.
-- État **À surveiller** à partir de 175 heures ou en cas de retard signalé.
-- État **PM urgente** à partir de 225 heures.
-- État **PM dépassée** à partir de 250 heures.
+- `RH. depuis dernière PM = RH actuel - RH dernière PM`.
+- `RH. Prochaine PM = RH dernière PM + 250`.
+- Colonne **État** du tableau de suivi, avec son code couleur :
+  - **Normal** (vert) avant 175 heures ;
+  - **À venir** (gris) à partir de 175 heures ou en cas de retard signalé ;
+  - **Urgente** (jaune) à partir de 225 heures ;
+  - **Dépassé** (rouge) à partir de 250 heures.
+- Un compteur RH ne peut pas être inférieur à la valeur déjà enregistrée (relevé précédent du groupe ou valeur remplacée lors d’une correction, y compris sur la fiche du groupe). Seul le **Manager GMAO** peut approuver une diminution, en corrigeant lui-même la valeur ; les autres rôles reçoivent un refus explicite. La correction reste tracée dans **Historique des modifications**.
 
 ### Saisie quotidienne des compteurs GE
 
 - Le champ **RH actuel** est le compteur cumulatif lu sur l’armoire du groupe.
 - Si le groupe n’a pas fonctionné, on conserve la dernière valeur (on ne saisit pas zéro).
 - Si le groupe a fonctionné 20 heures et affichait 200 h, on saisit 220 h, jamais seulement 20 h.
-- **RH depuis dernière PM** et **RH prochaine PM** restent calculés automatiquement par l’API ; aucune saisie manuelle de ces résultats n’est nécessaire.
+- **RH. depuis dernière PM** et **RH. Prochaine PM** restent calculés automatiquement par l’API ; aucune saisie manuelle de ces résultats n’est nécessaire.
 - Chaque enregistrement met à jour automatiquement le champ updated_at, affiché dans la feuille comme dernier relevé.
 - La feuille indique la fraîcheur du relevé : **À jour** (< 7 jours), **À mettre à jour** (7 à 13 jours) ou **Relevé ancien** (14 jours ou plus).
 - Cette indication signale qu’une nouvelle lecture terrain est nécessaire ; elle ne modifie pas le classement PM ni le compteur cumulatif.
@@ -467,7 +469,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 - Chaque fiche ajoutée par un Chef de site produit une notification persistante pour le Manager et le Chargé des opérations.
 - Une préalerte GE de niveau warning est créée à partir de 150 heures depuis la dernière PM.
-- Les passages à **À surveiller** (175 h), **PM urgente** (225 h) et **PM dépassée** (250 h) créent une alerte warning ou critical.
+- Les passages à **À venir** (175 h), **Urgente** (225 h) et **Dépassé** (250 h) créent une alerte warning ou critical.
 - Une même étape n’est notifiée qu’une fois par groupe, destinataire et cycle de maintenance.
 - Le badge **Notifications** affiche le nombre total d’éléments non lus.
 - Le frontend charge les notifications à la connexion, à l’ouverture du panneau, puis toutes les 30 secondes.

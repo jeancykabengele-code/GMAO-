@@ -32,8 +32,8 @@ expect(component.equipmentItems.find((item) => item.label === 'Hors service')?.c
 expect(component.ticketItems.find((item) => item.label === 'WO')?.color).toBe('#000000');
     expect(component.ticketItems.find((item) => item.label === 'Curative')?.color).toBe('#087a46');
     expect(component.ticketItems.find((item) => item.label === 'Incident')?.color).toBe('#c91400');
-    expect(component.generatorItems.find((item) => item.label === 'PM urgente')?.color).toBe('#ff7900');
-    expect(component.generatorItems.find((item) => item.label === 'A surveiller')?.color).toBe('#767676');
+    expect(component.generatorItems.find((item) => item.label === 'Urgente')?.color).toBe('#eab308');
+    expect(component.generatorItems.find((item) => item.label === 'À venir')?.color).toBe('#767676');
     expect(component.generatorTotal).toBe(2);
     expect(component.problemTotal).toBe(2);
   });

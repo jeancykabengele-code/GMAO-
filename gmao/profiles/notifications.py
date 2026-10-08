@@ -75,13 +75,13 @@ def notify_record_created(actor, resource, record):
 def generator_alert_stage(record):
     hours = Decimal(str(record.rh_depuis_derniere_pm))
     if record.etat == "PmDepassee" or hours >= Decimal("250"):
-        return "overdue", "PM dépassée", "critical"
+        return "overdue", "Dépassé", "critical"
     if record.etat == "PmUrgente" or hours >= Decimal("225"):
-        return "urgent", "PM urgente", "critical"
+        return "urgent", "Urgente", "critical"
     if record.etat == "ASurveiller" or hours >= Decimal("175") or record.retard_signale:
-        return "watch", "À surveiller", "warning"
+        return "watch", "À venir", "warning"
     if hours >= Decimal("150"):
-        return "approaching", "Approche de l’état À surveiller", "warning"
+        return "approaching", "Approche de l’état À venir", "warning"
     return None
 
 

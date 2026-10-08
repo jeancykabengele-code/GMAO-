@@ -13,7 +13,7 @@ const FIELDS: Record<string, string> = {
   site: 'Site', code: 'Code', nom: 'Nom', famille: 'Famille', localisation: 'Localisation', marqueModele: 'Marque / modèle', etat: 'État', criticite: 'Criticité',
   numero: 'Numéro', nature: 'Nature', equipement: 'Équipement', date: 'Date', porteur: 'Porteur', entreprise: 'Entreprise', motif: 'Motif', description: 'Description',
   typeGe: 'Type de GE', moisReleve: 'Mois du relevé', dateMiseEnService: 'Mise en service', dateDernierePm: 'Dernière PM', rhActuel: 'RH actuel', rhDernierePm: 'RH dernière PM',
-  rhDepuisDernierePm: 'RH depuis la dernière PM', rhProchainePm: 'RH prochaine PM', retardSignale: 'Retard signalé', commentaires: 'Commentaires', periode: 'Mois', groupeCode: 'Groupe',
+  rhDepuisDernierePm: 'RH. depuis dernière PM', rhProchainePm: 'RH. Prochaine PM', retardSignale: 'Retard signalé', commentaires: 'Commentaires', periode: 'Mois', groupeCode: 'Groupe',
   stockInitial: 'Stock initial', entree: 'Entrée', sortie: 'Sortie', stockFinal: 'Stock final', heuresGe: 'Heures GE', litresHeure: 'Litres / heure', consommationLitres: 'Consommation (L)',
   dateRavitaillement: 'Date de ravitaillement', rang: 'Rang', bonLivraison: 'Bon de livraison', typeCarburant: 'Carburant', quantite: 'Quantité', quantiteRecue: 'Quantité reçue',
   stockAvant: 'Stock avant', stockApres: 'Stock après', numeroCiterne: 'N° de citerne', receptionnePar: 'Réceptionné par', differenceStock: 'Écart de stock', fournisseur: 'Fournisseur',

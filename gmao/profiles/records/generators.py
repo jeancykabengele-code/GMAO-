@@ -74,7 +74,7 @@ def _calculate_generator_values(values, record=None):
     return values
 
 
-def _validate_monthly_reading(values, record=None):
+def _validate_monthly_reading(values, record=None, allow_decrease=False):
     site = values.get("site", getattr(record, "site", None))
     periode = values.get("periode", getattr(record, "periode", None))
     groupe_code = values.get("groupe_code", getattr(record, "groupe_code", None))
@@ -92,8 +92,28 @@ def _validate_monthly_reading(values, record=None):
     if readings.filter(periode=periode).exists():
         raise ValidationError("Un relevé RH existe déjà pour ce groupe et ce mois.")
     previous = readings.filter(periode__lt=periode).order_by("-periode").values_list("rh_actuel", flat=True).first()
-    if previous is not None and rh_actuel < previous:
-        raise ValidationError("Le compteur RH ne peut pas être inférieur au dernier relevé du groupe.")
+    if not allow_decrease:
+        if previous is not None and rh_actuel < previous:
+            raise ValidationError(_rh_decrease_message("au dernier relevé du groupe", previous))
+        if record is not None and record.rh_actuel is not None and rh_actuel < record.rh_actuel:
+            raise ValidationError(_rh_decrease_message("à la valeur déjà enregistrée pour ce mois", record.rh_actuel))
+
+
+def _assert_generator_rh_not_lowered(values, record, allow_decrease=False):
+    """Une fiche de suivi ne reçoit pas un RH actuel inférieur au sien, sauf approbation du Manager GMAO."""
+    rh_actuel = values.get("rh_actuel")
+    if allow_decrease or record is None or rh_actuel is None or record.rh_actuel is None:
+        return
+    if rh_actuel < record.rh_actuel:
+        raise ValidationError(_rh_decrease_message("à la valeur déjà enregistrée", record.rh_actuel))
+
+
+def _rh_decrease_message(reference, value):
+    shown = f"{value:f}".rstrip("0").rstrip(".") if hasattr(value, "as_tuple") else value
+    return (
+        f"Le compteur RH ne peut pas être inférieur {reference} ({shown} h). "
+        "Une diminution doit être approuvée par le Manager GMAO."
+    )
 
 
 def _sync_generator_current_from_readings(site, groupe_code, actor_id=None):

@@ -47,7 +47,7 @@ export class DocumentationsComponent {
       this.report('Groupes électrogènes', 'Compteurs et état de maintenance des groupes.', 'suivi-groupes-electrogenes', () => this.dataStore.generatorRows, [
         this.column('Site', 'site'), this.column('Code', 'code'), this.column('Groupe', 'typeGe'),
         this.column('Mois relevé', 'moisReleve'), this.column('RH actuel', 'rhActuel'), this.column('RH dernière PM', 'rhDernierePm'),
-        this.column('RH depuis PM', 'rhDepuisDernierePm'), this.column('Prochaine PM', 'rhProchainePm'),
+        this.column('RH. depuis dernière PM', 'rhDepuisDernierePm'), this.column('RH. Prochaine PM', 'rhProchainePm'),
         this.column('État', 'etat'), this.column('Commentaires', 'commentaires'),
       ]),
       this.report('Ravitaillement Fuel', 'Livraisons de carburant reçues sur les sites.', 'ravitaillement-fuel', () => this.dataStore.fuelDeliveryRows, [

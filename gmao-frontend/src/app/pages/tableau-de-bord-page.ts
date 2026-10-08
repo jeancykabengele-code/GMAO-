@@ -104,9 +104,9 @@ export class TableauDeBordPageComponent {
     const rows = this.filteredGeneratorRows;
     return [
       this.pieItem('Normal', rows.filter((row) => row.etat === 'Normal').length, '#16a34a'),
-      this.pieItem('PM urgente', rows.filter((row) => row.etat === 'PmUrgente').length, '#ff7900'),
-      this.pieItem('PM depassee', rows.filter((row) => row.etat === 'PmDepassee').length, '#dc2626'),
-      this.pieItem('A surveiller', rows.filter((row) => row.etat === 'ASurveiller').length, '#767676'),
+      this.pieItem('Urgente', rows.filter((row) => row.etat === 'PmUrgente').length, '#eab308'),
+      this.pieItem('Dépassé', rows.filter((row) => row.etat === 'PmDepassee').length, '#dc2626'),
+      this.pieItem('À venir', rows.filter((row) => row.etat === 'ASurveiller').length, '#767676'),
     ];
   }
 

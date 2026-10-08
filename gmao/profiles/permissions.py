@@ -108,6 +108,11 @@ def assert_can_delete_ticket(profile: UserProfile) -> None:
     if profile.role not in GLOBAL_ROLES:
         raise PermissionDeniedError("Seuls le Manager GMAO et le Chargé des opérations peuvent supprimer un ticket.")
 
+def can_approve_rh_decrease(profile: UserProfile) -> bool:
+    """Seul le Manager GMAO approuve une valeur RH inférieure à celle déjà enregistrée."""
+    return profile.role == "manager"
+
+
 def assert_global_page_access(profile: UserProfile) -> None:
     if profile.role not in GLOBAL_ROLES:
         raise PermissionDeniedError("Cette page est réservée au Manager GMAO et au Chargé des opérations.")
