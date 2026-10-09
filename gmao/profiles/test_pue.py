@@ -89,18 +89,16 @@ class PueDailyReadingTests(TestCase):
         changed = _calculate_pue_values(self.values(pdf_dc_a1=40, clim_a=99), now=at(11))
         self.assertEqual(base["pue"], changed["pue"])
 
-    def test_window_is_10h_to_13h_kinshasa_time(self):
-        for hour, minute in ((10, 0), (12, 59)):
-            self.assertEqual(_calculate_pue_values(self.values(), now=at(hour, minute))["pue"], Decimal("1.250"))
-        for hour, minute in ((9, 59), (13, 0), (20, 0)):
+    def test_a_reading_is_accepted_at_any_hour_of_the_day(self):
+        for hour, minute in ((0, 5), (9, 59), (13, 0), (23, 59)):
             with self.subTest(hour=hour, minute=minute):
-                with self.assertRaisesMessage(ValidationError, "entre 10h00 et 13h00"):
-                    _calculate_pue_values(self.values(), now=at(hour, minute))
+                self.assertEqual(_calculate_pue_values(self.values(), now=at(hour, minute))["pue"], Decimal("1.250"))
 
-    def test_window_is_evaluated_in_kinshasa_time_not_utc(self):
-        # 10h00 à Kinshasa = 09h00 UTC
-        self.assertEqual(at(10).hour, 9)
-        _calculate_pue_values(self.values(), now=at(10))
+    def test_the_day_is_the_kinshasa_day_not_the_utc_day(self):
+        # 00h30 à Kinshasa (UTC+1) = 23h30 UTC la veille
+        values = _calculate_pue_values(self.values(), now=at(0, 30))
+        self.assertEqual(at(0, 30).day, 11)
+        self.assertEqual(str(values["date_releve"]), "2026-10-12")
 
     def test_one_reading_per_day(self):
         values = _calculate_pue_values(self.values(), now=at(11))
@@ -117,7 +115,7 @@ class PueDailyReadingTests(TestCase):
         with self.assertRaisesMessage(ValidationError, "inférieure à la puissance IT"):
             _calculate_pue_values(self.values(tgbt_a=10, tgbt_b=10), now=at(11))
 
-    def test_correction_keeps_the_original_date_and_ignores_the_window(self):
+    def test_correction_keeps_the_original_date(self):
         created = _calculate_pue_values(self.values(), now=at(11))
         record = business_models.PueRecord.objects.create(created_by=uuid4(), **created)
         update = {"site": "Pigeon", "mesures": full_reading(tgbt_a=62), "date_releve": "2030-01-01"}

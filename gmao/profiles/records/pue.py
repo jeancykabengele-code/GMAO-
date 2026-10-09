@@ -2,7 +2,7 @@
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
@@ -11,8 +11,6 @@ from django.core.exceptions import ValidationError
 PUE_SITE = "Pigeon"
 # Kinshasa n'a pas d'heure d'été : un décalage fixe évite de dépendre de la base de fuseaux du serveur.
 SITE_TIMEZONE = timezone(timedelta(hours=1))
-WINDOW_START = time(10, 0)
-WINDOW_END = time(13, 0)
 COS_PHI = Decimal("0.9")
 AC_VOLTAGE = Decimal("400")
 SQRT3 = Decimal(str(math.sqrt(3)))
@@ -121,17 +119,6 @@ def _sum_kw(computed, role):
     return sum((Decimal(str(computed[line.code]["kw"])) for line in PUE_LINES if line.role == role), Decimal(0))
 
 
-def window_label():
-    return f"{WINDOW_START.strftime('%Hh%M')} et {WINDOW_END.strftime('%Hh%M')}"
-
-
-def _assert_in_window(local_now):
-    if not (WINDOW_START <= local_now.time().replace(second=0, microsecond=0) < WINDOW_END):
-        raise ValidationError(
-            f"Le relevé journalier se renseigne entre {window_label()} (heure de Kinshasa) ; il est {local_now.strftime('%Hh%M')}."
-        )
-
-
 def _calculate_pue_values(values, record=None, now=None):
     """Complète `values` : date et heure du relevé (à la création), kW retenus, IT, total et PUE."""
     from ..models import PueRecord
@@ -144,7 +131,6 @@ def _calculate_pue_values(values, record=None, now=None):
 
     if record is None:
         local_now = (now or datetime.now(timezone.utc)).astimezone(SITE_TIMEZONE)
-        _assert_in_window(local_now)
         if PueRecord.objects.filter(site=site, date_releve=local_now.date()).exists():
             raise ValidationError(f"Le relevé du {local_now.strftime('%d/%m/%Y')} existe déjà pour ce site.")
         values["date_releve"] = local_now.date()

@@ -3,8 +3,6 @@
 
 export const PUE_SITE = 'Pigeon';
 export const PUE_THRESHOLD = 1.8;
-export const WINDOW_START_HOUR = 10;
-export const WINDOW_END_HOUR = 13;
 export const COS_PHI = 0.9;
 export const AC_VOLTAGE = 400;
 const KINSHASA_OFFSET_MINUTES = 60;
@@ -104,13 +102,6 @@ export function kinshasaNow(now: Date = new Date()): { date: string; hour: numbe
     minute: local.getUTCMinutes(),
   };
 }
-
-export function isInWindow(now: Date = new Date()): boolean {
-  const { hour } = kinshasaNow(now);
-  return hour >= WINDOW_START_HOUR && hour < WINDOW_END_HOUR;
-}
-
-export const WINDOW_LABEL = `${String(WINDOW_START_HOUR).padStart(2, '0')}h00 – ${String(WINDOW_END_HOUR).padStart(2, '0')}h00`;
 
 export interface PueRow {
   id?: string;

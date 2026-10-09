@@ -1,6 +1,6 @@
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { PuePageComponent } from './pue-page';
-import { PUE_LINES, PueRow, computeLine, emptyInputs, isInWindow, kinshasaNow, periodPue, summarize } from './pue-lines';
+import { PUE_LINES, PueRow, computeLine, emptyInputs, kinshasaNow, periodPue, summarize } from './pue-lines';
 
 /** Un relevé complet en kW lus : IT = 80 kW, total = 100 kW. */
 function fillAllLines(component: PuePageComponent, overrides: Record<string, number> = {}): void {
@@ -42,12 +42,9 @@ describe('PUE lines', () => {
     expect(summarize(component.inputs).pue).toBeNull();
   });
 
-  it('uses the Kinshasa clock (UTC+1) for the 10h-13h window', () => {
-    expect(isInWindow(new Date('2026-10-12T09:00:00Z'))).toBe(true);
-    expect(isInWindow(new Date('2026-10-12T11:59:00Z'))).toBe(true);
-    expect(isInWindow(new Date('2026-10-12T12:00:00Z'))).toBe(false);
-    expect(isInWindow(new Date('2026-10-12T08:59:00Z'))).toBe(false);
+  it('uses the Kinshasa clock (UTC+1) to decide the day of the reading', () => {
     expect(kinshasaNow(new Date('2026-10-12T23:30:00Z')).date).toBe('2026-10-13');
+    expect(kinshasaNow(new Date('2026-10-12T22:59:00Z')).date).toBe('2026-10-12');
   });
 
   it('computes the period PUE as a ratio of sums, not as the mean of daily PUE', () => {
@@ -77,7 +74,7 @@ describe('PuePageComponent', () => {
     expect(payload.pue).toBeUndefined();
   });
 
-  it('refuses an incomplete reading and a reading outside the window', async () => {
+  it('refuses an incomplete reading and accepts it once complete, at any hour', async () => {
     const store = new GmaoDataStore();
     const create = vi.spyOn(store, 'createRecord');
     const component = new PuePageComponent(store);
@@ -89,12 +86,13 @@ describe('PuePageComponent', () => {
     await component.saveEntry();
     expect(component.saveError).toContain('PDF DC B4');
 
+    expect(create).not.toHaveBeenCalled();
+
     fillAllLines(component);
     vi.setSystemTime(new Date('2026-10-12T14:00:00Z'));
-    expect(component.canSubmit).toBe(false);
+    expect(component.canSubmit).toBe(true);
     await component.saveEntry();
-    expect(component.saveError).toContain('10h00');
-    expect(create).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   it('filters by period, shows missing days and computes the period PUE and retained days', () => {

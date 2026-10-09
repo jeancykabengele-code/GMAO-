@@ -7,7 +7,7 @@ import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 import {
   PUE_CHECKS, PUE_LINES, PUE_SECTIONS, PUE_SITE, PUE_THRESHOLD, PueInputs, PueLine, PueLineResult, PueRow, PueSummary,
-  WINDOW_LABEL, computeLine, emptyInputs, inputsFromRow, isInWindow, kinshasaNow, lineLabel, periodPue, summarize,
+  computeLine, emptyInputs, inputsFromRow, kinshasaNow, lineLabel, periodPue, summarize,
 } from './pue-lines';
 
 export interface CalendarDay { date: string; row: PueRow | null; }
@@ -26,7 +26,6 @@ export class PuePageComponent {
   readonly rowsPerPage = 20;
   readonly site = PUE_SITE;
   readonly threshold = PUE_THRESHOLD;
-  readonly windowLabel = WINDOW_LABEL;
   readonly sections = PUE_SECTIONS;
 
   get canModify(): boolean { return this.dataStore.canModifyExisting; }
@@ -142,17 +141,16 @@ export class PuePageComponent {
   get chartBottom(): number { return this.chartHeight - this.chartPad.bottom; }
   readonly chartTicks = [1, 1.5, 2, 2.5, 3];
 
-  // Aujourd'hui et fenêtre de saisie (heure de Kinshasa).
+  // Aujourd'hui (heure de Kinshasa).
   get todayKey(): string { return kinshasaNow().date; }
   get todayRow(): PueRow | null { return this.pueRows.find((row) => row.dateReleve === this.todayKey) ?? null; }
-  get inWindow(): boolean { return isInWindow(); }
 
   // Relevé en cours de saisie.
   get summary(): PueSummary { return summarize(this.inputs); }
   get calculatedPue(): number { return this.summary.pue ?? 0; }
   get sheetTitle(): string { return this.editingRow ? 'Modifier le relevé du ' + this.formatDate(this.editingRow.dateReleve) : 'Relevé PUE du jour'; }
   get canSubmit(): boolean {
-    return !this.saving && !this.deleting && this.summary.complete && this.summary.pue !== null && (this.editingRow !== null || this.inWindow);
+    return !this.saving && !this.deleting && this.summary.complete && this.summary.pue !== null;
   }
 
   result(line: PueLine): PueLineResult { return computeLine(line, this.inputs[line.code]); }
@@ -213,7 +211,7 @@ export class PuePageComponent {
   async saveEntry(): Promise<void> {
     if (!this.canSubmit) {
       this.saveError = this.summary.complete
-        ? `Le relevé se renseigne entre ${WINDOW_LABEL} (heure de Kinshasa).`
+        ? 'Le total du site (TGBT A + B) ne peut pas être inférieur à la puissance IT.'
         : `Relevé incomplet : ${this.summary.missing.join(', ')}.`;
       return;
     }
