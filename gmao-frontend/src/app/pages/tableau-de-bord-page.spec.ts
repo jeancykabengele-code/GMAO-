@@ -59,8 +59,8 @@ expect(component.ticketItems.find((item) => item.label === 'WO')?.color).toBe('#
       { periode: '2026-08', stockFinal: 250, sortie: 50 },
     ];
     store.pueRows = [
-      { mois: '2026-08', pue: 1.5 },
-      { mois: '2026-08', pue: 1.7 },
+      { dateReleve: '2026-08-05', itKw: 100, totalKw: 150, pue: 1.5 },
+      { dateReleve: '2026-08-06', itKw: 100, totalKw: 170, pue: 1.7 },
     ];
     const component = new TableauDeBordPageComponent(store);
 
@@ -125,8 +125,8 @@ expect(component.ticketItems.find((item) => item.label === 'WO')?.color).toBe('#
       { periode: '2026-08', stockFinal: 100, sortie: 60 },
     ];
     store.pueRows = [
-      { site: 'Goma', mois: '2026-08', pue: 1.5 },
-      { site: 'Utex', mois: '2026-08', pue: 1.7 },
+      { site: 'Goma', dateReleve: '2026-08-05', itKw: 100, totalKw: 150, pue: 1.5 },
+      { site: 'Utex', dateReleve: '2026-08-05', itKw: 100, totalKw: 170, pue: 1.7 },
     ];
     const component = new TableauDeBordPageComponent(store);
     component.selectedSite = 'Goma';

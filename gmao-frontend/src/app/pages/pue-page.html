@@ -1,107 +1,146 @@
 <section class="pue-page">
   <div class="content-card">
     <div class="page-toolbar">
-      <div class="page-heading"><h1>Suivi du PUE</h1></div>
+      <div class="page-heading">
+        <h1>Suivi du PUE — DC {{ site }}</h1>
+        <p>Un relevé complet par jour, à saisir entre {{ windowLabel }} (heure de Kinshasa). Toutes les puissances sont en kW.</p>
+      </div>
       <div class="view-actions">
-      <button
-        type="button"
-        class="view-button"
-        [class.active]="tableOpen"
-        [attr.aria-pressed]="tableOpen"
-        (click)="toggleTable()"
-      >
-        <i class="solaris-icon solaris-energy"></i>
-        Tableau PUE
-      </button>
-
-      @if (canEnterData) { <button type="button" class="primary-button" (click)="openSheet()">
-        <i class="solaris-icon solaris-add"></i>
-        Renseigner le PUE
-      </button> }
-      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
-
+        <button type="button" class="view-button" [class.active]="tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()">
+          <i class="solaris-icon solaris-energy"></i>
+          Tableau PUE
+        </button>
+        @if (canEnterData) {
+          <button type="button" class="primary-button" (click)="openSheet()" [disabled]="!!todayRow">
+            <i class="solaris-icon solaris-add"></i>
+            Renseigner le relevé du jour
+          </button>
+        }
+        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
+      </div>
     </div>
-    </div>
+
+    <p class="today-banner" [class.done]="todayRow" [class.open]="!todayRow && inWindow" [class.closed]="!todayRow && !inWindow">
+      @if (todayRow) {
+        Relevé du jour enregistré à {{ todayRow.heureReleve.slice(0, 5) }} — PUE {{ todayRow.pue | number:'1.0-3':'fr' }}.
+      } @else if (inWindow) {
+        Le relevé du jour est à renseigner maintenant (fenêtre {{ windowLabel }}).
+      } @else {
+        Aucun relevé aujourd’hui. La saisie est possible uniquement entre {{ windowLabel }}.
+      }
+    </p>
 
     @if (tableOpen) {
       <div class="filters">
         <label class="filter-field">
-          <span>Site</span>
-          <select [(ngModel)]="selectedSite" (ngModelChange)="resetPage()">
-            <option value="">Tous les sites</option>
-            @for (site of sites; track site) {
-              <option [value]="site">{{ site }}</option>
-            }
-          </select>
+          <span>Du</span>
+          <input type="date" name="dateFrom" [(ngModel)]="dateFrom" (ngModelChange)="resetPage()" />
         </label>
-
         <label class="filter-field">
-          <span>Mois</span>
-          <input type="month" [(ngModel)]="selectedMonth" (ngModelChange)="resetPage()" />
+          <span>Au</span>
+          <input type="date" name="dateTo" [(ngModel)]="dateTo" (ngModelChange)="resetPage()" />
         </label>
+        @if (dateFrom || dateTo) { <button type="button" class="secondary-button filter-reset" (click)="clearPeriod()">Toute la période</button> }
       </div>
+
+      <div class="summary-cards" aria-label="Résultats de la période">
+        <article class="summary-card">
+          <span>PUE de la période</span>
+          <strong [class.good-value]="periodPue > 0 && periodPue <= threshold" [class.alert-value]="periodPue > threshold">{{ retainedDays ? (periodPue | number:'1.2-3':'fr') : '—' }}</strong>
+          <small>Somme des kW totaux ÷ somme des kW IT</small>
+        </article>
+        <article class="summary-card">
+          <span>Jours retenus</span>
+          <strong>{{ retainedDays }}@if (hasFullPeriod) { <em> sur {{ periodDays }}</em> }</strong>
+          <small>Jours avec un relevé complet</small>
+        </article>
+        <article class="summary-card">
+          <span>IT moyen</span>
+          <strong>{{ retainedDays ? (averageIt | number:'1.0-1':'fr') : '—' }} <em>kW</em></strong>
+          <small>Sorties UPS + redresseurs</small>
+        </article>
+        <article class="summary-card">
+          <span>Total site moyen</span>
+          <strong>{{ retainedDays ? (averageTotal | number:'1.0-1':'fr') : '—' }} <em>kW</em></strong>
+          <small>TGBT A + TGBT B</small>
+        </article>
+      </div>
+
+      <figure class="trend">
+        <figcaption>Tendance du PUE du jour</figcaption>
+        @if (chartPoints.length) {
+          <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" role="img" aria-label="Courbe du PUE journalier sur la période choisie">
+            @for (tick of chartTicks; track tick) {
+              <line [attr.x1]="chartLeft" [attr.x2]="chartRight" [attr.y1]="chartY(tick)" [attr.y2]="chartY(tick)" class="grid-line" />
+              <text [attr.x]="chartLeft - 8" [attr.y]="chartY(tick) + 4" class="axis-label" text-anchor="end">{{ tick | number:'1.1-1':'fr' }}</text>
+            }
+            <line [attr.x1]="chartLeft" [attr.x2]="chartRight" [attr.y1]="chartY(threshold)" [attr.y2]="chartY(threshold)" class="threshold-line" />
+            <text [attr.x]="chartRight" [attr.y]="chartY(threshold) - 5" class="threshold-label" text-anchor="end">Seuil 1,8</text>
+            @if (periodPue > 0) {
+              <line [attr.x1]="chartLeft" [attr.x2]="chartRight" [attr.y1]="chartY(periodPue)" [attr.y2]="chartY(periodPue)" class="period-line" />
+            }
+            <polyline [attr.points]="chartPolyline" class="trend-line" />
+            @for (point of chartPoints; track point.row.dateReleve) {
+              <circle [attr.cx]="point.x" [attr.cy]="point.y" r="3.5" class="trend-dot"><title>{{ formatDate(point.row.dateReleve) }} : {{ point.row.pue | number:'1.0-3':'fr' }}</title></circle>
+            }
+            <text [attr.x]="chartPoints[0].x" [attr.y]="chartHeight - 8" class="axis-label" text-anchor="start">{{ formatDate(chartPoints[0].row.dateReleve) }}</text>
+            @if (chartPoints.length > 1) {
+              <text [attr.x]="chartPoints[chartPoints.length - 1].x" [attr.y]="chartHeight - 8" class="axis-label" text-anchor="end">{{ formatDate(chartPoints[chartPoints.length - 1].row.dateReleve) }}</text>
+            }
+          </svg>
+          <p class="legend"><span class="legend-line daily"></span> PUE du jour <span class="legend-line period"></span> PUE de la période</p>
+        } @else {
+          <p class="empty-trend">Aucun relevé sur cette période.</p>
+        }
+      </figure>
 
       <div class="table-wrapper">
         <table [class.read-only-table]="!canModify">
           <thead>
             <tr>
-              <th scope="col">Site</th>
-              <th scope="col">Mois</th>
-              <th scope="col">&Eacute;nergie IT</th>
-              <th scope="col">&Eacute;nergie totale</th>
+              <th scope="col">Date</th>
+              <th scope="col">Heure</th>
+              <th scope="col">IT (kW)</th>
+              <th scope="col">Total site (kW)</th>
               <th scope="col">PUE</th>
               <th scope="col">&Eacute;tat</th>
               @if (canModify) { <th scope="col">Action</th> }
             </tr>
           </thead>
           <tbody>
-            @for (row of visibleRows; track $index) {
-              <tr [class.empty-row]="!row" [attr.data-record-id]="row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(row?.id)">
-                <td>{{ row?.site }}</td>
-                <td>{{ row?.mois }}</td>
-                <td>{{ row?.energieIt | number:'1.0-3':'fr' }}</td>
-                <td>{{ row?.energieTotale | number:'1.0-3':'fr' }}</td>
-                <td>{{ row?.pue | number:'1.0-3':'fr' }}</td>
+            @for (day of visibleDays; track day.date) {
+              <tr [class.missing-row]="!day.row" [attr.data-record-id]="day.row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(day.row?.id)">
+                <td>{{ formatDate(day.date) }}</td>
+                <td>{{ day.row ? day.row.heureReleve.slice(0, 5) : '' }}</td>
+                <td>{{ day.row ? (day.row.itKw | number:'1.0-1':'fr') : '' }}</td>
+                <td>{{ day.row ? (day.row.totalKw | number:'1.0-1':'fr') : '' }}</td>
+                <td>{{ day.row ? (day.row.pue | number:'1.0-3':'fr') : '' }}</td>
                 <td>
-                  @if (row) {
-                    <span
-                      class="state-badge"
-                      [class.state-good]="row.pue <= 1.8"
-                      [class.state-alert]="row.pue > 1.8"
-                    >
-                      {{ getState(row.pue) }}
-                    </span>
+                  @if (day.row) {
+                    <span class="state-badge" [class.state-good]="day.row.pue <= threshold" [class.state-alert]="day.row.pue > threshold">{{ getState(day.row.pue) }}</span>
+                  } @else {
+                    <span class="state-badge state-missing">Manquant</span>
                   }
                 </td>
                 @if (canModify) {
                   <td class="action-cell">
-                    @if (row) { <button type="button" class="row-action" (click)="editEntry(row)">Modifier</button> }
+                    @if (day.row) { <button type="button" class="row-action" (click)="editEntry(day.row)">Modifier</button> }
                   </td>
                 }
               </tr>
+            } @empty {
+              <tr class="empty-row"><td [attr.colspan]="canModify ? 7 : 6" class="empty-message">Aucun relevé PUE pour cette période.</td></tr>
             }
           </tbody>
         </table>
       </div>
 
       <div class="pagination" aria-label="Pagination du tableau PUE">
-        <button
-          type="button"
-          class="page-button"
-          aria-label="Page pr&eacute;c&eacute;dente"
-          [disabled]="currentPage === 1"
-          (click)="previousPage()"
-        >
+        <button type="button" class="page-button" aria-label="Page pr&eacute;c&eacute;dente" [disabled]="currentPage === 1" (click)="previousPage()">
           <i class="solaris-icon solaris-chevron-left"></i>
         </button>
         <span>Page {{ currentPage }} / {{ pageCount }}</span>
-        <button
-          type="button"
-          class="page-button"
-          aria-label="Page suivante"
-          [disabled]="currentPage === pageCount"
-          (click)="nextPage()"
-        >
+        <button type="button" class="page-button" aria-label="Page suivante" [disabled]="currentPage === pageCount" (click)="nextPage()">
           <i class="solaris-icon solaris-chevron-right"></i>
         </button>
       </div>
@@ -111,11 +150,15 @@
 
 @if (sheetOpen) {
   <div class="sheet-backdrop" (click)="closeSheet()"></div>
-  <aside class="pue-sheet" aria-label="Renseigner une mesure PUE">
+  <aside class="pue-sheet" aria-label="Renseigner le relevé PUE">
     <header>
       <div>
-        
         <h2>{{ sheetTitle }}</h2>
+        @if (!editingRow) {
+          <p class="sheet-hint" [class.window-closed]="!inWindow">
+            {{ inWindow ? 'Fenêtre de saisie ouverte (' + windowLabel + ')' : 'Hors fenêtre : la saisie est possible entre ' + windowLabel }}
+          </p>
+        }
       </div>
       <button type="button" class="close-button" aria-label="Fermer" (click)="closeSheet()">
         <i class="solaris-icon solaris-close"></i>
@@ -123,68 +166,74 @@
     </header>
 
     <form (ngSubmit)="saveEntry()">
-      <label>
-        <span>Site</span>
-        <select name="site" [(ngModel)]="newEntry.site" required>
-          <option value="" disabled>S&eacute;lectionner un site</option>
-          @for (site of sites; track site) {
-            <option [value]="site">{{ site }}</option>
+      <p class="sheet-help">
+        Pour chaque équipement, saisir les <strong>kW lus</strong> s’ils sont affichés, sinon les <strong>ampères</strong> (et la tension).
+        Les kW lus sont prioritaires ; en AC la tension par défaut est 400 V avec cos φ = 0,9.
+      </p>
+
+      <div class="lines-wrapper">
+        <table class="lines-table">
+          <thead>
+            <tr><th scope="col">&Eacute;quipement</th><th scope="col">kW lus</th><th scope="col">A</th><th scope="col">V</th><th scope="col">kW retenus</th><th scope="col">Origine</th><th scope="col">&Eacute;cart</th></tr>
+          </thead>
+          @for (section of sections; track section.title) {
+            <tbody>
+              <tr class="section-row"><td colspan="7">{{ section.title }}</td></tr>
+              @for (line of section.lines; track line.code) {
+                <tr>
+                  <td class="line-label">{{ line.label }}</td>
+                  <td><input type="number" min="0" step="any" [name]="line.code + '-kw'" [attr.aria-label]="line.label + ' kW lus'" [(ngModel)]="inputs[line.code].kwLus" /></td>
+                  <td><input type="number" min="0" step="any" [name]="line.code + '-a'" [attr.aria-label]="line.label + ' ampères'" [(ngModel)]="inputs[line.code].a" /></td>
+                  <td><input type="number" min="0" step="any" [name]="line.code + '-v'" [attr.aria-label]="line.label + ' volts'" [placeholder]="line.kind === 'ac' ? '400' : ''" [(ngModel)]="inputs[line.code].v" /></td>
+                  <td class="retained">{{ result(line).kw !== null ? (result(line).kw | number:'1.0-3':'fr') : '—' }}</td>
+                  <td>{{ result(line).origine || '—' }}</td>
+                  <td [class.gap-high]="result(line).ecart !== null && (result(line).ecart! > 10 || result(line).ecart! < -10)">{{ result(line).ecart !== null ? ((result(line).ecart | number:'1.0-1':'fr') + ' %') : '—' }}</td>
+                </tr>
+              }
+            </tbody>
           }
-        </select>
-      </label>
+        </table>
+      </div>
 
-      <label>
-        <span>Mois</span>
-        <input name="mois" type="month" [(ngModel)]="newEntry.mois" required />
-      </label>
+      <div class="results">
+        <div><span>IT total</span><strong>{{ summary.itKw | number:'1.0-1':'fr' }} kW</strong></div>
+        <div><span>Total site</span><strong>{{ summary.totalKw | number:'1.0-1':'fr' }} kW</strong></div>
+        <div class="pue-result" [class.good-value]="calculatedPue > 0 && calculatedPue <= threshold" [class.alert-value]="calculatedPue > threshold">
+          <span>PUE du jour</span><strong>{{ calculatedPue ? (calculatedPue | number:'1.3-3':'fr') : '—' }}</strong>
+        </div>
+      </div>
 
-      <label>
-        <span>&Eacute;nergie IT</span>
-        <input
-          name="energieIt"
-          type="number"
-          min="0.01"
-          step="0.001"
-          [(ngModel)]="newEntry.energieIt"
-          required
-        />
-      </label>
+      <section class="checks" aria-label="Contrôles PDF">
+        <h3>Contrôle : somme des PDF ≈ sortie</h3>
+        <ul>
+          @for (check of checks; track check.label) {
+            <li [class.gap-high]="check.gap !== null && (check.gap > 10 || check.gap < -10)">
+              {{ check.label }} : @if (check.gap === null) { — } @else { PDF {{ check.parts | number:'1.0-1':'fr' }} kW pour {{ check.output | number:'1.0-1':'fr' }} kW ({{ check.gap | number:'1.0-1':'fr' }} %) }
+            </li>
+          }
+        </ul>
+      </section>
 
-      <label>
-        <span>&Eacute;nergie totale</span>
-        <input
-          name="energieTotale"
-          type="number"
-          min="0.01"
-          step="0.001"
-          [(ngModel)]="newEntry.energieTotale"
-          required
-        />
-      </label>
+      @if (!summary.complete) { <p class="form-warning">Il manque : {{ summary.missing.join(', ') }}.</p> }
+      @else if (summary.pue === null) { <p class="form-warning">Le total du site (TGBT A + B) ne peut pas être inférieur à la puissance IT.</p> }
+      @if (saveError) { <p class="form-error" role="alert">{{ saveError }}</p> }
 
-      <label class="full-width">
-        <span>PUE calcul&eacute; automatiquement</span>
-        <output [class.good-value]="calculatedPue > 0 && calculatedPue <= 1.8">
-          {{ calculatedPue ? calculatedPue.toFixed(3) : '-' }}
-        </output>
-      </label>
-
-      <div class="sheet-actions full-width">
-        @if (editingIndex !== null) { <button type="button" class="delete-button" [disabled]="deleting" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }
-        <button type="button" class="secondary-button" [disabled]="deleting" (click)="closeSheet()">Annuler</button>
-        <button type="submit" class="primary-button" [disabled]="deleting">
+      <div class="sheet-actions">
+        @if (editingRow) { <button type="button" class="delete-button" [disabled]="deleting || saving" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }
+        <button type="button" class="secondary-button" [disabled]="deleting || saving" (click)="closeSheet()">Annuler</button>
+        <button type="submit" class="primary-button" [disabled]="!canSubmit">
           <i class="solaris-icon solaris-confirm"></i>
-          {{ editingIndex === null ? 'Enregistrer' : 'Mettre &agrave; jour' }}
+          {{ editingRow ? 'Mettre à jour' : 'Enregistrer' }}
         </button>
       </div>
     </form>
   </aside>
 }
-@if (deleteConfirmationOpen) {
+@if (deleteConfirmationOpen && editingRow) {
   <div class="confirmation-backdrop">
     <section class="confirmation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-pue-title">
-      <h2 id="delete-pue-title">Supprimer cette ligne PUE ?</h2>
-      <p>La mesure PUE de <strong>{{ newEntry.site }}</strong> pour <strong>{{ newEntry.mois }}</strong> sera supprimée définitivement.</p>
+      <h2 id="delete-pue-title">Supprimer ce relevé PUE ?</h2>
+      <p>Le relevé du <strong>{{ formatDate(editingRow.dateReleve) }}</strong> sera supprimé définitivement.</p>
       <div class="confirmation-actions">
         <button type="button" class="secondary-button" [disabled]="deleting" (click)="cancelDeletion()">Annuler</button>
         <button type="button" class="delete-button" [disabled]="deleting" (click)="deleteEntry()"><i class="solaris-icon solaris-delete"></i> {{ deleting ? 'Suppression…' : 'Supprimer' }}</button>

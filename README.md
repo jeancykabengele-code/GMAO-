@@ -112,9 +112,11 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 
 ### PUE
 
-- Saisie de l’énergie IT et de l’énergie totale.
-- Calcul automatique du PUE : `énergie totale / énergie IT`.
-- Suivi par site et par mois.
+- Feuille propre au site Pigeon : un relevé complet par jour (21 équipements du schéma unifilaire : UPS, redresseurs, PDF AC et DC, climatisation, tertiaire, TGBT A et B), toutes les puissances en kW.
+- Saisie obligatoirement entre 10h00 et 13h00 (heure de Kinshasa) ; le serveur fixe la date et l’heure du relevé et refuse tout relevé hors fenêtre, incomplet ou déjà saisi ce jour-là.
+- Chaque ligne se saisit en kW lus, ou en ampères et volts (kW = V × A en DC ; kW = √3 × V × A × cos φ en AC triphasé, avec 400 V et cos φ = 0,9 par défaut). Les kW lus sont prioritaires et l’écart avec le calcul est affiché.
+- Calcul automatique : PUE du jour = (TGBT A + TGBT B) / (UPS A + UPS B + Redresseurs A + Redresseurs B). Les lignes PDF servent de contrôle.
+- La page filtre par période (du / au) : PUE de la période = somme des kW totaux / somme des kW IT des jours retenus (et non la moyenne des PUE du jour), jours retenus, jours manquants et courbe de tendance.
 
 ### Problèmes Data Center
 
@@ -514,9 +516,11 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 ### PUE
 
-- Les énergies IT et totale doivent être strictement positives.
-- L’énergie totale ne peut pas être inférieure à l’énergie IT.
-- `PUE = énergie totale / énergie IT`.
+- Les 21 équipements doivent tous être relevés ; les valeurs sont positives ou nulles.
+- La puissance IT et la puissance totale (TGBT A + B) doivent être strictement positives, et la puissance totale ne peut pas être inférieure à la puissance IT.
+- Un seul relevé par site et par jour ; la création n’est acceptée qu’entre 10h00 et 13h00 (heure de Kinshasa), la correction par un rôle global n’est pas soumise à la fenêtre.
+- `PUE du jour = total site (kW) / IT (kW)`.
+- La migration `0007_pue_daily_readings` supprime les anciennes lignes mensuelles (énergie IT / énergie totale), qui ne peuvent pas être converties en relevés journaliers.
 
 ### Sites
 

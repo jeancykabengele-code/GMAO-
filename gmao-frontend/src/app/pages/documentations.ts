@@ -66,9 +66,9 @@ export class DocumentationsComponent {
         this.column('Consommé (L)', 'sortie'), this.column('Stock final (L)', 'stockFinal'), this.column('Heures GE', 'heuresGe'),
         this.column('L/h', 'litresHeure'), this.column('SNEL kWh', 'snelKwh'), this.column('Disponibilité Grid (%)', 'disponibiliteGrid'),
       ]),
-      this.report('Suivi du PUE', 'Mesures énergétiques et valeurs PUE.', 'suivi-pue', () => this.dataStore.pueRows, [
-        this.column('Site', 'site'), this.column('Mois', 'mois'), this.column('Énergie IT', 'energieIt'),
-        this.column('Énergie totale', 'energieTotale'), this.column('PUE', 'pue'),
+      this.report('Suivi du PUE', 'Relevés journaliers de puissance (kW) et valeurs PUE.', 'suivi-pue', () => this.dataStore.pueRows, [
+        this.column('Site', 'site'), this.column('Date', 'dateReleve'), this.column('Heure', 'heureReleve'),
+        this.column('IT (kW)', 'itKw'), this.column('Total site (kW)', 'totalKw'), this.column('PUE', 'pue'),
       ]),
       this.report('Problèmes Data Center', 'Journal des incidents et actions de résolution.', 'problemes-data-center', () => this.dataStore.problemRows, [
         this.column('Site', 'site'), this.column('Date', 'date'), this.column('Équipement', 'equipement'),

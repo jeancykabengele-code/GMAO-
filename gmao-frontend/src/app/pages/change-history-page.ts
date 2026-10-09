@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChangeHistoryChange, ChangeHistoryRecord, GmaoApiService } from '../data/gmao-api.service';
+import { lineLabel } from './pue-lines';
 
 const RESOURCES: Record<string, string> = {
   'releves-rh-ge': 'Relevés RH', 'groupes-electrogenes': 'Groupes électrogènes', 'fuel-ge': 'Fuel-GE', 'fuel-ravitaillements': 'Ravitaillements Fuel',
@@ -17,7 +18,7 @@ const FIELDS: Record<string, string> = {
   stockInitial: 'Stock initial', entree: 'Entrée', sortie: 'Sortie', stockFinal: 'Stock final', heuresGe: 'Heures GE', litresHeure: 'Litres / heure', consommationLitres: 'Consommation (L)',
   dateRavitaillement: 'Date de ravitaillement', rang: 'Rang', bonLivraison: 'Bon de livraison', typeCarburant: 'Carburant', quantite: 'Quantité', quantiteRecue: 'Quantité reçue',
   stockAvant: 'Stock avant', stockApres: 'Stock après', numeroCiterne: 'N° de citerne', receptionnePar: 'Réceptionné par', differenceStock: 'Écart de stock', fournisseur: 'Fournisseur',
-  mois: 'Mois', energieIt: 'Énergie IT', energieTotale: 'Énergie totale', pue: 'PUE', snelKwh: 'SNEL (kWh)', disponibiliteGrid: 'Disponibilité réseau',
+  mois: 'Mois', dateReleve: 'Date du relevé', heureReleve: 'Heure du relevé', itKw: 'IT (kW)', totalKw: 'Total site (kW)', pue: 'PUE', snelKwh: 'SNEL (kWh)', disponibiliteGrid: 'Disponibilité réseau',
   constat: 'Constat', priorite: 'Priorité', statut: 'Statut', responsable: 'Responsable', echeance: 'Échéance', prochaineEtape: 'Prochaine étape', besoinSpare: 'Besoin de spare',
   agent: 'Agent', travailRealise: 'Travail réalisé', dureeHeures: 'Durée (h)', ticketNumber: 'N° de ticket', designation: 'Désignation',
 };
@@ -82,7 +83,10 @@ export class ChangeHistoryPageComponent {
   nextPage(): void { if (this.offset + this.limit < this.total) { this.offset += this.limit; void this.load(); } }
   resourceLabel(resource: string): string { return RESOURCES[resource] || resource; }
   kindLabel(kind: string): string { return ({ create: 'Création', update: 'Modification', delete: 'Suppression' } as Record<string, string>)[kind] || kind; }
-  fieldLabel(field: string): string { return FIELDS[field] || field.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/^./, (letter) => letter.toUpperCase()); }
+  fieldLabel(field: string): string {
+    if (field.startsWith('kw_')) return `${lineLabel(field.slice(3))} (kW)`;
+    return FIELDS[field] || field.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
+  }
   changeLabel(entry: ChangeHistoryRecord, change: ChangeHistoryChange): string {
     const label = this.fieldLabel(change.field);
     if (entry.kind === 'update') return `${label} : ${this.value(change.old)} → ${this.value(change.new)}`;

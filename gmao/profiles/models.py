@@ -176,14 +176,17 @@ class FuelMonthlySummary(BusinessRecord):
 
 
 class PueRecord(BusinessRecord):
-    mois = models.CharField(max_length=191)
-    energie_it = models.DecimalField(max_digits=18, decimal_places=3)
-    energie_totale = models.DecimalField(max_digits=18, decimal_places=3)
+    """Relevé journalier du PUE : une ligne par site et par jour, avec la puissance de chaque équipement."""
+    date_releve = models.DateField()
+    heure_releve = models.TimeField()
+    mesures = models.JSONField(default=dict)
+    it_kw = models.DecimalField(max_digits=14, decimal_places=3)
+    total_kw = models.DecimalField(max_digits=14, decimal_places=3)
     pue = models.DecimalField(max_digits=8, decimal_places=3)
 
     class Meta:
         db_table = "gmao_pue"
-        unique_together = ("site", "mois")
+        unique_together = ("site", "date_releve")
 
 
 class DatacenterProblem(BusinessRecord):

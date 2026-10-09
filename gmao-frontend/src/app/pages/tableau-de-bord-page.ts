@@ -17,7 +17,7 @@ interface GeneratorData { site: string; code?: string; etat: string; moisReleve:
 interface ProblemData { site: string; statut: string; date: string; }
 interface FuelData { site: string; periode: string; sortie: number; stockFinal: number | null; disponibiliteGrid: number; }
 interface FuelSummaryData { periode: string; stockFinal: number; sortie: number; }
-interface PueData { site: string; mois: string; pue: number; }
+interface PueData { site: string; dateReleve: string; itKw: number; totalKw: number; pue: number; }
 
 @Component({
   selector: 'app-tableau-de-bord-page',
@@ -69,7 +69,7 @@ export class TableauDeBordPageComponent {
 
   get filteredPueRows(): PueData[] {
     return (this.dataStore.pueRows as PueData[]).filter((row) =>
-      this.matchesSite(row.site) && this.matchesPeriod(row.mois),
+      this.matchesSite(row.site) && this.matchesPeriod(row.dateReleve.slice(0, 7)),
     );
   }
 
@@ -194,13 +194,15 @@ export class TableauDeBordPageComponent {
 
   get puePeriods(): string[] {
     const rows = this.filteredPueRows;
-    return [...new Set(rows.map((row) => row.mois).filter(Boolean))].sort();
+    return [...new Set(rows.map((row) => row.dateReleve?.slice(0, 7)).filter(Boolean))].sort();
   }
   get pueMonths(): string[] { return this.puePeriods.map((period) => this.formatMonth(period)); }
   get pueValues(): number[] {
     return this.puePeriods.map((period) => {
-      const rows = this.filteredPueRows.filter((row) => row.mois === period);
-      return rows.length ? rows.reduce((sum, row) => sum + Number(row.pue || 0), 0) / rows.length : 0;
+      // PUE du mois = somme des kW totaux ÷ somme des kW IT des relevés journaliers (jamais la moyenne des PUE du jour).
+      const rows = this.filteredPueRows.filter((row) => row.dateReleve.slice(0, 7) === period);
+      const it = rows.reduce((sum, row) => sum + Number(row.itKw || 0), 0);
+      return it > 0 ? rows.reduce((sum, row) => sum + Number(row.totalKw || 0), 0) / it : 0;
     });
   }
 

@@ -1,7 +1,7 @@
 """Lecture et écriture des fiches : JSON, champs autorisés, arrondis et instantané de l'historique."""
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -32,6 +32,10 @@ def _history_snapshot(record):
     for key, value in _serialize(record).items():
         if key in HISTORY_IGNORED_FIELDS:
             continue
+        if key == "mesures":
+            # Le relevé PUE est affiché ligne par ligne (kW retenus) plutôt que comme un objet imbriqué.
+            snapshot.update({f"kw_{code}": line.get("kw") for code, line in value.items()})
+            continue
         if isinstance(value, str) and len(value) > HISTORY_MAX_TEXT:
             value = value[:HISTORY_MAX_TEXT] + "…"
         snapshot[key] = value
@@ -48,7 +52,7 @@ def _serialize(record):
         if field.name in {"created_by", "updated_by"}:
             continue
         value = getattr(record, field.name)
-        if isinstance(value, (date, datetime)):
+        if isinstance(value, (date, datetime, time)):
             value = value.isoformat()
         elif isinstance(value, Decimal):
             value = float(value)

@@ -73,7 +73,8 @@
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(2, minmax(190px, 280px));
+  grid-template-columns: repeat(2, minmax(190px, 280px)) auto;
+  align-items: end;
   gap: 16px;
   margin-bottom: 22px;
 }
@@ -147,23 +148,12 @@ tbody tr:last-child td {
   border-bottom: 0;
 }
 
-th:nth-child(1) { width: 16%; }
-th:nth-child(2) { width: 14%; }
-th:nth-child(3) { width: 19%; }
-th:nth-child(4) { width: 21%; }
-th:nth-child(5) { width: 10%; }
-th:nth-child(6) { width: 10%; }
-th:nth-child(7) { width: 10%; }
-.read-only-table th:nth-child(1) { width: 18%; }
-.read-only-table th:nth-child(2) { width: 15%; }
-.read-only-table th:nth-child(3) { width: 22%; }
-.read-only-table th:nth-child(4) { width: 24%; }
-.read-only-table th:nth-child(5) { width: 12%; }
-.read-only-table th:nth-child(6) {
-  width: 9%;
-  min-width: 76px;
-  max-width: 90px;
-}
+.table-wrapper th:nth-child(1) { width: 16%; }
+.table-wrapper th:nth-child(2) { width: 12%; }
+.table-wrapper th:nth-child(3) { width: 17%; }
+.table-wrapper th:nth-child(4) { width: 19%; }
+.table-wrapper th:nth-child(5) { width: 12%; }
+.table-wrapper th:nth-child(6) { width: 14%; }
 th {
   color: #fff;
   background: var(--anthracite);
@@ -254,7 +244,7 @@ th:last-child,
   top: 0;
   right: 0;
   z-index: 21;
-  width: min(520px, 100%);
+  width: min(880px, 100%);
   height: 100vh;
   box-sizing: border-box;
   padding: 28px;
@@ -338,3 +328,61 @@ th:last-child,
 .confirmation-dialog { width: min(430px,100%); padding: 26px; border-radius: 14px; color: var(--anthracite); background: var(--off-white); box-shadow: 0 20px 50px rgba(0,0,0,.3); }
 .confirmation-dialog h2, .confirmation-dialog p { margin-top: 0; }
 .confirmation-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
+.page-heading p { max-width: 70ch; }
+.primary-button:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+.today-banner { margin: 0 0 20px; padding: 12px 16px; border-left: 5px solid var(--slate); border-radius: 8px; background: #fff; font-weight: 700; }
+.today-banner.done { border-color: #16a34a; }
+.today-banner.open { border-color: var(--orange); }
+.today-banner.closed { border-color: #d92d20; }
+.filter-reset { align-self: end; min-height: 44px; }
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.summary-card { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--light-gray); border-radius: 12px; background: #fff; }
+.summary-card span { color: var(--slate); font-weight: 700; }
+.summary-card strong { font-size: 1.7rem; }
+.summary-card strong em { font-size: 1rem; font-style: normal; font-weight: 600; color: var(--slate); }
+.summary-card small { color: var(--slate); }
+.good-value { color: #166534; }
+.alert-value { color: #991b1b; }
+.trend { margin: 0 0 22px; padding: 16px; border: 1px solid var(--light-gray); border-radius: 12px; background: #fff; }
+.trend figcaption { margin-bottom: 8px; font-weight: 800; }
+.trend svg { display: block; width: 100%; height: auto; max-height: 280px; }
+.grid-line { stroke: #e4e4e7; stroke-width: 1; }
+.axis-label { fill: var(--slate); font-size: 11px; }
+.threshold-line { stroke: #d92d20; stroke-width: 1.4; stroke-dasharray: 6 4; }
+.threshold-label { fill: #991b1b; font-size: 11px; font-weight: 700; }
+.period-line { stroke: var(--anthracite); stroke-width: 1.4; stroke-dasharray: 2 4; }
+.trend-line { fill: none; stroke: var(--orange); stroke-width: 2.4; stroke-linejoin: round; }
+.trend-dot { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 8px 0 0; color: var(--slate); font-size: 0.9rem; }
+.legend-line { display: inline-block; width: 26px; height: 0; border-top: 3px solid var(--orange); }
+.legend-line.period { margin-left: 12px; border-top: 3px dotted var(--anthracite); }
+.empty-trend, .empty-message { margin: 0; padding: 18px; color: var(--slate); text-align: center; }
+.missing-row td { color: var(--slate); background: #fafafa; }
+.state-missing { color: #92400e; background: #fef3c7; }
+.sheet-hint { margin: 6px 0 0; color: #166534; font-weight: 700; }
+.sheet-hint.window-closed { color: #991b1b; }
+.sheet-help { margin: 0; color: var(--slate); line-height: 1.45; }
+.lines-wrapper { overflow-x: auto; border: 1px solid var(--light-gray); border-radius: 10px; background: #fff; }
+.lines-table { min-width: 680px; table-layout: auto; }
+.lines-table th, .lines-table td { height: 42px; padding: 4px 8px; }
+.lines-table thead th { position: sticky; top: 0; font-size: 0.85rem; }
+.lines-table .line-label { font-weight: 700; white-space: nowrap; }
+.lines-table .section-row td { color: var(--anthracite); background: #ededee; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
+.lines-table th:last-child, .lines-table td:last-child { width: auto; min-width: 0; text-align: left; }
+.lines-table input { min-height: 36px; padding: 6px 8px; }
+.lines-table .retained { font-weight: 800; }
+.gap-high { color: #991b1b; font-weight: 800; }
+.results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.results div { display: grid; gap: 4px; padding: 14px; border-left: 5px solid var(--orange); border-radius: 8px; background: #fff; }
+.results span { color: var(--slate); font-weight: 700; }
+.results strong { font-size: 1.3rem; }
+.checks h3 { margin: 0 0 8px; font-size: 1rem; }
+.checks ul { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
+.form-warning { margin: 0; padding: 10px 12px; border-radius: 8px; color: #92400e; background: #fef3c7; font-weight: 700; }
+.form-error { margin: 0; padding: 10px 12px; border-radius: 8px; color: #991b1b; background: #fee2e2; font-weight: 700; }
+.sheet-actions { position: sticky; bottom: 0; padding: 12px 0; background: var(--off-white); }
+@media (max-width: 760px) {
+  .filters { grid-template-columns: 1fr; }
+  .results { grid-template-columns: 1fr; }
+}
+.lines-table td:last-child, .lines-table td:nth-child(5), .lines-table td:nth-child(6) { white-space: nowrap; }

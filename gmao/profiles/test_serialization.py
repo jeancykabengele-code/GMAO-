@@ -23,10 +23,10 @@ class CleanValuesDecimalPrecisionTests(SimpleTestCase):
 
     def test_rounds_several_non_exact_binary_fractions_across_models(self):
         pue_values = _clean_values(business_models.PueRecord, {
-            "site": "Goma", "mois": "2026-01", "energieIt": 999.999, "energieTotale": 500.123,
+            "site": "Pigeon", "itKw": 999.999, "totalKw": 500.123,
         })
-        self.assertEqual(pue_values["energie_it"], Decimal("999.999"))
-        self.assertEqual(pue_values["energie_totale"], Decimal("500.123"))
+        self.assertEqual(pue_values["it_kw"], Decimal("999.999"))
+        self.assertEqual(pue_values["total_kw"], Decimal("500.123"))
 
         consumption_values = _clean_values(business_models.GeneratorFuelConsumption, {
             "site": "Goma", "periode": "2026-01", "groupeCode": "DC-GOM-GE-001", "consommationLitres": 120.456,

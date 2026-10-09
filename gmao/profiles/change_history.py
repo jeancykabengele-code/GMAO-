@@ -19,7 +19,7 @@ KINDS = {
     "rh_reading_update": "update",
 }
 LEGACY_RESOURCE = "releves-rh-ge"
-REFERENCE_KEYS = ("code", "numero", "groupeCode", "periode", "mois")
+REFERENCE_KEYS = ("code", "numero", "groupeCode", "periode", "mois", "dateReleve")
 FALLBACK_REFERENCE_KEYS = ("date", "equipement", "nom")
 
 
