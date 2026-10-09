@@ -28,7 +28,10 @@ export class PuePageComponent {
   readonly threshold = PUE_THRESHOLD;
   readonly sections = PUE_SECTIONS;
 
-  get canModify(): boolean { return this.dataStore.canModifyExisting; }
+  /** Corriger un relevé : rôles globaux et Chef de site (sur son site). */
+  get canModify(): boolean { return this.dataStore.canModifyExisting || this.dataStore.isChefSite; }
+  /** Supprimer un relevé : rôles globaux seulement. */
+  get canDelete(): boolean { return this.dataStore.canModifyExisting; }
   get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
 
@@ -244,7 +247,7 @@ export class PuePageComponent {
   }
 
   requestDeletion(): void {
-    if (this.editingRow && !this.deleting) this.deleteConfirmationOpen = true;
+    if (this.editingRow && this.canDelete && !this.deleting) this.deleteConfirmationOpen = true;
   }
 
   cancelDeletion(): void {
@@ -252,7 +255,7 @@ export class PuePageComponent {
   }
 
   async deleteEntry(): Promise<void> {
-    if (!this.editingRow || this.deleting) return;
+    if (!this.editingRow || !this.canDelete || this.deleting) return;
     this.deleting = true;
     try {
       await this.dataStore.deleteRecord('pue', this.editingRow);

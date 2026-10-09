@@ -518,7 +518,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 - Les 21 équipements doivent tous être relevés ; les valeurs sont positives ou nulles.
 - La puissance IT et la puissance totale (TGBT A + B) doivent être strictement positives, et la puissance totale ne peut pas être inférieure à la puissance IT.
-- Un seul relevé par site et par jour, daté par le serveur à l’heure de Kinshasa, à toute heure de la journée ; seule la correction par un rôle global peut modifier un relevé existant.
+- Un seul relevé par site et par jour, daté par le serveur à l’heure de Kinshasa, à toute heure de la journée ; un relevé existant peut être corrigé par un rôle global ou par le Chef de site de Pigeon ; seuls les rôles globaux peuvent le supprimer.
 - `PUE du jour = total site (kW) / IT (kW)`.
 - La migration `0007_pue_daily_readings` supprime les anciennes lignes mensuelles (énergie IT / énergie totale), qui ne peuvent pas être converties en relevés journaliers.
 

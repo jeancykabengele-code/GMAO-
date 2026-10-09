@@ -132,6 +132,24 @@ describe('PuePageComponent', () => {
     expect(component.pueRows).toHaveLength(0);
   });
 
+  it('lets the site manager of Pigeon correct a reading but not delete it', async () => {
+    const access = { allowedSites: ['Pigeon'], currentSite: 'Pigeon', canModifyExisting: false, isChefSite: true, canEnterSiteData: true, canExportData: true };
+    const store = new GmaoDataStore(access as never);
+    store.pueRows = [{ ...row('2026-01-26', 100, 150), id: 'pue-1' }];
+    const component = new PuePageComponent(store);
+    expect(component.canModify).toBe(true);
+    expect(component.canDelete).toBe(false);
+
+    component.editEntry(component.pueRows[0]);
+    fillAllLines(component);
+    await component.saveEntry();
+    expect(Object.keys(component.pueRows[0].mesures)).toHaveLength(21);
+
+    component.editEntry(component.pueRows[0]);
+    component.requestDeletion();
+    expect(component.deleteConfirmationOpen).toBe(false);
+  });
+
   it('evaluates the 1.8 threshold', () => {
     const component = new PuePageComponent();
     expect(component.getState(1.75)).toBe('≤ 1,8');

@@ -1,7 +1,10 @@
 """Calcul du PUE à partir du relevé journalier de DC Pigeon."""
 
+import json
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.core.exceptions import ValidationError
@@ -130,3 +133,39 @@ class PueDailyReadingTests(TestCase):
         self.assertNotIn("mesures", snapshot)
         self.assertEqual(snapshot["kw_tgbt_a"], 52.0)
         self.assertEqual(snapshot["dateReleve"], "2026-10-12")
+
+
+class PueCorrectionPermissionTests(TestCase):
+    """Le Chef de site de Pigeon corrige son relevé ; la suppression reste aux rôles globaux."""
+
+    def setUp(self):
+        values = _calculate_pue_values({"site": "Pigeon", "mesures": full_reading()}, now=at(11))
+        self.record = business_models.PueRecord.objects.create(created_by=uuid4(), **values)
+
+    def put(self, role, site, **overrides):
+        with patch("profiles.views.profile_from_token") as profile_from_token:
+            profile_from_token.return_value = SimpleNamespace(id=uuid4(), role=role, site=site, active=True)
+            return self.client.put(
+                f"/api/records/pue/{self.record.id}", data=json.dumps({"site": "Pigeon", "mesures": full_reading(**overrides)}),
+                content_type="application/json", HTTP_AUTHORIZATION="Bearer valid-token",
+            )
+
+    def test_chef_site_of_pigeon_can_correct_its_reading(self):
+        response = self.put("chef_site", "Pigeon", tgbt_a=62)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.pue, Decimal("1.375"))
+        self.assertEqual(str(self.record.date_releve), "2026-10-12")
+
+    def test_chef_site_of_another_site_cannot_correct_it(self):
+        self.assertEqual(self.put("chef_site", "Goma").status_code, 403)
+
+    def test_global_role_can_still_correct_it(self):
+        self.assertEqual(self.put("manager", None, tgbt_a=60).status_code, 200)
+
+    def test_chef_site_cannot_delete_a_reading(self):
+        with patch("profiles.views.profile_from_token") as profile_from_token:
+            profile_from_token.return_value = SimpleNamespace(id=uuid4(), role="chef_site", site="Pigeon", active=True)
+            response = self.client.delete(f"/api/records/pue/{self.record.id}", HTTP_AUTHORIZATION="Bearer valid-token")
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(business_models.PueRecord.objects.filter(id=self.record.id).exists())

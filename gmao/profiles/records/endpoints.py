@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from ..audit import record_audit
 from ..models import DatacenterProblem, Equipment, FuelDelivery, FuelRecord, GeneratorFuelConsumption, GeneratorMonthlyReading, GeneratorRecord, PueRecord, Ticket
 from ..notifications import notify_generator_alert, notify_record_created
-from ..permissions import GLOBAL_ROLES, PermissionDeniedError, assert_can_correct_reading, assert_can_create, assert_can_delete, assert_can_delete_equipment, assert_can_delete_fuel_record, assert_can_delete_ticket, assert_can_modify, assert_site_access, can_approve_rh_decrease
+from ..permissions import GLOBAL_ROLES, PermissionDeniedError, assert_can_correct_pue, assert_can_correct_reading, assert_can_create, assert_can_delete, assert_can_delete_equipment, assert_can_delete_fuel_record, assert_can_delete_ticket, assert_can_modify, assert_site_access, can_approve_rh_decrease
 from ..views import require_authenticated_user
 from .fuel import _assert_fuel_manual_fields_are_not_sent, _calculate_fuel_values, _calculate_generator_fuel_consumption, _recalculate_fuel_records, _recalculate_fuel_records_after_reading_change
 from .generators import _assert_generator_code_unique, _calculate_generator_values, _discard_orphan_generator_records, _assert_generator_rh_not_lowered, _set_generator_from_equipment, _sync_generator_current_from_readings, _validate_monthly_reading
@@ -135,7 +135,7 @@ def record_detail(request, resource, record_id):
                     assert_can_modify(profile, values["site"])
                     _calculate_fuel_delivery_values(values, record)
                 elif model_class is PueRecord:
-                    assert_can_modify(profile, values["site"])
+                    assert_can_correct_pue(profile, values["site"])
                     _calculate_pue_values(values, record)
                 else:
                     assert_can_modify(profile, values["site"])

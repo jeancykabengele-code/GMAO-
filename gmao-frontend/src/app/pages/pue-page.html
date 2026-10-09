@@ -212,7 +212,7 @@
       @if (saveError) { <p class="form-error" role="alert">{{ saveError }}</p> }
 
       <div class="sheet-actions">
-        @if (editingRow) { <button type="button" class="delete-button" [disabled]="deleting || saving" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }
+        @if (editingRow && canDelete) { <button type="button" class="delete-button" [disabled]="deleting || saving" (click)="requestDeletion()"><i class="solaris-icon solaris-delete"></i> Supprimer</button> }
         <button type="button" class="secondary-button" [disabled]="deleting || saving" (click)="closeSheet()">Annuler</button>
         <button type="submit" class="primary-button" [disabled]="!canSubmit">
           <i class="solaris-icon solaris-confirm"></i>
