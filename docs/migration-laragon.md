@@ -13,7 +13,7 @@ Tout passe par **un seul nom d'hôte** (`https://gmao.test` dans ce guide) : Ngi
 
 ```
 Navigateur ──https──▶ Nginx (443) ──┬─▶ fichiers statiques  C:\GMAO\web
-                                    └─▶ API Django (waitress, 127.0.0.1:8080) ──▶ MySQL (127.0.0.1:3306)
+                                    └─▶ API Django (waitress, 127.0.0.1:8081) ──▶ MySQL (127.0.0.1:3306)
 ```
 
 Les chemins ci-dessous correspondent à l'installation constatée : Laragon dans `C:\laragon` avec MySQL 8.4.3, Nginx 1.30, Python 3.13 et Node 22. Adapter les numéros de version si votre installation diffère.
@@ -128,13 +128,13 @@ cd C:\GMAO\GMAO-Web
 .\ops\laragon\start-api.ps1
 ```
 
-Le script charge `gmao\.env.laragon`, applique `migrate`, vérifie les 16 tables métier avec `verify_business_schema`, purge les compteurs de connexion puis lance waitress sur `127.0.0.1:8080`.
+Le script charge `gmao\.env.laragon`, applique `migrate`, vérifie les 16 tables métier avec `verify_business_schema`, purge les compteurs de connexion puis lance waitress sur `127.0.0.1:8081`.
 
 Contrôle depuis un autre terminal :
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:8080/health
-Invoke-RestMethod http://127.0.0.1:8080/health/database -Headers @{ Authorization = "Bearer <GMAO_HEALTH_TOKEN>" }
+Invoke-RestMethod http://127.0.0.1:8081/health
+Invoke-RestMethod http://127.0.0.1:8081/health/database -Headers @{ Authorization = "Bearer <GMAO_HEALTH_TOKEN>" }
 ```
 
 Les deux doivent répondre `UP`.
@@ -181,7 +181,7 @@ Un navigateur d'un autre poste doit pouvoir résoudre `gmao.test` et faire confi
 
 - **Nom d'hôte** : un enregistrement DNS interne, ou à défaut une ligne dans le fichier `hosts` de chaque poste, vers l'adresse IP du serveur.
 - **Certificat** : le certificat de Laragon est signé par une autorité locale. Il faut installer son certificat racine sur chaque poste (magasin « Autorités de certification racines de confiance »), ou utiliser le certificat de l'autorité interne de l'entreprise.
-- **Pare-feu** : ouvrir uniquement le port 443 (et 80 pour la redirection) vers le serveur. Les ports 8080 et 3306 restent fermés au réseau.
+- **Pare-feu** : ouvrir uniquement le port 443 (et 80 pour la redirection) vers le serveur. Les ports 8081 (API) et 3306 restent fermés au réseau.
 
 Pour changer le nom ou l'extension (`gmao.test` est la valeur par défaut de Laragon), cinq éléments sont à mettre à jour, sans toucher au code ni aux données :
 
