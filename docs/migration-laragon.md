@@ -222,14 +222,20 @@ Laragon (MySQL et Nginx) démarre à l'ouverture de session de Windows. Sur un s
 
 Remplacent le workflow GitHub « Sauvegarde hebdomadaire ».
 
-```powershell
-# Mot de passe du compte gmao_backup, défini une fois pour la machine :
-[Environment]::SetEnvironmentVariable('GMAO_BACKUP_DB_PASSWORD', '<mot-de-passe-sauvegarde>', 'Machine')
+Le script lit le mot de passe du compte `gmao_backup` dans `C:\GMAO\.secrets\mysql.txt` (dossier protégé : compte courant, SYSTEM et administrateurs), sans variable d'environnement globale. Il se teste à la main avant de le planifier :
 
+```powershell
+.\ops\laragon\backup-mysql.ps1
+```
+
+Puis, dans un PowerShell administrateur (adapter le chemin du dépôt) :
+
+```powershell
 $action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
   -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\GMAO\GMAO-Web\ops\laragon\backup-mysql.ps1"'
 $trigger = New-ScheduledTaskTrigger -Daily -At 02:00
-Register-ScheduledTask -TaskName 'GMAO sauvegarde' -Action $action -Trigger $trigger -User 'SYSTEM' -RunLevel Highest
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+Register-ScheduledTask -TaskName 'GMAO sauvegarde' -Action $action -Trigger $trigger -Settings $settings -User 'SYSTEM' -RunLevel Highest -Force
 ```
 
 - Une archive `gmao-AAAAMMJJTHHMMSS.zip` est créée dans `C:\GMAO\backups` ; celles de plus de 30 jours sont supprimées.

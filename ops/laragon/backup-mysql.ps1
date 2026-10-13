@@ -1,16 +1,21 @@
 # Sauvegarde complète de la base GMAO (mysqldump compressé) avec rotation.
-# Le mot de passe est lu dans la variable d'environnement GMAO_BACKUP_DB_PASSWORD (jamais en argument).
+# Le mot de passe du compte de sauvegarde est lu dans la variable GMAO_BACKUP_DB_PASSWORD si elle existe,
+# sinon dans le fichier protégé des secrets MySQL (jamais en argument de commande).
 param(
     [string]$Database = 'gmao',
     [string]$DbUser = 'gmao_backup',
     [string]$DbHost = '127.0.0.1',
     [string]$OutDir = 'C:\GMAO\backups',
     [int]$KeepDays = 30,
-    [string]$MysqlBin = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin'
+    [string]$MysqlBin = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin',
+    [string]$SecretsFile = 'C:\GMAO\.secrets\mysql.txt'
 )
 $ErrorActionPreference = 'Stop'
 $password = $env:GMAO_BACKUP_DB_PASSWORD
-if (-not $password) { throw 'Variable GMAO_BACKUP_DB_PASSWORD absente.' }
+if (-not $password -and (Test-Path $SecretsFile)) {
+    $password = ((Get-Content -LiteralPath $SecretsFile | Where-Object { $_ -like 'MYSQL_GMAO_BACKUP_PASSWORD=*' }) -split '=', 2)[1]
+}
+if (-not $password) { throw "Mot de passe de sauvegarde introuvable (variable GMAO_BACKUP_DB_PASSWORD ou $SecretsFile)." }
 $dump = Join-Path $MysqlBin 'mysqldump.exe'
 if (-not (Test-Path $dump)) { throw "mysqldump introuvable : $dump" }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
