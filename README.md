@@ -616,7 +616,7 @@ L’application hébergée avec Laragon est joignable par un nom d’hôte, `gma
 | Certificat HTTPS | Régénéré pour le nouveau nom | Rechargement de Nginx |
 
 - Le code, la base de données et les données ne changent pas ; la durée est d’une dizaine de minutes.
-- Avec `.test`, le certificat HTTPS est généré automatiquement par Laragon. Avec un nom d’entreprise, il faut un certificat émis par l’autorité interne ou un certificat public.
+- Le certificat HTTPS est généré pour le nom choisi par `ops/laragon/new-certificate.ps1` (auto-signé, à importer sur chaque poste ; le joker `*.test` de Laragon est refusé par Windows). Avec un nom d’entreprise, un certificat émis par l’autorité interne ou un certificat public est préférable.
 - Les utilisateurs doivent utiliser la nouvelle adresse et se reconnecter une fois : la session est liée à l’adresse.
 
 ## Dépannage

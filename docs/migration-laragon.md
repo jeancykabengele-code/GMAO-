@@ -162,7 +162,17 @@ Le script installe les dépendances (`npm ci`), exécute les tests, construit la
 Copy-Item .\ops\laragon\gmao.test.conf C:\laragon\etc\nginx\sites-enabled\gmao.test.conf
 ```
 
-3. Activer le SSL dans Laragon (**Menu → Nginx → SSL**) pour générer le certificat. Vérifier que les chemins `ssl_certificate` et `ssl_certificate_key` du fichier copié correspondent aux fichiers générés (par défaut `C:\laragon\etc\ssl\laragon.crt` et `laragon.key`).
+3. Générer le certificat HTTPS de `gmao.test` (le certificat joker `*.test` de Laragon est **refusé par Windows** : le nom doit figurer explicitement dans le certificat) :
+
+```powershell
+.\ops\laragon\new-certificate.ps1 -HostName gmao.test
+```
+
+   Le script crée `C:\GMAO\ssl\gmao.test.crt` et `gmao.test.key`, puis affiche la commande d'import à lancer dans un PowerShell **administrateur** :
+
+```powershell
+Import-Certificate -FilePath C:\GMAO\ssl\gmao.test.crt -CertStoreLocation Cert:\LocalMachine\Root
+```
 4. Tester la syntaxe puis recharger :
 
 ```powershell
@@ -180,7 +190,7 @@ Le fichier `gmao.test.conf` est dans le dépôt pour être versionné : toute ad
 Un navigateur d'un autre poste doit pouvoir résoudre `gmao.test` et faire confiance au certificat :
 
 - **Nom d'hôte** : un enregistrement DNS interne, ou à défaut une ligne dans le fichier `hosts` de chaque poste, vers l'adresse IP du serveur.
-- **Certificat** : le certificat de Laragon est signé par une autorité locale. Il faut installer son certificat racine sur chaque poste (magasin « Autorités de certification racines de confiance »), ou utiliser le certificat de l'autorité interne de l'entreprise.
+- **Certificat** : `gmao.test.crt` est auto-signé. Il faut l'importer sur chaque poste (magasin « Autorités de certification racines de confiance », commande `Import-Certificate` ci-dessus), ou utiliser le certificat de l'autorité interne de l'entreprise. Il expire à la date affichée par `new-certificate.ps1` (825 jours) : prévoir son renouvellement.
 - **Pare-feu** : ouvrir uniquement le port 443 (et 80 pour la redirection) vers le serveur. Les ports 8081 (API) et 3306 restent fermés au réseau.
 
 Pour changer le nom ou l'extension (`gmao.test` est la valeur par défaut de Laragon), cinq éléments sont à mettre à jour, sans toucher au code ni aux données :
