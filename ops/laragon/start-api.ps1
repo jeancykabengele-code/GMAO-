@@ -3,7 +3,8 @@ param(
     [string]$EnvFile = '',
     [string]$Python = '',
     [string]$Listen = '127.0.0.1:8081',
-    [int]$Threads = 8
+    [int]$Threads = 8,
+    [double]$WaitMinutes = 15
 )
 $ErrorActionPreference = 'Stop'
 $api = (Resolve-Path (Join-Path $PSScriptRoot '..\..\gmao')).Path
@@ -18,6 +19,17 @@ foreach ($line in Get-Content -LiteralPath $EnvFile -Encoding UTF8) {
     if (-not $text -or $text.StartsWith('#') -or -not $text.Contains('=')) { continue }
     $name, $value = $text.Split('=', 2)
     [Environment]::SetEnvironmentVariable($name.Trim(), $value.Trim(), 'Process')
+}
+
+# Après un redémarrage de Windows, MySQL (lancé par Laragon) peut démarrer après cette tâche :
+# attendre qu'il accepte les connexions au lieu d'échouer aussitôt.
+$dbHost = if ($env:AIVEN_MYSQL_HOST) { $env:AIVEN_MYSQL_HOST } else { '127.0.0.1' }
+$dbPort = if ($env:AIVEN_MYSQL_PORT) { [int]$env:AIVEN_MYSQL_PORT } else { 3306 }
+$deadline = (Get-Date).AddMinutes($WaitMinutes)
+while (-not (Test-NetConnection -ComputerName $dbHost -Port $dbPort -InformationLevel Quiet -WarningAction SilentlyContinue)) {
+    if ((Get-Date) -gt $deadline) { throw "MySQL ne répond pas sur ${dbHost}:${dbPort} après $WaitMinutes minutes." }
+    Write-Host "En attente de MySQL (${dbHost}:${dbPort})..."
+    Start-Sleep -Seconds 10
 }
 
 Set-Location $api
