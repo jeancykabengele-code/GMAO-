@@ -65,7 +65,7 @@ MySQL ne doit écouter que sur la machine (`bind-address=127.0.0.1`, valeur par 
 
 ```powershell
 cd C:\GMAO\GMAO-Web
-.\ops\laragon\install-api.ps1          # crée gmao\.venv avec le Python de Laragon
+.\ops\laragon\install-api.ps1          # crée gmao\.venv-laragon avec le Python de Laragon
 Copy-Item .\ops\laragon\gmao.env.example .\gmao\.env.laragon
 notepad .\gmao\.env.laragon            # remplacer chaque <...>
 ```
@@ -235,7 +235,7 @@ Avant une mise à jour importante, lancer une sauvegarde manuelle (`ops\laragon\
 
 ```powershell
 cd gmao
-$env:DJANGO_DEBUG='true'; .\.venv\Scripts\python.exe manage.py test profiles login_guard
+$env:DJANGO_DEBUG='true'; .\.venv-laragon\Scripts\python.exe manage.py test profiles login_guard
 ```
 
 ## 13. Points d'attention connus

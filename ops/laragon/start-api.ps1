@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $api = (Resolve-Path (Join-Path $PSScriptRoot '..\..\gmao')).Path
 if (-not $EnvFile) { $EnvFile = Join-Path $api '.env.laragon' }
-if (-not $Python) { $Python = Join-Path $api '.venv\Scripts\python.exe' }
+if (-not $Python) { $Python = Join-Path $api '.venv-laragon\Scripts\python.exe' }
 if (-not (Test-Path $EnvFile)) { throw "Fichier de configuration introuvable : $EnvFile (copier ops\laragon\gmao.env.example)." }
 if (-not (Test-Path $Python)) { throw "Python introuvable : $Python (lancer ops\laragon\install-api.ps1)." }
 
