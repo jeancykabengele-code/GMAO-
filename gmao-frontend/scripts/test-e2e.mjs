@@ -151,6 +151,9 @@ try {
 
   await page.locator('select[name="resource"]').selectOption('equipements');
   await page.locator('button.primary', { hasText: 'Filtrer' }).click();
+  // La ligne « Onduleur E2E » est déjà affichée avant le filtre : il faut attendre que le tableau filtré
+  // remplace l'ancien, c'est-à-dire que les relevés RH disparaissent, avant de compter.
+  await rows.filter({ hasText: 'Relevés RH' }).first().waitFor({ state: 'detached' });
   await page.locator('app-change-history-page table tbody tr', { hasText: 'Onduleur E2E' }).waitFor();
   assert.equal(await rows.filter({ hasText: 'Relevés RH' }).count(), 0, 'Le filtre par type de fiche exclut les relevés RH');
 
