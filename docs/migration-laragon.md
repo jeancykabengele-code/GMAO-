@@ -95,29 +95,28 @@ Points importants du fichier `.env.laragon` :
 
 ## 4. Copier les données d'Aiven vers MySQL local
 
-Faire cette étape pour la **bascule finale**, après avoir demandé aux utilisateurs de cesser les saisies (ou en suspendant le service Render) :
+Faire cette étape pour la **bascule finale**, après avoir demandé aux utilisateurs de cesser les saisies (ou en suspendant le service Render). Aiven n'est jamais modifié : seul un export en lecture est effectué.
 
-1. Exporter depuis Aiven (le certificat CA téléchargé depuis la console Aiven est enregistré dans `C:\GMAO\aiven-ca.pem`) :
-
-```powershell
-$bin = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin'
-& "$bin\mysqldump.exe" -h <hote-aiven> -P <port-aiven> -u avnadmin -p `
-  --ssl-mode=VERIFY_CA --ssl-ca=C:\GMAO\aiven-ca.pem `
-  --single-transaction --no-tablespaces --set-gtid-purged=OFF `
-  --result-file=C:\GMAO\aiven.sql defaultdb
-```
-
-2. Importer dans la base locale vide :
+1. Télécharger le certificat CA depuis la console Aiven et l'enregistrer dans `C:\GMAO\aiven-ca.pem`.
+2. **Arrêter l'API locale** (le script refuse de s'exécuter tant qu'elle écoute sur le port 8081).
+3. Lancer le script, en indiquant l'hôte et le port d'Aiven (visibles dans la console) :
 
 ```powershell
-cmd /c "`"$bin\mysql.exe`" -u root -p gmao < C:\GMAO\aiven.sql"
+.\ops\laragon\import-from-aiven.ps1 -SourceHost <hote-aiven> -SourcePort <port-aiven>
 ```
 
-Cette copie conserve les comptes (mots de passe hachés), les profils, le journal d'audit et l'historique des migrations Django.
+Le script demande de taper `OUI`, puis le mot de passe d'Aiven (saisi à l'écran, jamais écrit en clair dans le dépôt). Il exécute quatre étapes :
 
-3. Vérifier les volumes avant d'aller plus loin : comparer, table par table, `SELECT COUNT(*)` côté Aiven et côté local (au minimum `user_profiles`, `gmao_equipements`, `gmao_tickets`, `gmao_releves_rh_ge`, `gmao_fuel_ge`, `gmao_pue`, `audit_log`).
+| Étape | Action |
+|---|---|
+| 1 | Export de la base source avec `mysqldump` (transaction unique, TLS vérifié) |
+| 2 | Retrait des `DEFINER` : l'utilisateur Aiven n'existe pas en local, les déclencheurs du journal d'audit seraient inutilisables |
+| 3 | Import dans la base locale `gmao` (**remplacée**) |
+| 4 | Comptage des lignes de chaque table, côté Aiven et côté local ; le script échoue si une table diffère |
 
-4. Le démarrage de l'API (section 5) applique ensuite les migrations manquantes et contrôle le schéma.
+Le fichier d'export, qui contient toutes les données, est supprimé à la fin. Les comptes (mots de passe hachés), les profils, le journal d'audit et l'historique des migrations Django sont conservés.
+
+4. Démarrer l'API (section 5) : elle applique les migrations manquantes et contrôle le schéma. **La migration `profiles.0007` supprime les anciennes lignes PUE mensuelles** si elles n'avaient pas déjà été converties : c'est voulu, la feuille PUE est désormais journalière.
 
 **Solution de repli** si `mysqldump` n'est pas utilisable : l'archive de **Administration → Sauvegardes** (réservée à l'Administrateur) contient un fichier JSON par table, qui se recharge avec `python manage.py loaddata`. Les mots de passe ne font volontairement pas partie de cet export : il faudra les réinitialiser un par un (`python manage.py reset_gmao_password --help`).
 
