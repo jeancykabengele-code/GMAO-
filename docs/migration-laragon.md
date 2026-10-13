@@ -59,7 +59,17 @@ FLUSH PRIVILEGES;
 
 Le mot de passe root modifié doit aussi être reporté dans Laragon (**Base de données → Changer le mot de passe root**) pour que ses outils continuent de fonctionner.
 
-MySQL ne doit écouter que sur la machine (`bind-address=127.0.0.1`, valeur par défaut de Laragon) et le pare-feu Windows ne doit pas ouvrir le port 3306.
+Deux réglages du fichier `C:\laragonin\mysql\mysql-8.4.3-winx64\my.ini`, section `[mysqld]`, sont nécessaires (puis redémarrer MySQL depuis Laragon) :
+
+```ini
+# Laragon n'en définit pas : sans cette ligne MySQL écoute sur toutes les interfaces.
+bind-address=127.0.0.1
+# MySQL 8.4 active le journal binaire ; la migration du journal d'audit crée des déclencheurs
+# (table en ajout seul) et échoue sans ce réglage : « (1419) You do not have the SUPER privilege ».
+log_bin_trust_function_creators=1
+```
+
+Le pare-feu Windows ne doit pas ouvrir le port 3306.
 
 ## 3. Installer et configurer l'API
 
