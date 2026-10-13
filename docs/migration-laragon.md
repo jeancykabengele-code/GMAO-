@@ -59,7 +59,7 @@ FLUSH PRIVILEGES;
 
 Le mot de passe root modifié doit aussi être reporté dans Laragon (**Base de données → Changer le mot de passe root**) pour que ses outils continuent de fonctionner.
 
-Deux réglages du fichier `C:\laragonin\mysql\mysql-8.4.3-winx64\my.ini`, section `[mysqld]`, sont nécessaires (puis redémarrer MySQL depuis Laragon) :
+Deux réglages du fichier `C:\laragon\bin\mysql\mysql-8.4.3-winx64\my.ini`, section `[mysqld]`, sont nécessaires (puis redémarrer MySQL depuis Laragon) :
 
 ```ini
 # Laragon n'en définit pas : sans cette ligne MySQL écoute sur toutes les interfaces.
