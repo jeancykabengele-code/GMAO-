@@ -603,6 +603,22 @@ Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-buil
 
 Chaque build de production génère `public/version.json` (horodatage), servi tel quel après déploiement. Le frontend le relit toutes les 5 minutes, ainsi qu’à chaque retour sur l’onglet, sans jamais recharger la page tout seul. Dès qu’il détecte un horodatage différent de celui chargé au démarrage, un bandeau orange fixe apparaît en haut de l’écran : « Nouvelle version disponible. » avec un bouton **Rafraîchir**. Rien ne se passe tant que l’utilisateur n’a pas cliqué, pour ne jamais interrompre une saisie en cours. Voir `gmao-frontend/src/app/shared/version-check.service.ts`.
 
+### Hébergement interne (Laragon) : nom et extension de l’application
+
+L’application hébergée avec Laragon est joignable par un nom d’hôte, `gmao.test` par défaut (`.test` est l’extension réservée aux essais, utilisée par défaut par Laragon). Ce nom n’est écrit dans aucun fichier de code : le changer, par exemple pour un nom imposé par l’entreprise, ne demande que de la configuration. Procédure complète : [docs/migration-laragon.md](docs/migration-laragon.md).
+
+| Où | Quoi | Rebuild ou redémarrage |
+| --- | --- | --- |
+| `hosts` ou DNS interne | Le nouveau nom pointe vers le serveur | Aucun |
+| `gmao.test.conf` (Nginx) | `server_name` | Rechargement de Nginx |
+| `gmao\.env.laragon` | `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS` | Redémarrage de l’API |
+| Commande de build | `-ApiUrl https://<nouveau-nom>` | Nouveau build du frontend, car l’adresse de l’API est incluse dans les fichiers générés |
+| Certificat HTTPS | Régénéré pour le nouveau nom | Rechargement de Nginx |
+
+- Le code, la base de données et les données ne changent pas ; la durée est d’une dizaine de minutes.
+- Avec `.test`, le certificat HTTPS est généré automatiquement par Laragon. Avec un nom d’entreprise, il faut un certificat émis par l’autorité interne ou un certificat public.
+- Les utilisateurs doivent utiliser la nouvelle adresse et se reconnecter une fois : la session est liée à l’adresse.
+
 ## Dépannage
 
 ### L’enregistrement réussit mais la feuille reste visible

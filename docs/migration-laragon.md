@@ -172,7 +172,17 @@ Un navigateur d'un autre poste doit pouvoir résoudre `gmao.test` et faire confi
 - **Certificat** : le certificat de Laragon est signé par une autorité locale. Il faut installer son certificat racine sur chaque poste (magasin « Autorités de certification racines de confiance »), ou utiliser le certificat de l'autorité interne de l'entreprise.
 - **Pare-feu** : ouvrir uniquement le port 443 (et 80 pour la redirection) vers le serveur. Les ports 8080 et 3306 restent fermés au réseau.
 
-Si le domaine doit être un nom interne différent (par exemple `gmao.entreprise.local`), le remplacer à la fois dans `gmao\.env.laragon` (`DJANGO_ALLOWED_HOSTS`, `FRONTEND_ORIGINS`), dans `gmao.test.conf` et dans la commande de build (`-ApiUrl`).
+Pour changer le nom ou l'extension (`gmao.test` est la valeur par défaut de Laragon), cinq éléments sont à mettre à jour, sans toucher au code ni aux données :
+
+| Où | Quoi | Rebuild ou redémarrage |
+|---|---|---|
+| `hosts` ou DNS interne | Le nouveau nom pointe vers le serveur | Aucun |
+| `gmao.test.conf` (Nginx) | `server_name` | Rechargement de Nginx |
+| `gmao\.env.laragon` | `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS` | Redémarrage de l'API |
+| Commande de build | `-ApiUrl https://<nouveau-nom>` | Nouveau build du frontend |
+| Certificat HTTPS | Régénéré pour le nouveau nom | Rechargement de Nginx |
+
+Les utilisateurs doivent ensuite utiliser la nouvelle adresse et se reconnecter une fois.
 
 ## 9. Démarrage automatique de l'API
 
