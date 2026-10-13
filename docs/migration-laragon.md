@@ -239,7 +239,13 @@ Register-ScheduledTask -TaskName 'GMAO sauvegarde' -Action $action -Trigger $tri
 ```
 
 - Une archive `gmao-AAAAMMJJTHHMMSS.zip` est créée dans `C:\GMAO\backups` ; celles de plus de 30 jours sont supprimées.
-- **Copier ces archives hors du serveur** (partage réseau, disque externe) : une sauvegarde sur le même disque ne protège pas d'une panne du serveur.
+- **Copier ces archives hors du serveur** (partage réseau, disque externe) : une sauvegarde sur le même disque ne protège pas d'une panne du serveur. Le script le fait seul avec `-CopyTo` (copie vérifiée par la taille, rotation identique, erreur signalée si l'emplacement est injoignable) :
+
+```powershell
+.\ops\laragon\backup-mysql.ps1 -CopyTo '\\serveur-fichiers\sauvegardes\gmao'
+```
+
+  Pour la tâche planifiée, ajouter `-CopyTo '<emplacement>'` à la fin de l'argument `-File "...backup-mysql.ps1"`. Un partage réseau doit être accessible au compte qui exécute la tâche (SYSTEM n'a pas d'accès réseau authentifié : utiliser alors un compte de service dédié).
 - **Tester la restauration** au moins une fois par trimestre sur une base vide : `cmd /c "mysql.exe -u root -p gmao_test < gmao.sql"`.
 - L'export JSON de l'administration reste disponible en complément.
 

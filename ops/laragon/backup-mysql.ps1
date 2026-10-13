@@ -8,7 +8,8 @@ param(
     [string]$OutDir = 'C:\GMAO\backups',
     [int]$KeepDays = 30,
     [string]$MysqlBin = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin',
-    [string]$SecretsFile = 'C:\GMAO\.secrets\mysql.txt'
+    [string]$SecretsFile = 'C:\GMAO\.secrets\mysql.txt',
+    [string]$CopyTo = ''
 )
 $ErrorActionPreference = 'Stop'
 $password = $env:GMAO_BACKUP_DB_PASSWORD
@@ -38,3 +39,21 @@ Get-ChildItem -LiteralPath $OutDir -Filter 'gmao-*.zip' |
     Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$KeepDays) } |
     Remove-Item -Force
 Write-Host "Sauvegarde créée : $zip"
+
+# Copie vers un second emplacement (autre disque, disque externe, partage réseau).
+if ($CopyTo) {
+    try {
+        New-Item -ItemType Directory -Force -Path $CopyTo | Out-Null
+        $copy = Join-Path $CopyTo (Split-Path $zip -Leaf)
+        Copy-Item -LiteralPath $zip -Destination $copy -Force
+        if ((Get-Item -LiteralPath $copy).Length -ne (Get-Item -LiteralPath $zip).Length) { throw 'Taille différente après copie.' }
+        Get-ChildItem -LiteralPath $CopyTo -Filter 'gmao-*.zip' |
+            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$KeepDays) } |
+            Remove-Item -Force
+        Write-Host "Copie vérifiée : $copy"
+    } catch {
+        # La sauvegarde principale existe : l'échec de la copie est signalé par le code de sortie.
+        Write-Error "Copie vers $CopyTo impossible : $($_.Exception.Message)"
+        exit 2
+    }
+}
