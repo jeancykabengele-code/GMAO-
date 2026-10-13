@@ -24,6 +24,7 @@ Les chemins ci-dessous correspondent à l'installation constatée : Laragon dans
 - Le dépôt cloné, par exemple dans `C:\GMAO\GMAO-Web`.
 - Les accès actuels : mot de passe et certificat CA d'Aiven (pour copier les données), URL de l'application actuelle.
 - Une période de **gel des saisies** pour la bascule finale (section 4).
+- Les ports **80 et 443 libres** : le Nginx de Laragon en a besoin. Sous Windows, IIS (service `W3SVC`) et le service `http` les occupent souvent, ce qui fait échouer Nginx avec « bind() to 0.0.0.0:80 failed (10013) ». Vérifier avec `Get-NetTCPConnection -State Listen | Where-Object LocalPort -in 80,443`. Si IIS n'est pas utilisé, l'arrêter (`Stop-Service W3SVC` puis désactiver son démarrage automatique). S'il doit rester, faire écouter Nginx sur d'autres ports (par exemple 8443) : l'adresse devient alors `https://gmao.test:8443`, à reporter dans `ServerName`/`-ApiUrl`/`FRONTEND_ORIGINS`.
 
 ## 1. Préparer Laragon
 
