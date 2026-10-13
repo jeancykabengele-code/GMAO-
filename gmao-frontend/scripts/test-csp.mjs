@@ -3,10 +3,12 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { chromium } from 'playwright';
+import { readCspPolicy } from './csp-policy.mjs';
 
-const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
-const policy = config.headers.flatMap(rule => rule.headers).find(header => header.key === 'Content-Security-Policy').value;
-const api = 'https://gmao-ordc-api.onrender.com';
+// L'API simulée est une origine distincte du serveur de test : la politique de production (connect-src 'self',
+// API sur la même origine) est étendue à cette seule origine pour le test.
+const api = 'https://gmao.test';
+const policy = (await readCspPolicy()).replace("connect-src 'self'", `connect-src 'self' ${api}`);
 const tokenKey = 'gmao-local-access-token';
 const profile = { id: 'csp-test-user', email: 'csp@example.invalid', fullName: 'Test CSP', role: 'manager', site: null, active: true,
   permissions: { globalScope: true, viewDashboard: true, viewDocumentation: true, createRecords: false, modifyExisting: true, deleteRecords: true, manageUsers: true, viewAuditLog: true, allowedSites: ['Goma'] } };
@@ -23,7 +25,7 @@ let apiCalls = 0;
 try {
   let base = process.env.CSP_TEST_BASE_URL;
   if (!base) {
-    // Serve the real production build with the exact Vercel policy.
+    // Serve the real production build with the production policy (ops/laragon/gmao.test.conf).
     server = createServer(async (request, response) => {
       try {
         const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);

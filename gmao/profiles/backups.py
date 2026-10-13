@@ -108,7 +108,7 @@ def backup_export(request):
 @never_cache
 @require_POST
 def scheduled_backup_export(request):
-    """Sauvegarde hebdomadaire déclenchée par un workflow GitHub Actions planifié.
+    """Sauvegarde déclenchée par une tâche planifiée avec un jeton dédié.
 
     Authentifiée par un jeton dédié (jamais une session utilisateur) car il
     n'y a personne pour se connecter un dimanche à 3h du matin.

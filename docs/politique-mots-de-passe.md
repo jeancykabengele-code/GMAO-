@@ -11,7 +11,7 @@ Le contrôle Pwned Passwords calcule SHA-1 localement uniquement pour le protoco
 
 Les anciens hachages sont stockés dans `gmao_password_history`. Ils ne permettent pas de retrouver le mot de passe et sont supprimés au-delà des cinq dernières valeurs. Les comptes existants continuent à se connecter avec leur mot de passe actuel ; la nouvelle politique s’applique au prochain changement ou à la prochaine réinitialisation.
 
-`GMAO_PWNED_PASSWORD_CHECK=true` est explicite sur Render. Le développement local peut conserver `false` pour fonctionner hors ligne. Ne pas désactiver ce contrôle en production pour contourner une panne : diagnostiquer la sortie HTTPS vers `api.pwnedpasswords.com` et réessayer.
+`GMAO_PWNED_PASSWORD_CHECK=true` est explicite sur un serveur connecté à Internet ; un serveur isolé le désactive (`false`) et s'appuie sur les autres règles. Le développement local peut conserver `false` pour fonctionner hors ligne. Ne pas désactiver ce contrôle en production pour contourner une panne : diagnostiquer la sortie HTTPS vers `api.pwnedpasswords.com` et réessayer.
 
 Référence : [API officielle Pwned Passwords](https://haveibeenpwned.com/API/v3#PwnedPasswords).
 

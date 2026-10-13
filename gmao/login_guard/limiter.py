@@ -17,38 +17,11 @@ WINDOW_SECONDS = 15 * 60
 PAIR_LIMIT = 5
 IP_LIMIT = 50
 
-# A public client must not be able to choose the rate-limit bucket. The edge
-# header is accepted only when the TCP peer is the platform proxy: loopback,
-# a private hop, or a published Cloudflare range.
-_TRUSTED_PROXY_NETWORKS = tuple(ip_network(cidr) for cidr in (
-    "127.0.0.0/8",
-    "::1/128",
-    "10.0.0.0/8",
-    "172.16.0.0/12",
-    "192.168.0.0/16",
-    "173.245.48.0/20",
-    "103.21.244.0/22",
-    "103.22.200.0/22",
-    "103.31.4.0/22",
-    "141.101.64.0/18",
-    "108.162.192.0/18",
-    "190.93.240.0/20",
-    "188.114.96.0/20",
-    "197.234.240.0/22",
-    "198.41.128.0/17",
-    "162.158.0.0/15",
-    "104.16.0.0/13",
-    "104.24.0.0/14",
-    "172.64.0.0/13",
-    "131.0.72.0/22",
-    "2400:cb00::/32",
-    "2606:4700::/32",
-    "2803:f800::/32",
-    "2405:b500::/32",
-    "2405:8100::/32",
-    "2a06:98c0::/29",
-    "2c0f:f248::/32",
-))
+# A client must not be able to choose its rate-limit bucket. X-Real-IP, which Nginx
+# overwrites with the TCP peer address, is accepted only when the connection itself comes
+# from a trusted proxy (GMAO_TRUSTED_PROXIES, by default this machine).
+def _trusted_proxy_networks():
+    return tuple(ip_network(value, strict=False) for value in settings.GMAO_TRUSTED_PROXIES)
 
 
 def _is_trusted_proxy(value: str) -> bool:
@@ -58,16 +31,16 @@ def _is_trusted_proxy(value: str) -> bool:
         return False
     if address.version == 6 and address.ipv4_mapped:
         address = address.ipv4_mapped
-    return any(address in network for network in _TRUSTED_PROXY_NETWORKS)
+    return any(address in network for network in _trusted_proxy_networks())
 
 
 def client_address(request):
-    # Never trust client-supplied X-Forwarded-For. On Render, CF-Connecting-IP
-    # is the client address only when the socket peer is the platform proxy.
+    # Never trust client-supplied X-Forwarded-For: only X-Real-IP, set by our own
+    # proxy, and only when the socket peer is that proxy.
     remote = request.META.get("REMOTE_ADDR", "")
     value = remote
-    if settings.GMAO_LOGIN_TRUST_RENDER_PROXY and _is_trusted_proxy(remote):
-        value = request.headers.get("CF-Connecting-IP", "")
+    if _is_trusted_proxy(remote):
+        value = request.headers.get("X-Real-IP", "")
     try:
         address = ip_address(value)
         if address.version == 6 and address.ipv4_mapped:

@@ -1,87 +1,94 @@
-# Déploiement GitHub, Vercel, Render et Aiven MySQL
+# Exploitation et mises à jour de GMAO
 
-> Pour héberger l'application en interne (Laragon, sans service en ligne), suivre le guide [docs/migration-laragon.md](docs/migration-laragon.md).
+GMAO est hébergée sur un serveur de l'entreprise (Laragon sous Windows) : aucun service en ligne n'est nécessaire à son fonctionnement. **GitHub** héberge uniquement le code source et la CI.
 
-L’application GMAO utilise un seul dépôt GitHub :
+| Élément | Rôle | Emplacement |
+|---|---|---|
+| `gmao-frontend/` | Interface Angular, fichiers statiques servis par Nginx | `C:\GMAO\web` |
+| `gmao/` | API Django, servie par waitress sur `127.0.0.1:8081` | `.venv-laragon`, tâche planifiée `GMAO API` |
+| MySQL 8.4 (Laragon) | Base de données `gmao`, écoute sur `127.0.0.1` uniquement | `C:\laragon\data` |
+| Nginx (Laragon) | HTTPS, interface, proxy de `/api/` et `/health` vers l'API | `ops\laragon\gmao.test.conf` |
+| Sauvegardes | Archive quotidienne de la base | `C:\GMAO\backups` (tâche `GMAO sauvegarde`) |
 
-- `gmao-frontend/` : interface Angular déployée sur Vercel ;
-- `gmao/` : API Django déployée sur Render ;
-- Aiven MySQL : base de données ;
-- Django : authentification locale, profils, rôles et sessions signées.
+L'installation complète, pas à pas, est décrite dans [docs/installation-serveur.md](docs/installation-serveur.md).
 
 ## Publier une évolution
 
 ```powershell
-cd C:\Users\JK\Projects\GMAO-Web
 git status
-git add .
+git add <fichiers>
 git commit -m "Description de la modification"
 git push origin main
 ```
 
-Le push sur `main` déclenche la CI et les intégrations de déploiement. Le blueprint Render demande `autoDeployTrigger: checksPass` : vérifier que le service existant utilise bien **After CI Checks Pass** dans ses paramètres, car une modification du fichier ne prouve pas à elle seule son application au service. Vercel exécute les tests Angular avant la compilation via `npm run vercel-build` ; tout échec empêche ce build d'être publié. Ce contrôle Vercel porte sur le frontend et ne remplace pas un verrou global dépendant aussi du backend.
+Le push sur `main` déclenche la **CI GitHub Actions** (tests Angular avec couverture, validation de la CSP dans Chromium, tests Django avec couverture, tests MySQL de migration et de concurrence, parcours de bout en bout). Elle ne publie rien : la mise en production est une action explicite sur le serveur (section suivante). Ne pas contourner un échec par une désactivation de tests.
 
-La disponibilité de la production est contrôlée toutes les dix minutes par le workflow **Disponibilité production**. Configurer le secret GitHub Actions `GMAO_HEALTH_TOKEN` pour inclure la sonde Aiven protégée et suivre la [procédure d’incident](docs/incident-disponibilite.md). Une surveillance ne supprime pas la mise en veille : avant une exploitation critique, remplacer les plans gratuits conformément aux options et coûts documentés dans cette procédure.
+Pour reproduire uniquement les tests : `npm run test:ci` depuis `gmao-frontend`, et `python manage.py test profiles login_guard` depuis `gmao`.
 
-La CI exécute la même commande frontend et conserve le rapport JUnit dans l'artefact **angular-test-results** pendant 14 jours, même si les tests échouent. Pour reproduire uniquement les tests : `npm run test:ci` depuis `gmao-frontend`. Ne pas contourner un échec par une désactivation de tests ou une publication manuelle.
+## Mettre à jour le serveur
 
-## Render — API Django
-
-Render lit `render.yaml` et construit `gmao/Dockerfile`. Dans **Environment**, définir `GMAO_DATABASE_ENGINE=mysql`, les variables `AIVEN_MYSQL_HOST`, `AIVEN_MYSQL_PORT`, `AIVEN_MYSQL_DATABASE`, `AIVEN_MYSQL_USER`, `AIVEN_MYSQL_PASSWORD`, `AIVEN_MYSQL_CA_PEM`, ainsi que `FRONTEND_ORIGINS=https://gmao-ordc.vercel.app`.
-
-Le contrôle automatique Render reste `/health`, public et indépendant de MySQL.
-
-Le debug Django est désactivé par défaut, même si `DJANGO_DEBUG` est omis. Conserver néanmoins `DJANGO_DEBUG=false` explicitement dans Render et une `DJANGO_SECRET_KEY` secrète propre à l'environnement. Sans clé configurée, le démarrage est refusé en mode sans debug. Le debug est activé uniquement par les lanceurs de développement local.
-
-Le diagnostic `/health/database` exige un secret dédié `GMAO_HEALTH_TOKEN` dans **Environment**. Le blueprint prévoit sa génération ; pour un service existant, vérifier sa présence et, si nécessaire, ajouter une valeur aléatoire d'au moins 32 octets avant de redéployer. Ne pas réutiliser `DJANGO_SECRET_KEY` ni un jeton utilisateur. Ne jamais placer ce secret dans Angular, une URL, le dépôt ou les journaux.
-
-Depuis un poste de supervision où le secret est chargé dans l'environnement :
+Sur le serveur, une fois la CI verte :
 
 ```powershell
-Invoke-RestMethod https://gmao-ordc-api.onrender.com/health
-Invoke-RestMethod https://gmao-ordc-api.onrender.com/health/database -Headers @{ Authorization = "Bearer $env:GMAO_HEALTH_TOKEN" }
+git pull origin main
+.\ops\laragon\build-frontend.ps1                         # interface (tests puis build, copie vers C:\GMAO\web)
+Stop-ScheduledTask 'GMAO API'; Start-ScheduledTask 'GMAO API'   # API : migrations et contrôle du schéma au démarrage
 ```
 
-Vérification après déploiement : `/health` répond HTTP 200 avec `status=UP`. `/health/database` sans jeton ou avec un mauvais jeton répond HTTP 401 ; avec le secret de supervision, il répond HTTP 200 avec `status=UP`, `database=UP` et `responseTimeMs`, ou HTTP 503 avec `status=DOWN` et `database=DOWN` si la connexion échoue. Aucun volume, nom de table ou détail SQL n'est retourné. Les réponses du diagnostic ne doivent pas être mises en cache. Si le secret est absent ou vide, ce diagnostic reste inaccessible (HTTP 401).
+Avant une mise à jour importante, lancer une sauvegarde manuelle : `.\ops\laragon\backup-mysql.ps1`.
 
-Cette sonde exécute uniquement `SELECT 1` : elle vérifie la connexion, pas la conformité du schéma ni la disponibilité de toutes les tables métier.
+## API Django
+
+- Variables d'environnement dans `gmao\.env.laragon` (ignoré par git, modèle : `ops\laragon\gmao.env.example`).
+- Base : `GMAO_DATABASE_ENGINE=mysql` et `GMAO_DB_HOST`, `GMAO_DB_PORT`, `GMAO_DB_NAME`, `GMAO_DB_USER`, `GMAO_DB_PASSWORD`. TLS est exigé par défaut (`GMAO_DB_CA_PATH` ou `GMAO_DB_CA_PEM`) ; `GMAO_MYSQL_SSL=false` n'est acceptable que pour un MySQL sur la même machine que l'API.
+- `FRONTEND_ORIGINS` et `DJANGO_ALLOWED_HOSTS` portent le nom d'hôte de l'application.
+- Le debug Django est désactivé par défaut. Conserver `DJANGO_DEBUG=false` et une `DJANGO_SECRET_KEY` secrète propre à l'installation : sans clé, le démarrage est refusé hors debug.
+- `/health` est public et indépendant de MySQL. `/health/database` exige le secret dédié `GMAO_HEALTH_TOKEN` (32 octets aléatoires au moins, distinct de `DJANGO_SECRET_KEY` et d'un jeton utilisateur, jamais placé dans Angular ni dans une URL).
+
+```powershell
+Invoke-RestMethod https://gmao.test/health
+Invoke-RestMethod https://gmao.test/health/database -Headers @{ Authorization = "Bearer $env:GMAO_HEALTH_TOKEN" }
+```
+
+`/health/database` répond HTTP 401 sans jeton ou avec un mauvais jeton, HTTP 200 (`status=UP`, `database=UP`, `responseTimeMs`) si la connexion fonctionne, HTTP 503 (`status=DOWN`) sinon. Aucun volume, nom de table ou détail SQL n'est retourné. La sonde exécute uniquement `SELECT 1` : elle vérifie la connexion, pas la conformité du schéma.
+
+Au démarrage, `start-api.ps1` attend MySQL, applique `python manage.py migrate --noinput`, exécute `python manage.py verify_business_schema` (16 tables métier, colonnes, clés primaires et contraintes uniques) puis `purge_login_buckets`. L'API ne démarre pas si une étape échoue.
 
 ## Protection des connexions
 
-`POST /api/auth/local/login` admet au maximum **5 échecs par couple IP/e-mail sur 15 minutes**, avec une attente minimale de **1, 2, 4 puis 8 secondes** entre les essais. Le sixième échec est bloqué jusqu'à la fin de la fenêtre initiale. Un second plafond de **50 échecs par IP sur 15 minutes**, tous e-mails confondus, limite la rotation des comptes. Une place est réservée avant la vérification du mot de passe, puis libérée si la connexion réussit : cinq ouvertures de session successives ne bloquent pas le compte. Les requêtes rejetées ne prolongent pas la fenêtre. Une déconnexion, un changement de mot de passe, une réinitialisation ou une désactivation invalide les jetons déjà émis.
+`POST /api/auth/local/login` admet au maximum **5 échecs par couple IP/e-mail sur 15 minutes**, avec une attente minimale de **1, 2, 4 puis 8 secondes** entre les essais. Le sixième échec est bloqué jusqu'à la fin de la fenêtre initiale. Un second plafond de **50 échecs par IP sur 15 minutes**, tous e-mails confondus, limite la rotation des comptes.
 
-Le refus retourne HTTP **429**, `Retry-After` et un message d'attente dans l'interface. Si le stockage des compteurs est indisponible, la connexion retourne **503** sans contourner la protection. Les blocages sont journalisés sans mot de passe, jeton, IP brute ni e-mail brut (identifiant HMAC pour corrélation). La base conserve uniquement les clés HMAC et les compteurs ; elle est partagée par tous les workers et instances utilisant la même base et la même clé Django.
+Le refus retourne HTTP **429**, `Retry-After` et un message d'attente dans l'interface. Si le stockage des compteurs est indisponible, la connexion retourne **503** sans contourner la protection. Les blocages sont journalisés sans mot de passe, jeton, IP brute ni e-mail brut (identifiant HMAC pour corrélation).
 
-Au démarrage Docker, `python manage.py migrate --noinput` applique toutes les migrations versionnées, puis `python manage.py verify_business_schema` contrôle les 16 tables métier, leurs colonnes, clés primaires et contraintes uniques. Gunicorn ne démarre pas si une migration ou ce contrôle échoue. Le lanceur local exécute les mêmes étapes. La migration initiale adopte les tables Aiven déjà présentes sans les recréer et crée uniquement celles qui manquent. La CI reproduit l'adoption et un retour arrière non destructif sur MySQL 8.4, sans identifiants Aiven. Voir [la procédure de migration et de rollback](docs/migrations-metier.md).
+L'adresse du client est lue dans l'en-tête `X-Real-IP`, **écrasé par Nginx**, uniquement lorsque la connexion TCP vient d'un proxy de confiance (`GMAO_TRUSTED_PROXIES`, par défaut `127.0.0.1,::1`). L'API n'écoute que sur `127.0.0.1` : elle n'est joignable que par Nginx. `X-Forwarded-For` est toujours ignoré.
 
-La [politique des mots de passe](docs/politique-mots-de-passe.md) impose 14 caractères, bloque les valeurs courantes ou compromises et conserve cinq anciens hachages pour empêcher leur réutilisation. Render active explicitement la vérification anonymisée Pwned Passwords avec `GMAO_PWNED_PASSWORD_CHECK=true`.
+`python manage.py purge_login_buckets` supprime uniquement les fenêtres de plus de 24 heures ; il est exécuté à chaque démarrage de l'API. Une modification de `DJANGO_SECRET_KEY` change les clés HMAC et redémarre les quotas.
 
-La [gestion des utilisateurs](docs/gestion-utilisateurs.md) est réservée au rôle Administrateur par la permission serveur `manageUsers`. Tant qu'aucun Administrateur actif n'existe, le Manager conserve provisoirement cet accès afin de créer le premier compte. Une réinitialisation exige le mot de passe actuel de l'Administrateur ; le masquage du lien et la garde Angular complètent le contrôle Django sans le remplacer.
+Vérification : utiliser un identifiant de test inexistant, respecter les attentes entre les cinq essais, puis vérifier HTTP 429 au sixième. Ne pas utiliser un compte réel.
 
-Le [journal d’audit](docs/journal-audit.md) est réservé à l'Administrateur. La migration `login_guard.0003_auditlog`, exécutée automatiquement au démarrage Render, crée la table append-only `audit_log` et ses déclencheurs d’immutabilité.
+La [politique des mots de passe](docs/politique-mots-de-passe.md) impose 14 caractères, bloque les valeurs courantes et conserve cinq anciens hachages pour empêcher leur réutilisation. Le contrôle des mots de passe compromis (`GMAO_PWNED_PASSWORD_CHECK`) interroge un service en ligne : il est désactivé sur un serveur sans accès Internet.
 
-La page **Sauvegardes** (même permission `manageUsers`) génère à la demande une archive ZIP de toutes les données métier, des sites, des comptes (hors mots de passe) et du journal d'audit, via `POST /api/backups/export`, téléchargée immédiatement par le navigateur. L'archive est construite en mémoire et jamais écrite sur le disque du conteneur (éphémère sur Render) ; chaque export est tracé dans le journal d'audit (action `backup_export`).
+La [gestion des utilisateurs](docs/gestion-utilisateurs.md) est réservée au rôle Administrateur par la permission serveur `manageUsers`. Le [journal d'audit](docs/journal-audit.md) est réservé à l'Administrateur ; la migration `login_guard.0003_auditlog` crée la table append-only `audit_log` et ses déclencheurs d'immutabilité (MySQL 8.4 exige `log_bin_trust_function_creators=1`, voir le guide d'installation).
 
-Le workflow GitHub Actions **Sauvegarde hebdomadaire** (`.github/workflows/backup.yml`) automatise cette même archive tous les dimanches à 3h UTC, sans intervention humaine : il appelle `POST /api/backups/scheduled-export`, protégé par un secret dédié `GMAO_BACKUP_TOKEN` (jamais une session utilisateur, distinct de `GMAO_HEALTH_TOKEN` et de `DJANGO_SECRET_KEY`), et conserve le résultat comme artefact du workflow pendant 90 jours (soit environ 12 sauvegardes glissantes). Configurer ce secret à la fois dans **Render > Environment** (le blueprint le génère automatiquement) et dans **GitHub > Settings > Secrets and variables > Actions**, avec la même valeur. Chaque exécution planifiée est également tracée dans le journal d'audit avec l'acteur `scheduled-backup`. Pour récupérer une sauvegarde : onglet **Actions** du dépôt, sélectionner une exécution du workflow, télécharger l'artefact correspondant. Un déclenchement manuel est possible via **Run workflow**.
+## Supervision
 
-Cette automatisation couvre un export applicatif complet et lisible (JSON par table), pas une sauvegarde native MySQL au niveau moteur ; pour une exploitation critique nécessitant un point de restauration binaire, s'appuyer en complément sur les sauvegardes managées d'Aiven.
+La tâche planifiée `GMAO santé` exécute `ops\laragon\check-health.ps1` toutes les 10 minutes : elle contrôle l'interface, `/health` et `/health/database`, ajoute une ligne à `C:\GMAO\health.log` et échoue (code 1) si une vérification est en défaut. La procédure en cas d'alerte est dans [docs/incident-disponibilite.md](docs/incident-disponibilite.md).
 
-Sur Render (`RENDER=true`, fourni par la plateforme), la source est l'en-tête `CF-Connecting-IP` seulement lorsque l'adresse TCP est le proxy : boucle locale, réseau privé, ou plage Cloudflare publiée. Une adresse publique qui envoie cet en-tête est comptée sur sa propre adresse, pas sur la valeur de l'en-tête. `X-Forwarded-For` est ignoré ; en local, seule `REMOTE_ADDR` est utilisée. Un en-tête absent ou invalide derrière un proxy de confiance partage le quota `unknown`. Les IPv6 sont regroupées par `/64`. Voir [les indications Render sur le proxy](https://render.com/articles/host-pocketbase-on-render).
+```powershell
+$action  = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\GMAO\GMAO-Web\ops\laragon\check-health.ps1"'
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 10)
+Register-ScheduledTask -TaskName 'GMAO santé' -Action $action -Trigger $trigger -User 'SYSTEM' -RunLevel Highest -Force
+```
 
-`python manage.py purge_login_buckets` supprime uniquement les fenêtres de plus de 24 heures. Cette purge est exécutée au démarrage Docker ; la planifier aussi quotidiennement sur l'environnement d'exploitation pour éviter l'accumulation entre deux déploiements. Une modification de `DJANGO_SECRET_KEY` change les clés HMAC et redémarre les quotas.
+## Sauvegardes
 
-Vérification en production : utiliser un identifiant de test inexistant, respecter les attentes entre les cinq essais, puis vérifier HTTP 429 au sixième. Ne pas utiliser un compte réel. En cas de retour arrière du code, conserver la nouvelle table : l'ancien code l'ignore et les données métier restent intactes. Un retour arrière désactive cette protection tant que le correctif n'est pas rétabli.
+- **Quotidienne** : `ops\laragon\backup-mysql.ps1` (tâche `GMAO sauvegarde`, 2h00) produit une archive ZIP compressée de la base, avec rotation de 30 jours et copie facultative vers un second emplacement (`-CopyTo`).
+- **À la demande** : la page **Sauvegardes** (permission `manageUsers`) génère une archive ZIP lisible (JSON par table : données métier, sites, comptes hors mots de passe, journal d'audit) via `POST /api/backups/export`, construite en mémoire et téléchargée immédiatement.
+- Restaurer : importer le `.sql` de l'archive quotidienne dans une base vide (`mysql.exe -u root -p gmao_test < gmao.sql`). Tester la restauration au moins une fois par trimestre.
 
-## Vercel — frontend Angular
+## Interface Angular
 
-1. Connecter le dépôt `Projet_Reporting_DC`.
-2. Régler **Root Directory** sur `gmao-frontend`.
-3. Utiliser `npm run vercel-build`.
-4. Définir uniquement `GMAO_API_URL=https://gmao-ordc-api.onrender.com`.
-
-Le dossier de sortie est `dist/gmao-frontend/browser`.
-
-Vercel applique la CSP définie dans `gmao-frontend/vercel.json`. La CI vérifie le build dans Chromium avec cette politique et une API simulée. Les jetons persistants existants sont supprimés et les utilisateurs concernés doivent se reconnecter ; les nouvelles sessions sont limitées au stockage de l'onglet. La migration vers les cookies HttpOnly reste distincte. Voir [la politique, les limites et la procédure de test navigateur](gmao-frontend/docs/security-browser.md).
+`ops\laragon\build-frontend.ps1 -ApiUrl https://gmao.test` construit la version de production, dont `GMAO_API_URL` est la seule variable. La politique de sécurité du contenu (CSP) est appliquée par Nginx (`ops\laragon\gmao.test.conf`) ; la CI la vérifie dans Chromium avec une API simulée. Les sessions sont limitées au stockage de l'onglet.
 
 ## Vérification finale
 
@@ -89,3 +96,4 @@ Vercel applique la CSP définie dans `gmao-frontend/vercel.json`. La CI vérifie
 - Lecture des équipements, PUE et GE.
 - Vérification des rôles Administrateur, Manager, Chargé des opérations et Chef de site.
 - Contrôle de `/health/database` après chaque changement de base.
+- Une sauvegarde créée, copiée hors du serveur, et restaurée sur une base de test.

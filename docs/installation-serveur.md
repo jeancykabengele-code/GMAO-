@@ -1,13 +1,13 @@
-# Migration vers Laragon (hébergement interne)
+# Installation sur un serveur (Laragon)
 
-Ce guide remplace les services en ligne par une installation sur un serveur de l'entreprise :
+GMAO s'exécute sur un serveur de l'entreprise, sans service en ligne. **GitHub** héberge uniquement le code source et la CI.
 
-| Avant | Après (Laragon) |
+| Composant | Rôle |
 |---|---|
-| Vercel (interface Angular) | Nginx de Laragon, fichiers statiques dans `C:\GMAO\web` |
-| Render (API Django, gunicorn) | Django servi par **waitress** (gunicorn ne fonctionne pas sous Windows) |
-| Aiven MySQL | MySQL 8.4 de Laragon, sur la même machine |
-| GitHub Actions (sauvegarde, supervision) | Tâches planifiées Windows |
+| Nginx (Laragon) | Sert l'interface Angular (fichiers statiques dans `C:\GMAO\web`) et transmet `/api/` et `/health` à l'API |
+| API Django (waitress) | Authentification, rôles, permissions et données métier, sur `127.0.0.1:8081` |
+| MySQL 8.4 (Laragon) | Base de données `gmao`, sur la même machine |
+| Tâches planifiées Windows | Démarrage de l'API, sauvegardes, supervision |
 
 Tout passe par **un seul nom d'hôte** (`https://gmao.test` dans ce guide) : Nginx sert l'interface et transmet `/api/` et `/health` à l'API. L'interface et l'API partagent la même origine, il n'y a donc pas de réglage CORS particulier.
 
@@ -22,7 +22,7 @@ Les chemins ci-dessous correspondent à l'installation constatée : Laragon dans
 
 - Un poste ou serveur Windows qui reste allumé, avec Laragon, Git et Node.js (Laragon fournit Node et Python).
 - Le dépôt cloné, par exemple dans `C:\GMAO\GMAO-Web`.
-- Les accès actuels : mot de passe et certificat CA d'Aiven (pour copier les données), URL de l'application actuelle.
+- Le dépôt GitHub cloné, par exemple dans `C:\GMAO\GMAO-Web`.
 - Une période de **gel des saisies** pour la bascule finale (section 4).
 - Les ports **80 et 443 libres** : le Nginx de Laragon en a besoin. Sous Windows, IIS (service `W3SVC`) et le service `http` les occupent souvent, ce qui fait échouer Nginx avec « bind() to 0.0.0.0:80 failed (10013) ». Vérifier avec `Get-NetTCPConnection -State Listen | Where-Object LocalPort -in 80,443`. Si IIS n'est pas utilisé, l'arrêter (`Stop-Service W3SVC` puis désactiver son démarrage automatique). S'il doit rester, faire écouter Nginx sur d'autres ports (par exemple 8443) : l'adresse devient alors `https://gmao.test:8443`, à reporter dans `ServerName`/`-ApiUrl`/`FRONTEND_ORIGINS`.
 
@@ -89,36 +89,38 @@ C:\laragon\bin\python\python-3.13\python.exe -c "import secrets; print(secrets.t
 Points importants du fichier `.env.laragon` :
 
 - `GMAO_MYSQL_SSL=false` : MySQL est sur la même machine, sans TLS. Cette valeur n'est à utiliser que dans ce cas ; hors de ce cas, laisser TLS actif avec un certificat CA.
-- Les variables `AIVEN_MYSQL_*` gardent leur nom historique, mais pointent vers `127.0.0.1` et l'utilisateur `gmao_app`.
+- Les variables `GMAO_DB_*` pointent vers `127.0.0.1` et l'utilisateur `gmao_app`.
 - `GMAO_PWNED_PASSWORD_CHECK=false` : ce contrôle interroge un service en ligne. Les autres règles de mot de passe (14 caractères minimum, valeurs courantes, historique) restent actives.
 - Ce fichier est ignoré par git et ne doit jamais être commité.
 
-## 4. Copier les données d'Aiven vers MySQL local
+## 4. Reprendre des données existantes (facultatif)
 
-Faire cette étape pour la **bascule finale**, après avoir demandé aux utilisateurs de cesser les saisies (ou en suspendant le service Render). Aiven n'est jamais modifié : seul un export en lecture est effectué.
+Une nouvelle installation démarre avec une base vide : l'API crée le schéma au premier démarrage (section 5). Pour reprendre les données d'un autre serveur MySQL ou d'une sauvegarde :
 
-1. Télécharger le certificat CA depuis la console Aiven et l'enregistrer dans `C:\GMAO\aiven-ca.pem`.
-2. **Arrêter l'API locale** (le script refuse de s'exécuter tant qu'elle écoute sur le port 8081).
-3. Lancer le script, en indiquant l'hôte et le port d'Aiven (visibles dans la console) :
+1. **Arrêter l'API** : `Stop-ScheduledTask 'GMAO API'`.
+2. **Exporter la source** avec `mysqldump` (transaction unique, sans verrou) ou utiliser une archive `gmao-*.zip` créée par `backup-mysql.ps1` :
 
 ```powershell
-.\ops\laragon\import-from-aiven.ps1 -SourceHost <hote-aiven> -SourcePort <port-aiven>
+$bin = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin'
+& "$bin\mysqldump.exe" -h <hote> -P <port> -u <utilisateur> -p --single-transaction --no-tablespaces --set-gtid-purged=OFF --result-file=C:\GMAO\source.sql <base>
 ```
 
-Le script demande de taper `OUI`, puis le mot de passe d'Aiven (saisi à l'écran, jamais écrit en clair dans le dépôt). Il exécute quatre étapes :
+3. **Retirer les `DEFINER`** d'un autre serveur : les déclencheurs du journal d'audit référencent sinon un utilisateur absent en local.
 
-| Étape | Action |
-|---|---|
-| 1 | Export de la base source avec `mysqldump` (transaction unique, TLS vérifié) |
-| 2 | Retrait des `DEFINER` : l'utilisateur Aiven n'existe pas en local, les déclencheurs du journal d'audit seraient inutilisables |
-| 3 | Import dans la base locale `gmao` (**remplacée**) |
-| 4 | Comptage des lignes de chaque table, côté Aiven et côté local ; le script échoue si une table diffère |
+```powershell
+$sql = [IO.File]::ReadAllText('C:\GMAO\source.sql')
+$sql = $sql -replace '/\*!50017 DEFINER=`[^`]+`@`[^`]*`\*/', ''
+[IO.File]::WriteAllText('C:\GMAO\source.sql', $sql, (New-Object Text.UTF8Encoding $false))
+```
 
-Le fichier d'export, qui contient toutes les données, est supprimé à la fin. Les comptes (mots de passe hachés), les profils, le journal d'audit et l'historique des migrations Django sont conservés.
+4. **Importer** dans la base locale (le mot de passe est celui de `MYSQL_ROOT_PASSWORD` dans `C:\GMAO\.secrets\mysql.txt`) :
 
-4. Démarrer l'API (section 5) : elle applique les migrations manquantes et contrôle le schéma. **La migration `profiles.0007` supprime les anciennes lignes PUE mensuelles** si elles n'avaient pas déjà été converties : c'est voulu, la feuille PUE est désormais journalière.
+```powershell
+cmd /c "`"$bin\mysql.exe`" -u root -p --default-character-set=utf8mb4 gmao < C:\GMAO\source.sql"
+```
 
-**Solution de repli** si `mysqldump` n'est pas utilisable : l'archive de **Administration → Sauvegardes** (réservée à l'Administrateur) contient un fichier JSON par table, qui se recharge avec `python manage.py loaddata`. Les mots de passe ne font volontairement pas partie de cet export : il faudra les réinitialiser un par un (`python manage.py reset_gmao_password --help`).
+5. **Comparer les volumes** : `SELECT COUNT(*)` table par table, source et cible, doivent être identiques (au minimum `user_profiles`, `gmao_equipements`, `gmao_tickets`, `gmao_releves_rh_ge`, `gmao_fuel_ge`, `audit_log`).
+6. **Supprimer le fichier d'export** (il contient toutes les données) puis démarrer l'API : elle applique les migrations manquantes et contrôle le schéma.
 
 ## 5. Démarrer l'API
 
@@ -251,7 +253,7 @@ Register-ScheduledTask -TaskName 'GMAO sauvegarde' -Action $action -Trigger $tri
 
 ## 11. Supervision
 
-Le workflow GitHub « Disponibilité production » interroge l'adresse Render : il doit être désactivé. En remplacement, une tâche planifiée peut appeler `https://gmao.test/health` toutes les 10 minutes et alerter en cas d'échec.
+La tâche planifiée `GMAO santé` (`ops\laragon\check-health.ps1`) contrôle toutes les 10 minutes l'interface, `/health` et `/health/database`, et journalise le résultat dans `C:\GMAO\health.log`. Sa mise en place et la procédure d'incident sont décrites dans [DEPLOIEMENT.md](../DEPLOIEMENT.md) et [incident-disponibilite.md](incident-disponibilite.md).
 
 ## 12. Mettre à jour l'application
 
@@ -271,23 +273,24 @@ $env:DJANGO_DEBUG='true'; .\.venv-laragon\Scripts\python.exe manage.py test prof
 
 ## 13. Points d'attention connus
 
-- **Adresse IP des connexions** : derrière Nginx, l'API voit `127.0.0.1` pour tous les postes. La limitation des essais de connexion (5 échecs par couple IP / e-mail sur 15 minutes) s'applique donc par adresse e-mail seulement. Un utilisateur qui se trompe cinq fois est temporairement bloqué, comme avant, mais sans distinction du poste d'origine.
-- **Plus de contrôle automatique à la publication** : Vercel et Render exécutaient la CI avant de publier. Ici, les tests ne tournent que si vous les lancez (le script de build les exécute par défaut).
+- **Pas de publication automatique** : la CI GitHub valide chaque modification, mais la mise en production est une action explicite sur le serveur (le script de build exécute les tests par défaut).
 - **Un seul serveur** : plus de redondance. Une panne du serveur ou du disque coupe l'application ; d'où l'importance des sauvegardes hors machine.
 - **Certificats** : prévoir leur renouvellement et la confiance sur les postes clients.
 - **Mises à jour de sécurité** : Windows, Laragon, Python, Node et les dépendances du projet ne se mettent plus à jour automatiquement.
 
-## 14. Retour arrière
+## 14. Retour arrière d'une mise à jour
 
-Pendant la période de validation, **ne pas supprimer** Render, Vercel et Aiven. Si un problème bloquant apparaît, les utilisateurs reprennent l'ancienne adresse. Les données saisies sur Laragon après la bascule ne reviennent pas toutes seules sur Aiven : décider avant la bascule de la durée de validation et de la façon de les rattraper (nouvel export puis import inverse).
+Avant chaque mise à jour importante, une sauvegarde manuelle est lancée (`ops\laragon\backup-mysql.ps1`). Si une version pose problème :
 
-Les services en ligne ne se résilient qu'après la période de validation, une sauvegarde finale d'Aiven archivée et une restauration locale testée.
+1. Revenir au commit précédent : `git checkout <commit>`.
+2. Reconstruire l'interface (`ops\laragon\build-frontend.ps1`) et redémarrer l'API.
+3. Les migrations Django ne se défont pas toutes seules : en cas de migration problématique, restaurer l'archive faite avant la mise à jour dans une base vide (section 4).
 
-## 15. Recette de la migration
+## 15. Recette de l'installation
 
 - [ ] `https://gmao.test/health` répond `UP` depuis le serveur et depuis un autre poste.
 - [ ] Connexion d'un Manager, d'un Chef de site et de l'Administrateur.
-- [ ] Les volumes de lignes correspondent à ceux d'Aiven.
+- [ ] Si des données ont été reprises (section 4), les volumes de lignes correspondent à ceux de la source.
 - [ ] Création d'un équipement, d'un relevé RH et d'un relevé PUE par un Chef de site ; ils apparaissent dans l'historique des modifications.
 - [ ] Notifications, export Excel et documentation fonctionnent.
 - [ ] Une sauvegarde est créée, copiée hors du serveur et restaurée avec succès sur une base de test.

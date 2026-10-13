@@ -11,32 +11,27 @@ La migration `profiles.0001_business_schema_state` enregistre l'état initial da
 - les colonnes historiques supplémentaires sont conservées ;
 - aucune ligne métier n'est lue, modifiée ou supprimée pendant l'adoption.
 
-Ce contrôle accepte les types historiques compatibles et les colonnes supplémentaires d'Aiven. Il bloque en revanche le démarrage si une colonne obligatoire, une clé primaire ou une contrainte unique attendue manque.
+Ce contrôle accepte les types historiques compatibles et les colonnes supplémentaires d'une base existante. Il bloque en revanche le démarrage si une colonne obligatoire, une clé primaire ou une contrainte unique attendue manque.
 
-Le conteneur exécute successivement :
+Le démarrage de l'API (`ops/laragon/start-api.ps1`) exécute successivement :
 
 ```text
 python manage.py migrate --noinput
 python manage.py verify_business_schema
 python manage.py purge_login_buckets
-gunicorn ...
+waitress ...
 ```
 
 L'API n'est donc publiée que si les migrations et le contrôle des 16 tables aboutissent.
 
 ## Import d'une sauvegarde
 
-`scripts/prepare_aiven_mysql.py` ne crée plus les tables. Il exige que `profiles.0002_adopt_business_schema` soit déjà enregistrée et importe uniquement les colonnes présentes dans le schéma versionné. L'ordre correct est :
-
-1. configurer une base vide ou une base contenant les tables à adopter ;
-2. exécuter `python manage.py migrate --noinput` ;
-3. exécuter `python manage.py verify_business_schema` ;
-4. lancer l'import si nécessaire.
+Une sauvegarde `mysqldump` (`ops/laragon/backup-mysql.ps1`) s'importe dans une base vide ou dans une base à adopter avec `mysql.exe`. Au démarrage suivant, l'API applique les migrations manquantes (`python manage.py migrate --noinput`) puis contrôle le schéma (`python manage.py verify_business_schema`).
 
 ## Retour arrière
 
 Les migrations initiales ont un rollback non destructif : `python manage.py migrate profiles zero` retire leur état de l'historique Django mais conserve les tables et les données. Une nouvelle exécution de `python manage.py migrate --noinput` les adopte de nouveau après validation.
 
-Pour revenir au code antérieur en production, redéployer le commit précédent. Les tables métier restent en place et ce code continue de les utiliser. Chaque future migration qui transforme des colonnes ou des données devra documenter et tester sa propre procédure inverse ; la garantie non destructive décrite ici concerne la migration initiale d'adoption.
+Pour revenir au code antérieur, rétablir le commit précédent (`git checkout`) puis redémarrer l'API. Les tables métier restent en place et ce code continue de les utiliser. Chaque future migration qui transforme des colonnes ou des données devra documenter et tester sa propre procédure inverse ; la garantie non destructive décrite ici concerne la migration initiale d'adoption.
 
 La CI utilise MySQL 8.4 pour tester le cycle complet : création ou adoption, contrôle du schéma, insertion d'une ligne témoin, rollback vers zéro, vérification de la conservation de cette ligne, puis réadoption.

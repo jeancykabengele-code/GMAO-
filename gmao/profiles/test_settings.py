@@ -45,8 +45,8 @@ class MysqlTlsConfigurationTests(SimpleTestCase):
     BASE = {
         "DJANGO_SECRET_KEY": TEST_SECRET,
         "GMAO_DATABASE_ENGINE": "mysql",
-        "AIVEN_MYSQL_HOST": "db.example.test",
-        "AIVEN_MYSQL_PASSWORD": "not-a-real-password",
+        "GMAO_DB_HOST": "db.example.test",
+        "GMAO_DB_PASSWORD": "not-a-real-password",
     }
 
     def load_settings(self, environment):
@@ -54,14 +54,14 @@ class MysqlTlsConfigurationTests(SimpleTestCase):
             return runpy.run_path(str(SETTINGS_PATH))
 
     def test_tls_and_a_ca_are_required_by_default(self):
-        with self.assertRaisesRegex(RuntimeError, "AIVEN_MYSQL_CA_PATH ou AIVEN_MYSQL_CA_PEM"):
+        with self.assertRaisesRegex(RuntimeError, "GMAO_DB_CA_PATH ou GMAO_DB_CA_PEM"):
             self.load_settings({})
 
     def test_a_ca_path_enables_certificate_verification(self):
-        options = self.load_settings({"AIVEN_MYSQL_CA_PATH": "ca.pem"})["DATABASES"]["default"]["OPTIONS"]
+        options = self.load_settings({"GMAO_DB_CA_PATH": "ca.pem"})["DATABASES"]["default"]["OPTIONS"]
         self.assertEqual(options["ssl"], {"ca": "ca.pem", "check_hostname": True})
 
     def test_local_mysql_can_explicitly_disable_tls(self):
-        database = self.load_settings({"GMAO_MYSQL_SSL": "false", "AIVEN_MYSQL_HOST": "127.0.0.1"})["DATABASES"]["default"]
+        database = self.load_settings({"GMAO_MYSQL_SSL": "false", "GMAO_DB_HOST": "127.0.0.1"})["DATABASES"]["default"]
         self.assertEqual(database["OPTIONS"], {"charset": "utf8mb4"})
         self.assertEqual(database["HOST"], "127.0.0.1")

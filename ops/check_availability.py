@@ -117,7 +117,7 @@ def write_summary(results: list[CheckResult], database_configured: bool) -> None
         lines.extend(
             [
                 "",
-                "> ⚠️ La sonde Aiven est inactive : ajouter le secret Actions `GMAO_HEALTH_TOKEN`.",
+                "> ⚠️ La sonde de base de données est inactive : fournir le jeton `GMAO_HEALTH_TOKEN`.",
             ]
         )
     with open(summary_path, "a", encoding="utf-8") as summary:

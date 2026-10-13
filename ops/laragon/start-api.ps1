@@ -23,8 +23,8 @@ foreach ($line in Get-Content -LiteralPath $EnvFile -Encoding UTF8) {
 
 # Après un redémarrage de Windows, MySQL (lancé par Laragon) peut démarrer après cette tâche :
 # attendre qu'il accepte les connexions au lieu d'échouer aussitôt.
-$dbHost = if ($env:AIVEN_MYSQL_HOST) { $env:AIVEN_MYSQL_HOST } else { '127.0.0.1' }
-$dbPort = if ($env:AIVEN_MYSQL_PORT) { [int]$env:AIVEN_MYSQL_PORT } else { 3306 }
+$dbHost = if ($env:GMAO_DB_HOST) { $env:GMAO_DB_HOST } else { '127.0.0.1' }
+$dbPort = if ($env:GMAO_DB_PORT) { [int]$env:GMAO_DB_PORT } else { 3306 }
 $deadline = (Get-Date).AddMinutes($WaitMinutes)
 while (-not (Test-NetConnection -ComputerName $dbHost -Port $dbPort -InformationLevel Quiet -WarningAction SilentlyContinue)) {
     if ((Get-Date) -gt $deadline) { throw "MySQL ne répond pas sur ${dbHost}:${dbPort} après $WaitMinutes minutes." }

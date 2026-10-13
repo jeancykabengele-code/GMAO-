@@ -10,6 +10,6 @@ if (-not (Test-Path $Python)) { throw "Python introuvable : $Python (indiquer -P
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 $venvPython = Join-Path $api '.venv-laragon\Scripts\python.exe'
 & $venvPython -m pip install --upgrade pip
-& $venvPython -m pip install -r (Join-Path $api 'requirements-laragon.txt')
+& $venvPython -m pip install -r (Join-Path $api 'requirements.txt')
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "API installée dans $api\.venv-laragon"

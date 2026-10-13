@@ -6,7 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "build:production": "node scripts/generate-environment.mjs && ng build --configuration production",
-    "vercel-build": "npm run test:ci && npm run build:production",
+    "build:release": "npm run test:ci && npm run build:production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:ci": "ng test --watch=false --reporters=junit --reporters=default --output-file=test-results/junit.xml",

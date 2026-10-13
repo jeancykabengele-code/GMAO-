@@ -1,4 +1,4 @@
-"""Isolated MySQL CI service, never the Aiven production configuration."""
+"""Isolated MySQL CI service, never the production database."""
 from .settings import *  # noqa: F403
 
 if os.environ.get("GMAO_MYSQL_TESTS") != "1":

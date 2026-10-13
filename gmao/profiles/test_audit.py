@@ -15,7 +15,7 @@ from .local_auth import LocalAuthenticationError
 from .views import local_login
 
 
-@override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=False)
+@override_settings(GMAO_TRUSTED_PROXIES=[])
 class AuditLogPersistenceTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory(REMOTE_ADDR="192.0.2.10")

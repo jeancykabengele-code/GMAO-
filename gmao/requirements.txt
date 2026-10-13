@@ -1,4 +1,7 @@
 Django>=6.0,<6.1
 PyMySQL>=1.1,<2
-gunicorn>=23,<24
 truststore>=0.10,<1
+# Serveur WSGI (Windows/Laragon) ; gunicorn ne fonctionne pas sous Windows.
+waitress>=3,<4
+# MySQL 8.4 utilise caching_sha2_password ; PyMySQL en a besoin hors TLS.
+cryptography>=43

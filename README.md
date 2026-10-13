@@ -2,18 +2,17 @@
 
 Plateforme web de reporting et de traçabilité des opérations sur les sites Data Center ORDC. Elle centralise les équipements, interventions, tickets, groupes électrogènes, carburant, PUE, problèmes Data Center, pièces de rechange et ravitaillements Fuel.
 
-> Guide pratique : [déploiement GitHub, Vercel et Render](DEPLOIEMENT.md). Hébergement interne sans service en ligne : [migration vers Laragon](docs/migration-laragon.md).
+> Guide pratique : [exploitation et mises à jour](DEPLOIEMENT.md) ; installation sur le serveur : [Laragon](docs/installation-serveur.md).
 
 ## Accès au projet
 
 | Environnement | Adresse |
 |---|---|
-| Application de production | [https://gmao-ordc.vercel.app](https://gmao-ordc.vercel.app) |
-| API de production | [https://gmao-ordc-api.onrender.com](https://gmao-ordc-api.onrender.com) |
-| Santé de l’API | [https://gmao-ordc-api.onrender.com/health](https://gmao-ordc-api.onrender.com/health) |
-| Dépôt GitHub | [Projet_Reporting_DC](https://github.com/jeancykabengele-code/Projet_Reporting_DC) |
+| Application | `https://gmao.test` (nom configurable, voir [DEPLOIEMENT.md](DEPLOIEMENT.md)) |
+| Santé de l’API | `https://gmao.test/health` |
+| Dépôt GitHub | [GMAO-](https://github.com/jeancykabengele-code/GMAO-) |
 
-> Le backend utilise actuellement une instance Render gratuite. Après une période d’inactivité, la première requête peut prendre environ 50 secondes ou davantage pendant le redémarrage du service.
+> L’application est hébergée sur un serveur de l’entreprise (Laragon) : aucun service en ligne n’est nécessaire à son fonctionnement.
 
 ## Sommaire
 
@@ -88,7 +87,7 @@ Les données sont reliées par le **site**, le **mois (`AAAA-MM`)** et, pour les
 3. **Ravitaillement Fuel** enregistre chaque livraison par **mois** et **numéro dans le mois** (1er à 5e ravitaillement), comme dans les rapports de terrain : aucune date n’est demandée. Sa quantité est additionnée automatiquement dans le mois concerné (un numéro non saisi compte pour 0) ; les stocks avant/après servent de contrôle physique de la livraison et ne remplacent pas les calculs Fuel-GE.
 4. **Fuel-GE** est la synthèse mensuelle du site : `stock final = stock initial + somme des ravitaillements − somme des consommations`. Il additionne également les heures de tous les groupes et calcule la moyenne `L/h`. Dès le deuxième mois, le stock initial reprend le stock final du mois précédent. Le premier mois d’un site sans aucune consommation n’exige pas de relevés RH ; dès qu’un mois plus ancien est ajouté, les mois suivants ont besoin d’un relevé antérieur pour leurs heures GE.
 
-Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans Aiven MySQL, puis l’interface est rafraîchie (journal Fuel-GE compris, car le serveur le recalcule).
+Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans MySQL, puis l’interface est rafraîchie (journal Fuel-GE compris, car le serveur le recalcule).
 
 **Suppression d’un relevé RH :** supprimer le dernier relevé d’un groupe supprime aussi sa fiche (dont le RH de la dernière PM), car la ligne de suivi n’existe plus. Supprimer un seul relevé parmi plusieurs resynchronise la fiche sur le dernier relevé restant. Une fiche sans aucun relevé (reliquat) n’est pas comptée au tableau de bord et est remplacée quand le groupe est recréé ; le formulaire « Renseigner un compteur » repart alors de zéro. **Mettre à jour** sur la ligne d’un mois corrige ce relevé : le Manager et le Chargé des opérations le font sur tous les sites, le Chef de site sur les relevés de son propre site ; choisir un autre mois crée un nouveau relevé. La suppression d’un relevé reste réservée au Manager et au Chargé des opérations.
 
@@ -100,7 +99,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
 - Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs ; le formulaire indique le relevé manquant et grise **Enregistrer** tant qu’il n’est pas saisi.
 - Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
-- La table correspondante a été migrée vers Aiven MySQL.
+- La table correspondante est gérée dans MySQL.
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site, par mois et par numéro de ravitaillement (1 à 5 par site et par mois, sans doublon). Les anciennes dates sont conservées en base mais ne sont plus affichées ni demandées ; l’API accepte encore une date pour en déduire le mois.
@@ -108,7 +107,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
 - Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
-- Le schéma et les données sont gérés dans Aiven MySQL par Django.
+- Le schéma et les données sont gérés dans MySQL par Django.
 
 ### PUE
 
@@ -207,11 +206,11 @@ flowchart LR
 | Frontend | Angular 22, TypeScript 6, RxJS, Bootstrap 5, icônes Solaris |
 | Authentification | Django locale, jetons signés |
 | Backend | Python 3.14, Django 6 |
-| Base de données | Aiven MySQL, SQLite pour le développement local |
+| Base de données | MySQL (Laragon), SQLite pour le développement local |
 | Excel XLSX | write-excel-file |
 | Tests frontend | Vitest |
-| Serveur de production | Gunicorn |
-| Conteneur et hébergement | Docker, Render |
+| Serveur de production | waitress, Nginx |
+| Hébergement | Laragon (Windows) |
 
 ## Charte visuelle Orange
 
@@ -259,7 +258,8 @@ Le backend reste l’autorité finale : masquer un bouton dans Angular ne rempla
 ```text
 GMAO-Web/
 ├── README.md
-├── render.yaml
+├── DEPLOIEMENT.md
+├── ops/                            # Scripts et configuration Laragon
 ├── gmao-frontend/
 │   ├── public/assets/orange/       # Polices Helvetica, Master Logo et icônes Solaris
 │   ├── public/images/              # Arrière-plans
@@ -277,7 +277,6 @@ GMAO-Web/
     ├── gmao_backend/               # Configuration et routes Django
     ├── profiles/                   # Authentification, modèles, API et permissions
     ├── scripts/                    # Scripts de contrôle/import
-    ├── Dockerfile
     ├── manage.py
     ├── requirements.txt
     └── start-django.ps1
@@ -357,12 +356,14 @@ La connexion est assurée par l’API Django ; le navigateur ne reçoit aucune c
 | `DJANGO_ALLOWED_HOSTS` | Hôtes autorisés | `localhost,127.0.0.1` |
 | `FRONTEND_ORIGINS` | Origines CORS autorisées | Ports Angular locaux |
 | `GMAO_DATABASE_ENGINE` | Moteur de production | `mysql` |
-| `AIVEN_MYSQL_HOST` | Hôte Aiven MySQL | Aucun |
-| `AIVEN_MYSQL_PORT` | Port Aiven MySQL | `27355` |
-| `AIVEN_MYSQL_DATABASE` | Base Aiven MySQL | `defaultdb` |
-| `AIVEN_MYSQL_USER` | Utilisateur Aiven | `avnadmin` |
-| `AIVEN_MYSQL_PASSWORD` | Mot de passe Aiven | Aucun |
-| `AIVEN_MYSQL_CA_PEM` | Certificat CA Aiven | Aucun |
+| `GMAO_DB_HOST` | Hôte MySQL | Aucun |
+| `GMAO_DB_PORT` | Port MySQL | `3306` |
+| `GMAO_DB_NAME` | Base MySQL | `gmao` |
+| `GMAO_DB_USER` | Utilisateur MySQL | `gmao_app` |
+| `GMAO_DB_PASSWORD` | Mot de passe MySQL | Aucun |
+| `GMAO_DB_CA_PATH` / `GMAO_DB_CA_PEM` | Certificat CA (TLS) | Aucun |
+| `GMAO_MYSQL_SSL` | `false` uniquement pour un MySQL sur la même machine | `true` |
+| `GMAO_TRUSTED_PROXIES` | Proxys autorisés à fournir `X-Real-IP` | `127.0.0.1,::1` |
 | `GMAO_LOCAL_TOKEN_MAX_AGE` | Durée de session locale en secondes | `43200` |
 | `GMAO_PWNED_PASSWORD_CHECK` | Contrôle anonymisé des mots de passe compromis | `true` hors debug ; `false` en développement local |
 | `GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS` | Délai maximal du contrôle de compromission | `3` |
@@ -370,7 +371,7 @@ La connexion est assurée par l’API Django ; le navigateur ne reçoit aucune c
 Sans `GMAO_DATABASE_ENGINE=mysql`, Django utilise SQLite uniquement pour le développement local.
 ## Base de données
 
-La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et écrivent les tables métier existantes ; aucune étape SQL manuelle ni service externe d’authentification n’est requis. La vérification Pwned Passwords intervient uniquement lors de la définition d’un nouveau mot de passe.
+La production utilise uniquement **MySQL** (Laragon, sur la même machine que l’API). Les modèles Django lisent et écrivent les tables métier existantes ; aucune étape SQL manuelle ni service externe d’authentification n’est requis. La vérification Pwned Passwords intervient uniquement lors de la définition d’un nouveau mot de passe.
 ### Tables principales
 
 - `user_profiles` : profil, rôle, site et état actif de l’utilisateur.
@@ -392,7 +393,7 @@ La production utilise uniquement **Aiven MySQL**. Les modèles Django lisent et 
 - `gmao_password_history` : cinq anciens hachages au maximum par profil, utilisés uniquement contre la réutilisation.
 - `audit_log` : journal append-only des événements de sécurité et des actions sensibles.
 
-Les 16 tables métier sont gérées par des migrations Django versionnées dans l’application `profiles`. La migration initiale adopte les tables Aiven existantes après validation du contrat structurel, sans modifier leurs lignes ; elle crée les tables uniquement sur une base neuve. Les tables techniques restent versionnées dans l’application `login_guard`. Le démarrage applique toutes les migrations puis vérifie le schéma complet. Voir [la procédure de migration et de rollback](docs/migrations-metier.md).
+Les 16 tables métier sont gérées par des migrations Django versionnées dans l’application `profiles`. La migration initiale adopte les tables existantes après validation du contrat structurel, sans modifier leurs lignes ; elle crée les tables uniquement sur une base neuve. Les tables techniques restent versionnées dans l’application `login_guard`. Le démarrage applique toutes les migrations puis vérifie le schéma complet. Voir [la procédure de migration et de rollback](docs/migrations-metier.md).
 
 ### Création d’un utilisateur
 
@@ -504,7 +505,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
 - Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs ; le formulaire indique le relevé manquant et grise **Enregistrer** tant qu’il n’est pas saisi.
 - Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
-- La table correspondante a été migrée vers Aiven MySQL.
+- La table correspondante est gérée dans MySQL.
 ### Ravitaillement Fuel
 
 - Enregistrement des livraisons entrantes de carburant par site, par mois et par numéro de ravitaillement (1 à 5 par site et par mois, sans doublon). Les anciennes dates sont conservées en base mais ne sont plus affichées ni demandées ; l’API accepte encore une date pour en déduire le mois.
@@ -512,7 +513,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 - Calcul automatique du stock après livraison et signalement des écarts.
 - Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
 - Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
-- Le schéma et les données sont gérés dans Aiven MySQL par Django.
+- Le schéma et les données sont gérés dans MySQL par Django.
 
 ### PUE
 
@@ -524,7 +525,7 @@ Le backend renvoie uniquement les données du site affecté lorsqu’un chef de 
 
 ### Sites
 
-Les libellés doivent correspondre exactement aux données Aiven MySQL, notamment `Mbuji mayi`, `MTC` et `New MTC`, car les filtres utilisent les noms des sites.
+Les libellés doivent correspondre exactement aux données MySQL, notamment `Mbuji mayi`, `MTC` et `New MTC`, car les filtres utilisent les noms des sites.
 
 Chaque site a un raccordement réseau SNEL configurable (case « Raccordé au réseau SNEL » dans **Administration → Gestion des sites**), plutôt qu'une liste de sites fixée dans le code. Un site décoché a sa disponibilité Grid fixée à 0 et son énergie SNEL non applicable en Fuel-GE ; Kikwit et Mbandaka sont hors réseau par défaut. Décocher ou recocher cette case recalcule automatiquement les journaux Fuel-GE du site concerné.
 
@@ -557,7 +558,7 @@ npm run test:e2e        # vrai backend Django + vrai navigateur (voir ci-dessous
 
 #### Test de bout en bout
 
-`npm run test:e2e` démarre un backend Django sur une base SQLite jetable (`gmao/scripts/seed_e2e.py`, qui refuse de s'exécuter sans `GMAO_SQLITE_PATH`), compile Angular vers ce backend, puis pilote Chromium : un chef de site saisit et corrige un relevé RH et crée un équipement, n'a pas accès à l'administration, et l'Administrateur retrouve l'ancienne et la nouvelle valeur dans **Administration → Historique des modifications**, sans qu'elles apparaissent dans le journal d'audit. Les comptes de test et leurs mots de passe sont générés à chaque exécution et ne sont jamais écrits dans le dépôt. Le test s'exécute aussi dans le job `e2e` de la CI ; le déploiement Render attend sa réussite.
+`npm run test:e2e` démarre un backend Django sur une base SQLite jetable (`gmao/scripts/seed_e2e.py`, qui refuse de s'exécuter sans `GMAO_SQLITE_PATH`), compile Angular vers ce backend, puis pilote Chromium : un chef de site saisit et corrige un relevé RH et crée un équipement, n'a pas accès à l'administration, et l'Administrateur retrouve l'ancienne et la nouvelle valeur dans **Administration → Historique des modifications**, sans qu'elles apparaissent dans le journal d'audit. Les comptes de test et leurs mots de passe sont générés à chaque exécution et ne sont jamais écrits dans le dépôt. Le test s'exécute aussi dans le job `e2e` de la CI ; la mise en production sur le serveur suit une CI verte.
 
 ### Backend
 
@@ -591,13 +592,12 @@ Avant une livraison, vérifier au minimum :
 
 ## Déploiement
 
-- Backend Render : `https://gmao-ordc-api.onrender.com`
-- Frontend Vercel : `https://gmao-ordc.vercel.app`
-- Branche de déploiement : `main`
+- Code source et CI : GitHub, branche `main`.
+- Serveur : Laragon (MySQL, Nginx), API servie par waitress sur `127.0.0.1:8081`.
 
-Render utilise Aiven MySQL avec les variables `AIVEN_MYSQL_*` et `AIVEN_MYSQL_CA_PEM`. Le contrôle public Render reste `/health`. Le diagnostic `GET /health/database` exige `Authorization: Bearer <GMAO_HEALTH_TOKEN>` et retourne `status=UP`, `database=UP` et `responseTimeMs` si la connexion fonctionne. Sans secret configuré ou avec un jeton incorrect, il retourne HTTP 401. Il ne vérifie pas le schéma et n'expose aucun volume de table ni détail SQL. Voir [la procédure de supervision](DEPLOIEMENT.md#render--api-django).
+Le diagnostic `GET /health/database` exige `Authorization: Bearer <GMAO_HEALTH_TOKEN>` et retourne `status=UP`, `database=UP` et `responseTimeMs` si la connexion fonctionne. Sans secret configuré ou avec un jeton incorrect, il retourne HTTP 401. Il ne vérifie pas le schéma et n’expose aucun volume de table ni détail SQL.
 
-Dans Vercel, la racine est `gmao-frontend`, la commande est `npm run vercel-build`, et la seule variable requise est `GMAO_API_URL=https://gmao-ordc-api.onrender.com`. Publier le déploiement en **Production**.
+L’installation, les mises à jour, les sauvegardes et la supervision sont décrites dans [DEPLOIEMENT.md](DEPLOIEMENT.md) et [docs/installation-serveur.md](docs/installation-serveur.md).
 
 ### Détection d’une nouvelle version
 
@@ -605,7 +605,7 @@ Chaque build de production génère `public/version.json` (horodatage), servi te
 
 ### Hébergement interne (Laragon) : nom et extension de l’application
 
-L’application hébergée avec Laragon est joignable par un nom d’hôte, `gmao.test` par défaut (`.test` est l’extension réservée aux essais, utilisée par défaut par Laragon). Ce nom n’est écrit dans aucun fichier de code : le changer, par exemple pour un nom imposé par l’entreprise, ne demande que de la configuration. Procédure complète : [docs/migration-laragon.md](docs/migration-laragon.md).
+L’application hébergée avec Laragon est joignable par un nom d’hôte, `gmao.test` par défaut (`.test` est l’extension réservée aux essais, utilisée par défaut par Laragon). Ce nom n’est écrit dans aucun fichier de code : le changer, par exemple pour un nom imposé par l’entreprise, ne demande que de la configuration. Procédure complète : [docs/installation-serveur.md](docs/installation-serveur.md).
 
 | Où | Quoi | Rebuild ou redémarrage |
 | --- | --- | --- |
@@ -631,9 +631,9 @@ L’application hébergée avec Laragon est joignable par un nom d’hôte, `gma
 ### Le premier enregistrement est très lent
 
 - Ouvrir d’abord /health.
-- Une instance Render gratuite peut être en veille et nécessiter un redémarrage à froid.
-- Tester ensuite `/health/database` avec le secret de supervision pour distinguer le réveil Render d’un problème Aiven MySQL.
-- Éviter de cliquer plusieurs fois sur **Enregistrer** pendant le réveil.
+- Vérifier que la tâche planifiée `GMAO API` est démarrée et que MySQL répond.
+- Tester ensuite `/health/database` avec le secret de supervision pour distinguer un problème de l’API d’un problème MySQL.
+- Éviter de cliquer plusieurs fois sur **Enregistrer** pendant l’attente.
 
 ### Le frontend ne charge aucune donnée
 
@@ -662,10 +662,10 @@ L’application hébergée avec Laragon est joignable par un nom d’hôte, `gma
 - Utiliser un rôle reconnu.
 - Affecter obligatoirement un site au rôle `chef_site`.
 
-### La base distante ne se connecte pas
+### La base ne se connecte pas
 
 
-- Vérifier dans Aiven que le service MySQL est `Running`, que son hôte est résolu et que le port fourni par Aiven est utilisé.
+- Vérifier que MySQL est démarré dans Laragon (port 3306) et que `GMAO_DB_HOST`, `GMAO_DB_PORT` et les identifiants de `gmao\.env.laragon` sont corrects.
 - Relancer `start-django.ps1` si l’identifiant chiffré local doit être recréé.
 
 ## Évolutions prévues
@@ -684,15 +684,15 @@ La réévaluation globale du projet a porté sur le code, les droits, la base de
 | Frontend Angular — build production | Réussi sans avertissement de budget |
 | Tests frontend | 48 tests réussis dans 14 fichiers |
 | Tests backend Django | 21 tests réussis, vérification Django sans problème |
-| API Render /health | HTTP 200, statut UP |
+| API /health | HTTP 200, statut UP |
 
-| Frontend Vercel | HTTP 200 |
+| Interface (Nginx) | HTTP 200 |
 | npm audit production | Aucune vulnérabilité détectée |
 | pip-audit | Aucune vulnérabilité connue détectée |
 
 ### Points à surveiller
 
-- Le plan Render gratuit peut provoquer un délai de réveil après inactivité.
+- Les sauvegardes quotidiennes restent sur le serveur tant qu’une copie hors machine n’est pas configurée (`-CopyTo`).
 - Les budgets Angular/SCSS sont dépassés sans bloquer le build ; une réduction des bundles reste recommandée.
 Les suppressions de sites et équipements utilisent une confirmation intégrée à l application, sans boîte de dialogue du navigateur.
 
@@ -700,14 +700,14 @@ Les suppressions de sites et équipements utilisent une confirmation intégrée 
 
 ## Sécurité
 
-- Ne jamais versionner le mot de passe Aiven MySQL, un jeton de session ou un fichier `.env`.
+- Ne jamais versionner le mot de passe MySQL, un jeton de session ou un fichier `.env`.
 
 - Utiliser HTTPS en production.
 - Désactiver `DJANGO_DEBUG` en production.
 - Restreindre `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS`.
 - Maintenir les contrôles d’autorisation côté Django, même si l’interface masque déjà les actions interdites.
 - Un compte créé par l'Administrateur, ou dont le mot de passe est réinitialisé par lui, doit obligatoirement en choisir un nouveau à la connexion suivante ; toute autre route API est bloquée (HTTP 403) tant que ce n'est pas fait.
-- Sauvegarder régulièrement la base Aiven MySQL et tester la restauration. La page **Sauvegardes** et le workflow GitHub Actions hebdomadaire couvrent un export applicatif complet, pas une sauvegarde native MySQL au niveau moteur.
+- Sauvegarder régulièrement la base MySQL et tester la restauration. La page **Sauvegardes** et la tâche planifiée quotidienne couvrent un export applicatif complet, pas une sauvegarde native MySQL au niveau moteur.
 
 ---
 
@@ -728,7 +728,7 @@ Les sites actifs sont utilisés automatiquement par les filtres, les formulaires
 
 **Sauvegardes**
 
-Depuis **Administration → Sauvegardes**, l'Administrateur génère à la demande une archive ZIP complète (données métier, sites, comptes hors mots de passe, journal d'audit), téléchargée immédiatement, sans rien conserver sur le serveur. La même archive est aussi générée automatiquement chaque dimanche à 3h UTC par un workflow GitHub Actions indépendant, conservée 90 jours comme artefact du workflow. Voir [DEPLOIEMENT.md](DEPLOIEMENT.md) pour la configuration du secret requis.
+Depuis **Administration → Sauvegardes**, l'Administrateur génère à la demande une archive ZIP complète (données métier, sites, comptes hors mots de passe, journal d'audit), téléchargée immédiatement, sans rien conserver sur le serveur. Une sauvegarde complète de la base est aussi créée chaque nuit par la tâche planifiée `GMAO sauvegarde`. Voir [DEPLOIEMENT.md](DEPLOIEMENT.md).
 
 Routes API protégées : les rôles métier globaux peuvent continuer à lire `GET /api/sites`, mais seuls les Administrateurs peuvent utiliser `POST /api/sites`, `PATCH /api/sites/<nom>` et `DELETE /api/sites/<nom>` après l'amorçage.
 

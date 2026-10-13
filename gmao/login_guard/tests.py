@@ -13,26 +13,23 @@ from .limiter import IP_LIMIT, PAIR_LIMIT, WINDOW_SECONDS, bucket_key, client_ad
 from .models import LoginBucket
 
 
-@override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=False)
+@override_settings(GMAO_TRUSTED_PROXIES=["127.0.0.1", "::1"])
 class ClientAddressTests(SimpleTestCase):
     def test_direct_requests_ignore_all_forwarded_headers(self):
-        request = RequestFactory().post("/", REMOTE_ADDR="192.0.2.10", HTTP_X_FORWARDED_FOR="192.0.2.20", HTTP_CF_CONNECTING_IP="192.0.2.30")
+        request = RequestFactory().post("/", REMOTE_ADDR="192.0.2.10", HTTP_X_FORWARDED_FOR="192.0.2.20", HTTP_X_REAL_IP="192.0.2.30")
         self.assertEqual(client_address(request), "192.0.2.10")
 
-    @override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=True)
-    def test_render_uses_edge_header_not_forwarded_for(self):
-        request = RequestFactory().post("/", REMOTE_ADDR="10.0.0.1", HTTP_CF_CONNECTING_IP="192.0.2.10", HTTP_X_FORWARDED_FOR="192.0.2.20")
+    def test_trusted_proxy_uses_real_ip_not_forwarded_for(self):
+        request = RequestFactory().post("/", REMOTE_ADDR="127.0.0.1", HTTP_X_REAL_IP="192.0.2.10", HTTP_X_FORWARDED_FOR="192.0.2.20")
         self.assertEqual(client_address(request), "192.0.2.10")
 
-    @override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=True)
-    def test_public_peer_cannot_choose_the_bucket_with_the_edge_header(self):
-        request = RequestFactory().post("/", REMOTE_ADDR="203.0.113.8", HTTP_CF_CONNECTING_IP="192.0.2.10")
+    def test_untrusted_peer_cannot_choose_the_bucket_with_real_ip(self):
+        request = RequestFactory().post("/", REMOTE_ADDR="203.0.113.8", HTTP_X_REAL_IP="192.0.2.10")
         self.assertEqual(client_address(request), "203.0.113.8")
 
-    @override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=True)
-    def test_missing_or_invalid_edge_header_cannot_bypass_limits(self):
+    def test_missing_or_invalid_real_ip_cannot_bypass_limits(self):
         for value in ("", "invalid", "192.0.2.1,192.0.2.2"):
-            request = RequestFactory().post("/", HTTP_CF_CONNECTING_IP=value)
+            request = RequestFactory().post("/", REMOTE_ADDR="127.0.0.1", HTTP_X_REAL_IP=value)
             self.assertEqual(client_address(request), "unknown")
 
     def test_ipv6_interface_rotation_shares_a_bucket(self):
@@ -43,7 +40,7 @@ class ClientAddressTests(SimpleTestCase):
         self.assertEqual(client_address(RequestFactory().post("/", REMOTE_ADDR="::ffff:192.0.2.1")), "192.0.2.1")
 
 
-@override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=False)
+@override_settings(GMAO_TRUSTED_PROXIES=[])
 class LoginLimiterTests(TestCase):
     def setUp(self):
         self.now = timezone.now()
@@ -195,7 +192,7 @@ class LoginLimiterTests(TestCase):
         self.assertEqual(LoginBucket.objects.count(), 2)
 
 
-@override_settings(GMAO_LOGIN_TRUST_RENDER_PROXY=False)
+@override_settings(GMAO_TRUSTED_PROXIES=[])
 class ConcurrentLoginTests(TransactionTestCase):
     @skipUnlessDBFeature("has_select_for_update")
     def test_concurrent_creation_does_not_lose_ip_attempts(self):

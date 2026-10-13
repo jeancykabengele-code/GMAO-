@@ -20,8 +20,6 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-development-only")
 if not DEBUG and SECRET_KEY == "django-insecure-development-only":
     raise RuntimeError("DJANGO_SECRET_KEY est requis lorsque DJANGO_DEBUG=false.")
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
-if render_hostname := os.getenv("RENDER_EXTERNAL_HOSTNAME"):
-    ALLOWED_HOSTS.append(render_hostname)
 
 INSTALLED_APPS = [
     "profiles",
@@ -43,26 +41,26 @@ ASGI_APPLICATION = "gmao_backend.asgi.application"
 
 if os.getenv("GMAO_DATABASE_ENGINE") == "mysql":
     mysql_options = {"charset": "utf8mb4"}
-    # TLS obligatoire par défaut (Aiven). Un MySQL local, sur la même machine que l'API
-    # (Laragon), se configure explicitement avec GMAO_MYSQL_SSL=false.
+    # TLS obligatoire par défaut. Un MySQL local, sur la même machine que l'API (Laragon),
+    # se configure explicitement avec GMAO_MYSQL_SSL=false.
     if env_bool("GMAO_MYSQL_SSL", True):
-        mysql_ca_path = os.getenv("AIVEN_MYSQL_CA_PATH")
-        mysql_ca_pem = os.getenv("AIVEN_MYSQL_CA_PEM")
+        mysql_ca_path = os.getenv("GMAO_DB_CA_PATH")
+        mysql_ca_pem = os.getenv("GMAO_DB_CA_PEM")
         if not mysql_ca_path and mysql_ca_pem:
-            ca_file = Path(gettempdir()) / "aiven-mysql-ca.pem"
+            ca_file = Path(gettempdir()) / "gmao-db-ca.pem"
             ca_file.write_text(mysql_ca_pem.replace("\\n", "\n"), encoding="utf-8")
             mysql_ca_path = str(ca_file)
         if not mysql_ca_path:
-            raise RuntimeError("AIVEN_MYSQL_CA_PATH ou AIVEN_MYSQL_CA_PEM est requis pour MySQL.")
+            raise RuntimeError("GMAO_DB_CA_PATH ou GMAO_DB_CA_PEM est requis pour MySQL.")
         mysql_options["ssl"] = {"ca": mysql_ca_path, "check_hostname": True}
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME": os.getenv("AIVEN_MYSQL_DATABASE", "defaultdb"),
-            "USER": os.getenv("AIVEN_MYSQL_USER", "avnadmin"),
-            "PASSWORD": os.environ["AIVEN_MYSQL_PASSWORD"],
-            "HOST": os.environ["AIVEN_MYSQL_HOST"],
-            "PORT": os.getenv("AIVEN_MYSQL_PORT", "3306"),
+            "NAME": os.getenv("GMAO_DB_NAME", "gmao"),
+            "USER": os.getenv("GMAO_DB_USER", "gmao_app"),
+            "PASSWORD": os.environ["GMAO_DB_PASSWORD"],
+            "HOST": os.environ["GMAO_DB_HOST"],
+            "PORT": os.getenv("GMAO_DB_PORT", "3306"),
             "CONN_MAX_AGE": 0,
             "OPTIONS": mysql_options,
         }
@@ -95,8 +93,9 @@ GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS = float(os.getenv("GMAO_PWNED_PASSWORD_TIMEO
 GMAO_HEALTH_TOKEN = os.getenv("GMAO_HEALTH_TOKEN", "").strip()
 # Dedicated secret for the scheduled backup job; an empty value disables it.
 GMAO_BACKUP_TOKEN = os.getenv("GMAO_BACKUP_TOKEN", "").strip()
-# Only Render's public Cloudflare ingress may supply the client address.
-GMAO_LOGIN_TRUST_RENDER_PROXY = env_bool("RENDER", False)
+# Reverse proxies allowed to supply the client address through X-Real-IP (Nginx on this machine).
+# The API itself must only be reachable through them (it listens on 127.0.0.1).
+GMAO_TRUSTED_PROXIES = env_list("GMAO_TRUSTED_PROXIES", "127.0.0.1,::1")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)

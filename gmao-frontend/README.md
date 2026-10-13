@@ -31,6 +31,6 @@ Bilan vérifié le 22 septembre 2026 : **49 tests réussis dans 14 suites** et c
 
 ## Déploiement
 
-La branche `main` déclenche le déploiement Vercel. La production est disponible sur [gmao-ordc.vercel.app](https://gmao-ordc.vercel.app).
+La branche `main` déclenche la CI GitHub Actions ; la publication se fait sur le serveur avec `ops/laragon/build-frontend.ps1`.
 
 Avant de publier, vérifier au minimum les écrans publics et les écrans métier desktop/mobile, les boutons, les formulaires, les alertes, les fenêtres, ainsi que les graphiques.

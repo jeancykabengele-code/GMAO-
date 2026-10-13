@@ -1,5 +1,0 @@
--r requirements.txt
-# gunicorn ne fonctionne pas sous Windows : waitress sert l'API Django.
-waitress>=3,<4
-# MySQL 8.4 (Laragon) utilise caching_sha2_password ; PyMySQL en a besoin hors TLS.
-cryptography>=43

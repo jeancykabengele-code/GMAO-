@@ -7,6 +7,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { extname, join, resolve, sep } from 'node:path';
 import { chromium } from 'playwright';
+import { readCspPolicy } from './csp-policy.mjs';
 
 // Parcours critique de bout en bout : vrai backend Django (SQLite jetable) + vrai build Angular + vrai navigateur.
 // Un chef de site saisit puis corrige un relevé RH et crée un équipement ; l'Administrateur retrouve l'ancienne et
@@ -24,9 +25,8 @@ const staticRoot = resolve(projectRoot, outputDirectory, 'browser');
 const tokenKey = 'gmao-local-access-token';
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.woff2': 'font/woff2' };
 
-const vercel = JSON.parse(await readFile(join(projectRoot, 'vercel.json'), 'utf8'));
-const policy = vercel.headers.flatMap(rule => rule.headers).find(header => header.key === 'Content-Security-Policy').value
-  .replaceAll('https://gmao-ordc-api.onrender.com', apiUrl);
+// Politique de production (Nginx) ; l'API de test écoute sur un autre port que l'interface.
+const policy = (await readCspPolicy()).replace("connect-src 'self'", `connect-src 'self' ${apiUrl}`);
 
 // Mots de passe jetables, générés à chaque exécution et jamais écrits dans le dépôt.
 const password = () => `E2e-${randomBytes(12).toString('hex')}`;

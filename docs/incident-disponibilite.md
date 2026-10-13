@@ -1,42 +1,42 @@
-# Disponibilité de production et procédure d’incident
+# Disponibilité et procédure d'incident
 
 ## Supervision
 
-Le workflow GitHub Actions **Disponibilité production** contrôle toutes les dix minutes :
+La tâche planifiée `GMAO santé` (`ops/laragon/check-health.ps1`) contrôle toutes les dix minutes :
 
-- le frontend Vercel, son code HTTP et la présence de la CSP attendue ;
-- l’API Render via `/health`, avec un seuil de réponse de 10 secondes ;
-- Aiven MySQL via `/health/database`, avec un seuil de 5 secondes, lorsque le secret Actions `GMAO_HEALTH_TOKEN` est configuré.
+- l'interface (`https://gmao.test/`), son code HTTP ;
+- l'API via `/health` ;
+- MySQL via `/health/database`, avec le secret `GMAO_HEALTH_TOKEN` du fichier `.env.laragon`.
 
-Une exécution rouge constitue une alerte. Activer les notifications GitHub Actions par e-mail pour les responsables d’exploitation. Le moniteur n’envoie jamais le jeton dans ses résultats et ne journalise ni réponse SQL ni donnée métier.
+Chaque exécution ajoute une ligne à `C:\GMAO\health.log` (`OK` ou `ECHEC` avec le détail). Une exécution en échec retourne le code 1 : elle apparaît comme tâche en erreur dans le Planificateur de tâches. Le script n'écrit jamais le jeton dans le journal.
 
-Pour activer la sonde Aiven, créer dans **GitHub > Settings > Secrets and variables > Actions** un secret `GMAO_HEALTH_TOKEN` ayant exactement la même valeur que le secret Render. Ne jamais copier cette valeur dans le dépôt. Une exécution manuelle doit ensuite afficher trois contrôles verts.
-
-Le workflow GitHub est une surveillance externe simple. Pour une exploitation contractuelle, dupliquer ces sondes dans un service de supervision indépendant disposant d’astreinte, d’escalade et d’un historique de SLA.
+Une seule machine héberge l'application : pour un engagement de disponibilité, doubler cette sonde par un contrôle externe au serveur (autre poste ou outil de supervision de l'entreprise).
 
 ## Seuils et niveaux
 
 | Niveau | Déclencheur | Première action attendue |
 |---|---|---|
-| SEV1 | Frontend ou API indisponible pendant deux contrôles, perte ou corruption possible de données | Prise en charge sous 15 minutes, gel des déploiements et information du responsable métier |
-| SEV2 | MySQL indisponible, réponse API supérieure à 10 s ou réponse MySQL supérieure à 5 s | Prise en charge sous 30 minutes et diagnostic Render/Aiven |
+| SEV1 | Interface ou API indisponible pendant deux contrôles, perte ou corruption possible de données | Prise en charge sous 15 minutes, gel des mises à jour et information des responsables |
+| SEV2 | MySQL indisponible, réponse API supérieure à 10 s ou réponse MySQL supérieure à 5 s | Prise en charge sous 30 minutes et diagnostic Laragon / MySQL |
 | SEV3 | Échec isolé revenu au vert au contrôle suivant | Documenter, surveiller et rechercher une répétition |
 
 ## Procédure
 
-1. Consulter l’exécution **Disponibilité production** et noter la cible, l’heure UTC, le code HTTP et la durée.
-2. Tester `https://gmao-ordc-api.onrender.com/health`. Une attente proche d’une minute sur un plan Free indique généralement un réveil Render.
-3. Tester `/health/database` avec le jeton de supervision. `401` indique une configuration du jeton ; `503` indique que Django répond mais que MySQL ne répond pas.
-4. Consulter les événements et journaux du dernier déploiement Render, puis l’état, les métriques, les journaux et les notifications du service Aiven.
-5. En cas de régression applicative, restaurer sur Render le dernier déploiement vert. Ne pas restaurer ou importer une base sans sauvegarde vérifiée et décision du responsable des données.
-6. Après rétablissement, lancer manuellement le workflow, vérifier les trois sondes, consigner la cause, la durée, l’impact, les actions et le suivi préventif.
+1. Consulter `C:\GMAO\health.log` : cible en défaut, heure, code HTTP et durée.
+2. Tester `https://gmao.test/health`. Pas de réponse : vérifier que Laragon est ouvert, que Nginx est démarré (ports 80 et 443) et que la session Windows est ouverte.
+3. Réponse `502` de Nginx : l'API est arrêtée. Redémarrer la tâche `GMAO API` (`Stop-ScheduledTask` puis `Start-ScheduledTask`).
+4. Tester `/health/database` avec le jeton. `401` indique une erreur de jeton ; `503` indique que Django répond mais que MySQL ne répond pas : vérifier MySQL dans Laragon et `C:\laragon\data\mysql-8.4\mysqld.log`.
+5. Journaux utiles : `C:\laragon\bin\nginx\nginx-1.30.4\logs\error.log` (Nginx), `C:\laragon\data\mysql-8.4\mysqld.log` (MySQL), Planificateur de tâches > Historique (API).
+6. En cas de régression applicative, revenir au commit précédent (`git checkout <commit>`), reconstruire l'interface (`ops/laragon/build-frontend.ps1`) et redémarrer l'API. Ne pas restaurer ou importer une base sans sauvegarde vérifiée et décision du responsable des données.
+7. Après rétablissement, relancer `check-health.ps1`, vérifier les trois sondes, consigner la cause, la durée, l'impact, les actions et le suivi préventif.
 
-## Plans requis avant remise en exploitation critique
+## Reprise après panne de la machine
 
-Au 26 septembre 2026, le plan Render Free met un service en veille après 15 minutes sans trafic et son réveil prend environ une minute. Le premier plan de calcul payant `0.5c-512mb` coûte 7 USD/mois et ne se met pas en veille. Le changement concerne le calcul du service, pas seulement le plan du workspace Render.
+1. Redémarrer Windows et ouvrir la session du compte d'exploitation : Laragon démarre MySQL et Nginx, puis la tâche `GMAO API` démarre l'API dès que MySQL répond.
+2. En cas de perte de la base, restaurer la dernière archive `C:\GMAO\backups\gmao-*.zip` (ou sa copie hors machine) dans une base vide, puis démarrer l'API pour appliquer les migrations manquantes.
 
-Aiven Free peut être arrêté après une absence d’activité continue et n’est couvert par aucun SLA. Les options actuelles sont notamment Developer à 5 USD/mois, Startup à partir de 75 USD/mois avec SLA 99,99 %, et Business à partir de 180 USD/mois avec un nœud de secours.
+## Points d'attention avant une exploitation critique
 
-Le minimum technique sans offre gratuite est donc Render `0.5c-512mb` + Aiven Developer, environ 12 USD/mois. Pour une application d’entreprise nécessitant un engagement de disponibilité, retenir au minimum Render payant + Aiven Startup, environ 82 USD/mois. Aiven Business est nécessaire si la base doit disposer d’un nœud de secours.
-
-Sources officielles : [limitations Render Free](https://render.com/docs/free), [plans de calcul Render](https://render.com/docs/compute-plans), [tarification Render](https://render.com/pricing), [limitations Aiven Free](https://aiven.io/docs/products/mysql/concepts/mysql-free-tier), [tarification Aiven MySQL](https://aiven.io/pricing/mysql) et [haute disponibilité Aiven](https://aiven.io/docs/products/mysql/concepts/high-availability).
+- **Un seul serveur** : aucune redondance. Prévoir un onduleur, des mises à jour de Windows planifiées et un second serveur de reprise si l'engagement de disponibilité l'exige.
+- **Sauvegardes hors machine** : activer `-CopyTo` (autre disque, disque externe ou partage réseau) et tester la restauration régulièrement.
+- **Certificat** : prévoir son renouvellement avant la date d'expiration affichée par `new-certificate.ps1`.
