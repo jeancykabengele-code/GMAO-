@@ -1,5 +1,7 @@
 # Déploiement GitHub, Vercel, Render et Aiven MySQL
 
+> Pour héberger l'application en interne (Laragon, sans service en ligne), suivre le guide [docs/migration-laragon.md](docs/migration-laragon.md).
+
 L’application GMAO utilise un seul dépôt GitHub :
 
 - `gmao-frontend/` : interface Angular déployée sur Vercel ;

@@ -2,7 +2,7 @@
 
 Plateforme web de reporting et de traçabilité des opérations sur les sites Data Center ORDC. Elle centralise les équipements, interventions, tickets, groupes électrogènes, carburant, PUE, problèmes Data Center, pièces de rechange et ravitaillements Fuel.
 
-> Guide pratique : [déploiement GitHub, Vercel et Render](DEPLOIEMENT.md).
+> Guide pratique : [déploiement GitHub, Vercel et Render](DEPLOIEMENT.md). Hébergement interne sans service en ligne : [migration vers Laragon](docs/migration-laragon.md).
 
 ## Accès au projet
 

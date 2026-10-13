@@ -42,14 +42,19 @@ WSGI_APPLICATION = "gmao_backend.wsgi.application"
 ASGI_APPLICATION = "gmao_backend.asgi.application"
 
 if os.getenv("GMAO_DATABASE_ENGINE") == "mysql":
-    mysql_ca_path = os.getenv("AIVEN_MYSQL_CA_PATH")
-    mysql_ca_pem = os.getenv("AIVEN_MYSQL_CA_PEM")
-    if not mysql_ca_path and mysql_ca_pem:
-        ca_file = Path(gettempdir()) / "aiven-mysql-ca.pem"
-        ca_file.write_text(mysql_ca_pem.replace("\\n", "\n"), encoding="utf-8")
-        mysql_ca_path = str(ca_file)
-    if not mysql_ca_path:
-        raise RuntimeError("AIVEN_MYSQL_CA_PATH ou AIVEN_MYSQL_CA_PEM est requis pour MySQL.")
+    mysql_options = {"charset": "utf8mb4"}
+    # TLS obligatoire par défaut (Aiven). Un MySQL local, sur la même machine que l'API
+    # (Laragon), se configure explicitement avec GMAO_MYSQL_SSL=false.
+    if env_bool("GMAO_MYSQL_SSL", True):
+        mysql_ca_path = os.getenv("AIVEN_MYSQL_CA_PATH")
+        mysql_ca_pem = os.getenv("AIVEN_MYSQL_CA_PEM")
+        if not mysql_ca_path and mysql_ca_pem:
+            ca_file = Path(gettempdir()) / "aiven-mysql-ca.pem"
+            ca_file.write_text(mysql_ca_pem.replace("\\n", "\n"), encoding="utf-8")
+            mysql_ca_path = str(ca_file)
+        if not mysql_ca_path:
+            raise RuntimeError("AIVEN_MYSQL_CA_PATH ou AIVEN_MYSQL_CA_PEM est requis pour MySQL.")
+        mysql_options["ssl"] = {"ca": mysql_ca_path, "check_hostname": True}
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
@@ -59,7 +64,7 @@ if os.getenv("GMAO_DATABASE_ENGINE") == "mysql":
             "HOST": os.environ["AIVEN_MYSQL_HOST"],
             "PORT": os.getenv("AIVEN_MYSQL_PORT", "3306"),
             "CONN_MAX_AGE": 0,
-            "OPTIONS": {"charset": "utf8mb4", "ssl": {"ca": mysql_ca_path, "check_hostname": True}},
+            "OPTIONS": mysql_options,
         }
     }
 else:
