@@ -116,7 +116,7 @@ Une création, une modification ou une suppression de relevé RH, consommation o
 - Le serveur fixe la date et l’heure du relevé (heure de Kinshasa) et refuse tout relevé incomplet ou déjà saisi ce jour-là ; il n’y a pas de plage horaire imposée.
 - Chaque ligne se saisit en kW lus, ou en ampères et volts (kW = V × A en DC ; kW = √3 × V × A × cos φ en AC triphasé, avec 400 V et cos φ = 0,9 par défaut). Les kW lus sont prioritaires et l’écart avec le calcul est affiché.
 - Calcul automatique : PUE du jour = (TGBT A + TGBT B) / (UPS A + UPS B + Redresseurs A + Redresseurs B). Les lignes PDF servent de contrôle.
-- La page filtre par période (du / au) : PUE de la période = somme des kW totaux / somme des kW IT des jours retenus (et non la moyenne des PUE du jour), jours retenus, jours manquants et courbe de tendance.
+- La page filtre par période (du / au) : PUE de la période = somme des kW totaux / somme des kW IT des jours retenus (et non la moyenne des PUE du jour), jours retenus, jours manquants et moyennes IT et total du site.
 
 ### Problèmes Data Center
 

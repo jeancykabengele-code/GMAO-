@@ -64,34 +64,6 @@
         </article>
       </div>
 
-      <figure class="trend">
-        <figcaption>Tendance du PUE du jour</figcaption>
-        @if (chartPoints.length) {
-          <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight" role="img" aria-label="Courbe du PUE journalier sur la période choisie">
-            @for (tick of chartTicks; track tick) {
-              <line [attr.x1]="chartLeft" [attr.x2]="chartRight" [attr.y1]="chartY(tick)" [attr.y2]="chartY(tick)" class="grid-line" />
-              <text [attr.x]="chartLeft - 8" [attr.y]="chartY(tick) + 4" class="axis-label" text-anchor="end">{{ tick | number:'1.1-1':'fr' }}</text>
-            }
-            <line [attr.x1]="chartLeft" [attr.x2]="chartRight" [attr.y1]="chartY(threshold)" [attr.y2]="chartY(threshold)" class="threshold-line" />
-            <text [attr.x]="chartRight" [attr.y]="chartY(threshold) - 5" class="threshold-label" text-anchor="end">Seuil 1,8</text>
-            @if (periodPue > 0) {
-              <line [attr.x1]="chartLeft" [attr.x2]="chartRight" [attr.y1]="chartY(periodPue)" [attr.y2]="chartY(periodPue)" class="period-line" />
-            }
-            <polyline [attr.points]="chartPolyline" class="trend-line" />
-            @for (point of chartPoints; track point.row.dateReleve) {
-              <circle [attr.cx]="point.x" [attr.cy]="point.y" r="3.5" class="trend-dot"><title>{{ formatDate(point.row.dateReleve) }} : {{ point.row.pue | number:'1.0-3':'fr' }}</title></circle>
-            }
-            <text [attr.x]="chartPoints[0].x" [attr.y]="chartHeight - 8" class="axis-label" text-anchor="start">{{ formatDate(chartPoints[0].row.dateReleve) }}</text>
-            @if (chartPoints.length > 1) {
-              <text [attr.x]="chartPoints[chartPoints.length - 1].x" [attr.y]="chartHeight - 8" class="axis-label" text-anchor="end">{{ formatDate(chartPoints[chartPoints.length - 1].row.dateReleve) }}</text>
-            }
-          </svg>
-          <p class="legend"><span class="legend-line daily"></span> PUE du jour <span class="legend-line period"></span> PUE de la période</p>
-        } @else {
-          <p class="empty-trend">Aucun relevé sur cette période.</p>
-        }
-      </figure>
-
       <div class="table-wrapper">
         <table [class.read-only-table]="!canModify">
           <thead>

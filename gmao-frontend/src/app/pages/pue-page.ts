@@ -113,37 +113,6 @@ export class PuePageComponent {
   get averageIt(): number { return this.average((row) => Number(row.itKw)); }
   get averageTotal(): number { return this.average((row) => Number(row.totalKw)); }
 
-  // Tendance : PUE du jour, du plus ancien au plus récent.
-  readonly chartWidth = 760;
-  readonly chartHeight = 240;
-  private readonly chartPad = { left: 44, right: 16, top: 16, bottom: 30 };
-  readonly chartMin = 1;
-  readonly chartMax = 3;
-
-  get trendRows(): PueRow[] { return [...this.filteredRows].reverse(); }
-
-  chartY(value: number): number {
-    const clamped = Math.min(this.chartMax, Math.max(this.chartMin, value));
-    const inner = this.chartHeight - this.chartPad.top - this.chartPad.bottom;
-    return this.chartPad.top + inner * (1 - (clamped - this.chartMin) / (this.chartMax - this.chartMin));
-  }
-
-  get chartPoints(): Array<{ x: number; y: number; row: PueRow }> {
-    const rows = this.trendRows;
-    const inner = this.chartWidth - this.chartPad.left - this.chartPad.right;
-    return rows.map((row, index) => ({
-      x: this.chartPad.left + (rows.length === 1 ? inner / 2 : (inner * index) / (rows.length - 1)),
-      y: this.chartY(Number(row.pue)),
-      row,
-    }));
-  }
-
-  get chartPolyline(): string { return this.chartPoints.map((point) => `${point.x},${point.y}`).join(' '); }
-  get chartLeft(): number { return this.chartPad.left; }
-  get chartRight(): number { return this.chartWidth - this.chartPad.right; }
-  get chartBottom(): number { return this.chartHeight - this.chartPad.bottom; }
-  readonly chartTicks = [1, 1.5, 2, 2.5, 3];
-
   // Aujourd'hui (heure de Kinshasa).
   get todayKey(): string { return kinshasaNow().date; }
   get todayRow(): PueRow | null { return this.pueRows.find((row) => row.dateReleve === this.todayKey) ?? null; }
