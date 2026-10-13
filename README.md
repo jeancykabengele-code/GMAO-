@@ -1,736 +1,363 @@
 # GMAO
 
-Plateforme web de reporting et de traçabilité des opérations sur les sites Data Center ORDC. Elle centralise les équipements, interventions, tickets, groupes électrogènes, carburant, PUE, problèmes Data Center, pièces de rechange et ravitaillements Fuel.
+Plateforme web de reporting et de traçabilité des opérations des sites Data Center ORDC : équipements, tickets, groupes électrogènes, carburant, PUE, incidents et pièces de rechange.
 
-> Guide pratique : [exploitation et mises à jour](DEPLOIEMENT.md) ; installation sur le serveur : [Laragon](docs/installation-serveur.md).
-
-## Accès au projet
-
-| Environnement | Adresse |
+| | |
 |---|---|
-| Application | `https://gmao.test` (nom configurable, voir [DEPLOIEMENT.md](DEPLOIEMENT.md)) |
-| Santé de l’API | `https://gmao.test/health` |
-| Dépôt GitHub | [GMAO-](https://github.com/jeancykabengele-code/GMAO-) |
-
-> L’application est hébergée sur un serveur de l’entreprise (Laragon) : aucun service en ligne n’est nécessaire à son fonctionnement.
-
-## Sommaire
-
-- [Accès au projet](#accès-au-projet)
-- [Fonctionnalités](#fonctionnalités)
-- [Architecture](#architecture)
-- [Technologies](#technologies)
-- [Charte visuelle Orange](#charte-visuelle-orange)
-- [Rôles et permissions](#rôles-et-permissions)
-- [Structure du dépôt](#structure-du-dépôt)
-- [Installation locale](#installation-locale)
-- [Configuration](#configuration)
-- [Base de données](#base-de-données)
-- [API](#api)
-- [Règles métier](#règles-métier)
-- [Tests et compilation](#tests-et-compilation)
-- [Déploiement](#déploiement)
-- [Dépannage](#dépannage)
-- [Évolutions prévues](#évolutions-prévues)
-- [Sécurité](#sécurité)
-- [Administration](#administration)
-
-## Fonctionnalités
-
-### Tableau de bord
-
-- Vue consolidée des indicateurs opérationnels.
-- Filtrage global par site et par période.
-- Synthèse des équipements, tickets, interventions, groupes électrogènes, Fuel-GE et PUE.
-- Accès réservé au Manager GMAO et au Chargé des opérations.
-
-### Équipements
-
-- Registre des actifs techniques par site.
-- Gestion du nom, de la famille, de la localisation, du modèle, de l’état et de la criticité.
-- Génération automatique d’un code de type `EQ-SITE-0001`.
-- Suppression possible uniquement pour les rôles globaux.
-
-### Gestion des tickets
-
-- Enregistrement et suivi des demandes ou incidents.
-- Association à un site, un équipement, un porteur, une entreprise et un motif.
-- Recherche, filtres et pagination.
-
-### Maintenance
-
-- Journal des interventions réalisées.
-- Suivi des groupes électrogènes et de leurs compteurs horaires.
-- Calcul automatique du nombre d’heures depuis la dernière maintenance préventive.
-- Détermination automatique de l’état de maintenance du groupe.
-
-### Fuel-GE
-
-- Le chef de site renseigne le site, le mois et le kWh SNEL lorsque le site est raccordé ; la consommation Fuel est calculée, elle n’est jamais saisie dans cette feuille.
-- Fuel-GE additionne automatiquement les consommations par groupe GE du site pour le mois sélectionné.
-- Le stock initial, les ravitaillements du mois, les heures GE, le stock final, les litres par heure et la disponibilité Grid sont calculés par Django.
-- Le stock de départ est le stock initial du **mois le plus ancien** du site ; il est saisi par le Chef de site, le Manager ou le Chargé des opérations. Ajouter un mois plus ancien que les journaux existants (2025, 2024…) en fait le nouveau mois de départ : les mois suivants reprennent alors son stock final. Le formulaire prévient quel mois sera remplacé.
-- Le stock initial du mois le plus ancien peut être corrigé (Manager ou Chargé des opérations) ; celui des autres mois reste calculé et en lecture seule.
-- Avant d’enregistrer, le formulaire liste par groupe les relevés RH présents ou manquants (✅ / ❌), signale les groupes sans consommation (sortie comptée à 0 L) et grise **Enregistrer** tant qu’un prérequis bloquant manque.
-- Toute modification d’un ravitaillement, d’un relevé RH GE ou d’un ancien journal recalcule les journaux Fuel-GE dépendants du même site.
-- Les champs calculés sont protégés : l’API refuse toute modification manuelle de ces valeurs.
-- Le Manager et le Chargé des opérations peuvent supprimer une ligne Fuel-GE depuis le formulaire de modification. Les mois suivants sont recalculés ; la suppression est refusée si elle rend un stock de départ incohérent.
-
-### Liaisons entre les feuilles Fuel et GE
-
-Les données sont reliées par le **site**, le **mois (`AAAA-MM`)** et, pour les relevés/consommations, le **code du groupe**. L’équipement enregistré dans **Équipements** est la source du code, du nom et du site des groupes électrogènes proposés dans **Suivi groupes électrogènes**.
-
-**Ordre de saisie conseillé pour un site :** fiche du groupe et relevés RH → ravitaillements → consommation par GE → Fuel-GE. Chaque feuille affiche une courte note de rappel et, quand un relevé RH manque, le formulaire indique lequel (groupe et mois) et bloque l’enregistrement au lieu de renvoyer une erreur.
-
-1. **Suivi groupes électrogènes** enregistre un relevé RH par groupe et par mois. Les heures d’un groupe sont calculées par `RH du mois − RH du relevé précédent`. Une référence de décembre permet donc de calculer les heures de janvier.
-2. **Consommation par groupe GE** reçoit les litres saisis pour le même groupe et le même mois. Elle reprend les heures calculées au point 1 et calcule `L/h = litres / heures`.
-3. **Ravitaillement Fuel** enregistre chaque livraison par **mois** et **numéro dans le mois** (1er à 5e ravitaillement), comme dans les rapports de terrain : aucune date n’est demandée. Sa quantité est additionnée automatiquement dans le mois concerné (un numéro non saisi compte pour 0) ; les stocks avant/après servent de contrôle physique de la livraison et ne remplacent pas les calculs Fuel-GE.
-4. **Fuel-GE** est la synthèse mensuelle du site : `stock final = stock initial + somme des ravitaillements − somme des consommations`. Il additionne également les heures de tous les groupes et calcule la moyenne `L/h`. Dès le deuxième mois, le stock initial reprend le stock final du mois précédent. Le premier mois d’un site sans aucune consommation n’exige pas de relevés RH ; dès qu’un mois plus ancien est ajouté, les mois suivants ont besoin d’un relevé antérieur pour leurs heures GE.
-
-Une création, une modification ou une suppression de relevé RH, consommation ou ravitaillement recalcule Fuel-GE du mois concerné et les mois suivants du site. Les modifications et suppressions effectuées par le Manager ou le Chargé des opérations passent par l’API Django : l’enregistrement est d’abord mis à jour ou supprimé dans MySQL, puis l’interface est rafraîchie (journal Fuel-GE compris, car le serveur le recalcule).
-
-**Suppression d’un relevé RH :** supprimer le dernier relevé d’un groupe supprime aussi sa fiche (dont le RH de la dernière PM), car la ligne de suivi n’existe plus. Supprimer un seul relevé parmi plusieurs resynchronise la fiche sur le dernier relevé restant. Une fiche sans aucun relevé (reliquat) n’est pas comptée au tableau de bord et est remplacée quand le groupe est recréé ; le formulaire « Renseigner un compteur » repart alors de zéro. **Mettre à jour** sur la ligne d’un mois corrige ce relevé : le Manager et le Chargé des opérations le font sur tous les sites, le Chef de site sur les relevés de son propre site ; choisir un autre mois crée un nouveau relevé. La suppression d’un relevé reste réservée au Manager et au Chargé des opérations.
-
-### Consommation par groupe GE
-
-- Suivi mensuel de la consommation Fuel de chaque groupe électrogène.
-- Une seule ligne est autorisée par combinaison **site + mois + groupe**.
-- Le chef de site saisit les litres consommés et un commentaire facultatif.
-- Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
-- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs ; le formulaire indique le relevé manquant et grise **Enregistrer** tant qu’il n’est pas saisi.
-- Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
-- La table correspondante est gérée dans MySQL.
-### Ravitaillement Fuel
-
-- Enregistrement des livraisons entrantes de carburant par site, par mois et par numéro de ravitaillement (1 à 5 par site et par mois, sans doublon). Les anciennes dates sont conservées en base mais ne sont plus affichées ni demandées ; l’API accepte encore une date pour en déduire le mois.
-- Les imports historiques peuvent conserver les stocks avant/après à « Non renseigné » lorsqu’ils ne sont pas disponibles.
-- Calcul automatique du stock après livraison et signalement des écarts.
-- Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
-- Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
-- Le schéma et les données sont gérés dans MySQL par Django.
-
-### PUE
-
-- Feuille propre au site Pigeon : un relevé complet par jour (21 équipements du schéma unifilaire : UPS, redresseurs, PDF AC et DC, climatisation, tertiaire, TGBT A et B), toutes les puissances en kW.
-- Le serveur fixe la date et l’heure du relevé (heure de Kinshasa) et refuse tout relevé incomplet ou déjà saisi ce jour-là ; il n’y a pas de plage horaire imposée.
-- Chaque ligne se saisit en kW lus, ou en ampères et volts (kW = V × A en DC ; kW = √3 × V × A × cos φ en AC triphasé, avec 400 V et cos φ = 0,9 par défaut). Les kW lus sont prioritaires et l’écart avec le calcul est affiché.
-- Calcul automatique : PUE du jour = (TGBT A + TGBT B) / (UPS A + UPS B + Redresseurs A + Redresseurs B). Les lignes PDF servent de contrôle.
-- La page filtre par période (du / au) : PUE de la période = somme des kW totaux / somme des kW IT des jours retenus (et non la moyenne des PUE du jour), jours retenus, jours manquants et moyennes IT et total du site.
-
-### Problèmes Data Center
-
-- Journal des constats techniques.
-- Suivi du statut, de la priorité, du responsable, de l’échéance, du besoin en pièces et de la prochaine étape.
-
-### Pièces de rechange
-
-- Journal des mouvements de pièces.
-- Liaison avec le ticket, l’équipement, l’agent et le statut de l’opération.
-
-
-### Gestion des utilisateurs depuis le back office
-
-- Seul l'Administrateur peut ouvrir **Administration → Gestion des utilisateurs** après l'amorçage du premier compte.
-- Le formulaire permet de saisir le nom complet, l’adresse e-mail, le rôle et le site du chef de site.
-
-- La désactivation conserve le compte et son historique ; elle est recommandée dès qu’un profil possède des données métier.
-
-### Modification des profils
-
-- Seul l'Administrateur peut modifier le nom complet, le rôle, le site associé et le statut actif/inactif des comptes.
-
-- Un chef de site doit toujours être associé à un site actif.
-- Un administrateur ne peut pas désactiver son propre compte depuis cette interface.
-- La désactivation conserve le profil, les fiches métier et l historique ; le backend refuse ensuite le chargement du profil à la connexion.
-
-### Suppression sécurisée des profils
-
-- Le bouton **Supprimer définitivement** ouvre une confirmation intégrée à l’application, sans boîte de dialogue du navigateur.
-- La suppression est refusée pour son propre compte, pour un profil encore affecté à un site, ou dès qu’une donnée métier a été créée ou modifiée par ce profil.
-- Dans ces cas, il faut désactiver le compte afin de conserver l’historique et empêcher toute nouvelle connexion.
-
-### Journal d’audit
-
-- Seul l'Administrateur peut ouvrir **Administration → Journal d’audit**.
-- Les connexions, échecs, changements et réinitialisations de mot de passe, opérations sur les comptes et suppressions sensibles y sont historisés.
-- Le journal affiche l’acteur, la date, l’adresse IP, la cible, le résultat et les changements utiles, sans mot de passe ni jeton.
-- La table et l’API sont append-only : aucune modification ou suppression d’un événement n’est exposée.
-
-
-### Documentation et exports Excel XLSX
-
-- Téléchargement de neuf registres complets au format Excel XLSX depuis la page **Documentations**.
-- Export des données filtrées depuis chaque feuille métier.
-- Classeur XLSX structuré avec une feuille nommée, des cellules typées et des colonnes ajustées.
-- Ajout du titre, de la date d’export, d’un en-tête figé et d’une mise en forme lisible.
-- Fonction réservée au Manager GMAO et au Chargé des opérations.
-
-### Formulaires de renseignement
-
-- L’enregistrement est transmis à l’API Django.
-- Après une réponse réussie, la feuille de saisie se ferme automatiquement et la liste locale est actualisée.
-- Si l’enregistrement échoue, la feuille reste ouverte afin de préserver les informations saisies.
-- Cette fermeture fiable est appliquée aux équipements, tickets, groupes électrogènes, Fuel-GE, PUE, problèmes Data Center, interventions et pièces de rechange.
-
-### Navigation depuis une notification
-
-- Un clic marque immédiatement la notification comme lue et la retire de la barre latérale.
-- La feuille métier concernée est ouverte avec l’identifiant de la fiche.
-- Les filtres incompatibles sont réinitialisés.
-- La pagination sélectionne automatiquement la page contenant l’enregistrement.
-- Le tableau défile jusqu’à la ligne concernée et la met temporairement en évidence.
-
-### Limite actuelle des imports
-
-La fonctionnalité utilisateur actuelle couvre les exports Excel XLSX. Aucun import massif PDF ou CSV n’est exposé dans l’interface. L’import massif XLSX avec validation reste une évolution prévue.
+| Application | `https://gmao.test` (nom configurable, voir [Nom d'hôte et certificat](#nom-dhôte-et-certificat)) |
+| Santé | `https://gmao.test/health` |
+| Code et CI | [GitHub](https://github.com/jeancykabengele-code/GMAO-) |
+| Installer le serveur | [docs/installation-serveur.md](docs/installation-serveur.md) |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    U[Utilisateur] --> F[Frontend Angular]
-
-    F -->|Bearer access token| B[API Django]
-    B -->|Validation JWT / profil| A
-
-    D --> P[user_profiles et sites]
-    D --> M[Tables métier GMAO]
+    U[Navigateur] -->|HTTPS 443| N[Nginx<br/>Laragon]
+    N -->|fichiers statiques| W[Interface Angular<br/>C:/GMAO/web]
+    N -->|/api/ et /health| A[API Django<br/>waitress 127.0.0.1:8081]
+    A --> M[(MySQL 8.4<br/>base gmao)]
+    T[Tâches planifiées<br/>Windows] -.->|démarrage, sauvegarde, santé| A
+    G[GitHub<br/>code + CI] -.->|git pull| S[Serveur]
 ```
-
-
-
-## Technologies
 
 | Couche | Technologies |
 |---|---|
-| Frontend | Angular 22, TypeScript 6, RxJS, Bootstrap 5, icônes Solaris |
-| Authentification | Django locale, jetons signés |
-| Backend | Python 3.14, Django 6 |
-| Base de données | MySQL (Laragon), SQLite pour le développement local |
-| Excel XLSX | write-excel-file |
-| Tests frontend | Vitest |
-| Serveur de production | waitress, Nginx |
-| Hébergement | Laragon (Windows) |
+| Interface | Angular 22, TypeScript 6, RxJS, Bootstrap 5, icônes Solaris, export XLSX (write-excel-file) |
+| API | Python, Django 6, authentification locale (jetons signés), waitress |
+| Données | MySQL 8.4 (SQLite en développement) |
+| Exploitation | Laragon (Nginx, MySQL), PowerShell, tâches planifiées Windows |
+| Qualité | Vitest, tests Django, Playwright (CSP et bout en bout), GitHub Actions |
 
-## Charte visuelle Orange
+**Aucun service en ligne n'est nécessaire au fonctionnement.** GitHub héberge uniquement le code et la CI.
 
-L’interface applique la charte Orange sur l’ensemble des écrans.
+## Modules
 
-- **Typographie** : Helvetica Neue 55 (texte courant), 65 (intermédiaire) et 75 (titres et éléments forts).
-- **Logo** : Master Logo Orange officiel, conservé dans son format carré avec une zone de sécurité et un affichage responsive desktop/mobile.
-- **Couleurs principales** : noir, blanc, Orange `#FF7900` et gris numérique.
-- **Icônes** : pack Solaris local. `bootstrap-icons` n’est plus chargé ni déclaré comme dépendance.
-- **Composants** : menu, boutons, tableaux, formulaires, alertes, fenêtres et focus utilisent le système de couleurs Orange.
-- **États métier** : vert réservé à la validation, Orange à l’attention ou au suivi, rouge aux erreurs et situations critiques ; gris pour les informations neutres.
-- **Graphiques** : Orange est la série principale ; les gris servent aux comparaisons et les couleurs d’état uniquement aux données métier concernées.
+| Page | Contenu | Écriture |
+|---|---|---|
+| Tableau de bord | Indicateurs, filtres site et période | Lecture, rôles globaux |
+| Équipements | Registre des actifs, code `EQ-SITE-0001` | Chef de site (son site), rôles globaux |
+| Tickets | Demandes et incidents par site | Chef de site, rôles globaux |
+| Suivi groupes électrogènes | Relevés RH, heures depuis la dernière PM, état | Chef de site, rôles globaux |
+| Interventions réalisées | Journal des interventions | Chef de site, rôles globaux |
+| Consommation par GE | Litres par groupe et par mois | Chef de site, rôles globaux |
+| Ravitaillement Fuel | Livraisons (1er à 5e du mois) | Chef de site, rôles globaux |
+| Fuel-GE | Journal mensuel du site, **calculé** | kWh SNEL et stock initial du premier mois |
+| PUE | Relevé journalier de DC Pigeon, en kW | Chef de site de Pigeon |
+| Problèmes Data Center | Constats, priorité, échéance, prochaine étape | Chef de site, rôles globaux |
+| Pièces de rechange | Mouvements liés à un ticket et un équipement | Chef de site, rôles globaux |
+| Documentations | 9 registres complets en XLSX | Lecture, rôles globaux |
+| Notifications | Alertes persistantes, rafraîchies toutes les 30 s | Rôles globaux |
+| Administration | Sites, utilisateurs, journal d'audit, historique des modifications, sauvegardes | Administrateur |
 
-Les ressources de la charte se trouvent dans `gmao-frontend/public/assets/orange/` :
+Chaque feuille de saisie se ferme uniquement après une réponse réussie de l'API ; en cas d'erreur elle reste ouverte avec les valeurs saisies. Un clic sur une notification la marque lue, ouvre la feuille concernée, réinitialise les filtres incompatibles, sélectionne la page et met la ligne en évidence.
 
-```text
-gmao-frontend/public/assets/orange/
-├── fonts/                         # Helvetica Neue 55, 65 et 75
-├── icons/                         # Icônes Solaris officielles
-│   └── manifest.json              # Correspondance historique Bootstrap → Solaris
-└── logo/orange-master-logo.png    # Master Logo officiel
-```
 ## Rôles et permissions
 
-Les rôles reconnus sont `administrator`, `manager`, `charge_operations` et `chef_site`.
-
-| Action | Administrateur | Manager GMAO | Chargé des opérations | Chef de site |
+| Action | Administrateur | Manager | Chargé des opérations | Chef de site |
 |---|:---:|:---:|:---:|:---:|
-| Administrer les comptes et les sites | Oui | Non | Non | Non |
-| Consulter le journal d'audit | Oui | Non | Non | Non |
-| Générer une sauvegarde de la base | Oui | Non | Non | Non |
-| Voir tous les sites métier | Non | Oui | Oui | Non |
+| Comptes, sites, journal d'audit, historique, sauvegardes | Oui | Non | Non | Non |
+| Voir tous les sites / tableau de bord / Documentations | Non | Oui | Oui | Non |
 | Voir son propre site | Non | Oui | Oui | Oui |
-| Accéder au tableau de bord global | Non | Oui | Oui | Non |
-| Accéder à Documentations | Non | Oui | Oui | Non |
-| Créer une fiche | Non | Oui | Oui | Oui, sur son site |
-| Modifier une fiche existante | Non | Oui, toutes les fiches | Oui, toutes les fiches | Selon les droits de son site |
-| Exporter les données en Excel XLSX | Non | Oui | Oui | Non |
+| Créer une fiche | Non | Oui | Oui | Son site |
+| Modifier une fiche existante | Non | Oui | Oui | Relevés RH, fiches GE et PUE de son site |
 | Supprimer une fiche métier | Non | Oui | Oui | Non |
+| Exporter en XLSX | Non | Oui | Oui | Non |
 
-Le backend reste l’autorité finale : masquer un bouton dans Angular ne remplace jamais le contrôle de permission effectué par Django.
-
-## Structure du dépôt
-
-```text
-GMAO-Web/
-├── README.md
-├── DEPLOIEMENT.md
-├── ops/                            # Scripts et configuration Laragon
-├── gmao-frontend/
-│   ├── public/assets/orange/       # Polices Helvetica, Master Logo et icônes Solaris
-│   ├── public/images/              # Arrière-plans
-│   ├── src/app/
-│   │   ├── auth/                   # Session, gardes et contrôle d’accès
-│   │   ├── components/             # Barre latérale
-│   │   ├── data/                   # API, store et liste des sites
-│   │   ├── pages/                  # Pages métier
-│   │   └── shared/                 # Service d’export Excel XLSX
-
-
-│   ├── angular.json
-│   └── package.json
-└── gmao/
-    ├── gmao_backend/               # Configuration et routes Django
-    ├── profiles/                   # Authentification, modèles, API et permissions
-    ├── scripts/                    # Scripts de contrôle/import
-    ├── manage.py
-    ├── requirements.txt
-    └── start-django.ps1
-```
-
-## Installation locale
-
-### Prérequis
-
-- Node.js compatible avec Angular 22.
-- npm.
-- Python 3.14.
-
-- PowerShell sous Windows pour utiliser les scripts fournis.
-
-### 1. Installer le frontend
-
-```powershell
-cd C:\Users\JK\Projects\GMAO-Web\gmao-frontend
-npm install
-npm start
-```
-
-Le frontend est disponible sur [http://localhost:4200](http://localhost:4200).
-
-### 2. Installer le backend
-
-```powershell
-cd C:\Users\JK\Projects\GMAO-Web\gmao
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\start-django.ps1
-```
-
-
-
-Le backend est disponible sur [http://localhost:8080](http://localhost:8080).
-
-### 3. Vérifier les services
-
-```powershell
-Invoke-WebRequest http://localhost:8080/health
-Invoke-WebRequest http://localhost:8080/health/database -Headers @{ Authorization = "Bearer $env:GMAO_HEALTH_TOKEN" }
-```
-
-Réponses attendues :
-
-```json
-{"status": "UP"}
-```
-
-```json
-{"status": "UP", "database": "UP", "responseTimeMs": 12}
-```
-
-## Configuration
-
-### Frontend
-
-La configuration locale se trouve dans `gmao-frontend/src/environments/environment.ts` :
-
-```ts
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:8080',
-};
-```
-
-La connexion est assurée par l’API Django ; le navigateur ne reçoit aucune clé de base de données.
-
-### Backend
-
-| Variable | Utilité | Valeur locale par défaut |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | Clé cryptographique Django | Obligatoire avec `DEBUG=false` ; clé de secours réservée au debug local |
-| `DJANGO_DEBUG` | Active le mode debug | `false` ; activé explicitement par `start-django.ps1` en développement local |
-| `DJANGO_ALLOWED_HOSTS` | Hôtes autorisés | `localhost,127.0.0.1` |
-| `FRONTEND_ORIGINS` | Origines CORS autorisées | Ports Angular locaux |
-| `GMAO_DATABASE_ENGINE` | Moteur de production | `mysql` |
-| `GMAO_DB_HOST` | Hôte MySQL | Aucun |
-| `GMAO_DB_PORT` | Port MySQL | `3306` |
-| `GMAO_DB_NAME` | Base MySQL | `gmao` |
-| `GMAO_DB_USER` | Utilisateur MySQL | `gmao_app` |
-| `GMAO_DB_PASSWORD` | Mot de passe MySQL | Aucun |
-| `GMAO_DB_CA_PATH` / `GMAO_DB_CA_PEM` | Certificat CA (TLS) | Aucun |
-| `GMAO_MYSQL_SSL` | `false` uniquement pour un MySQL sur la même machine | `true` |
-| `GMAO_TRUSTED_PROXIES` | Proxys autorisés à fournir `X-Real-IP` | `127.0.0.1,::1` |
-| `GMAO_LOCAL_TOKEN_MAX_AGE` | Durée de session locale en secondes | `43200` |
-| `GMAO_PWNED_PASSWORD_CHECK` | Contrôle anonymisé des mots de passe compromis | `true` hors debug ; `false` en développement local |
-| `GMAO_PWNED_PASSWORD_TIMEOUT_SECONDS` | Délai maximal du contrôle de compromission | `3` |
-
-Sans `GMAO_DATABASE_ENGINE=mysql`, Django utilise SQLite uniquement pour le développement local.
-## Base de données
-
-La production utilise uniquement **MySQL** (Laragon, sur la même machine que l’API). Les modèles Django lisent et écrivent les tables métier existantes ; aucune étape SQL manuelle ni service externe d’authentification n’est requis. La vérification Pwned Passwords intervient uniquement lors de la définition d’un nouveau mot de passe.
-### Tables principales
-
-- `user_profiles` : profil, rôle, site et état actif de l’utilisateur.
-- `sites` : référentiel des sites et codes utilisés pour les équipements.
-- `gmao_equipements`
-- `gmao_tickets`
-- `gmao_groupes_electrogenes`
-- `gmao_releves_rh_ge`
-- `gmao_fuel_ge`
-- `gmao_fuel_ravitaillements`
-- `gmao_consommations_groupes_ge`
-- `gmao_fuel_monthly_summary`
-- `gmao_pue`
-- `gmao_problemes_datacenter`
-- `gmao_interventions`
-- `gmao_pieces_rechange`
-- `gmao_notifications` : alertes et notifications personnelles du Manager et du Chargé des opérations.
-- `gmao_login_buckets` : compteurs techniques de limitation des connexions.
-- `gmao_password_history` : cinq anciens hachages au maximum par profil, utilisés uniquement contre la réutilisation.
-- `audit_log` : journal append-only des événements de sécurité et des actions sensibles.
-
-Les 16 tables métier sont gérées par des migrations Django versionnées dans l’application `profiles`. La migration initiale adopte les tables existantes après validation du contrat structurel, sans modifier leurs lignes ; elle crée les tables uniquement sur une base neuve. Les tables techniques restent versionnées dans l’application `login_guard`. Le démarrage applique toutes les migrations puis vérifie le schéma complet. Voir [la procédure de migration et de rollback](docs/migrations-metier.md).
-
-### Création d’un utilisateur
-
-1. Ouvrir **Administration → Gestion des utilisateurs** avec le rôle Administrateur. Lors de l'amorçage initial, le Manager utilise cette page une seule fois pour créer ce compte.
-2. Saisir le nom, l’identifiant e-mail, le rôle, le site si nécessaire et une phrase de passe unique d’au moins 14 caractères.
-3. Django refuse les valeurs courantes, numériques, compromises ou récemment utilisées, puis enregistre uniquement le hachage du mot de passe.
-4. Les adresses e-mail servent d’identifiants : aucune boîte e-mail n’est requise.
-5. Seul l'Administrateur peut administrer les profils après l'amorçage. Toute réinitialisation exige également son propre mot de passe actuel.
-## API
-
-Toutes les routes métier, sauf les routes de santé, exigent :
-
-```http
-Authorization: Bearer <jeton_de_session_django>
-```
-
-### Routes générales
-
-| Méthode | Route | Description |
-|---|---|---|
-| `GET` | `/health` | Santé du serveur |
-| `GET` | `/health/database` | Connexion et temps de réponse MySQL ; secret de supervision `GMAO_HEALTH_TOKEN` requis en Bearer |
-| `GET` | `/api/me` | Profil connecté et permissions calculées |
-| `GET` | `/api/notifications` | Notifications personnelles du rôle global connecté |
-| `PATCH` | `/api/notifications/<uuid>/read` | Marquer une notification comme lue |
-| `PATCH` | `/api/notifications/read-all` | Marquer toutes les notifications comme lues |
-| `POST` | `/api/backups/export` | Génère et télécharge une archive ZIP complète ; réservé à l'Administrateur |
-| `POST` | `/api/backups/scheduled-export` | Même export, pour le workflow planifié ; jeton dédié `GMAO_BACKUP_TOKEN` en Bearer, jamais une session utilisateur |
-
-### Routes métier
-
-| Méthode | Route | Description |
-|---|---|---|
-| `GET` | `/api/records/<ressource>` | Liste accessible au profil |
-| `POST` | `/api/records/<ressource>` | Création d’une fiche |
-| `PUT` ou `PATCH` | `/api/records/<ressource>/<uuid>` | Modification d’une fiche |
-| `DELETE` | `/api/records/<ressource>/<uuid>` | Suppression selon les permissions |
-
-Ressources reconnues :
-
-- `equipements`
-- `tickets`
-- `groupes-electrogenes`
-- `fuel-ge`
-- `fuel-summary`
-- `pue`
-- `problemes-datacenter`
-- `interventions`
-- `pieces-rechange`
-
-Le backend renvoie uniquement les données du site affecté lorsqu’un chef de site est connecté. Les rôles globaux reçoivent les données de tous les sites actifs.
+Identifiants techniques : `administrator`, `manager`, `charge_operations`, `chef_site`. **Le backend est l'autorité** : masquer un bouton dans Angular ne remplace jamais le contrôle Django. Tant qu'aucun Administrateur actif n'existe, le Manager peut créer le premier compte.
 
 ## Règles métier
 
-### Groupes électrogènes
+### Chaîne Fuel et groupes électrogènes
 
-- `RH. depuis dernière PM = RH actuel - RH dernière PM`.
-- `RH. Prochaine PM = RH dernière PM + 250`.
-- Colonne **État** du tableau de suivi, avec son code couleur :
-  - **Normal** (vert) avant 175 heures ;
-  - **À venir** (gris) à partir de 175 heures ou en cas de retard signalé ;
-  - **Urgente** (jaune) à partir de 225 heures ;
-  - **Dépassé** (rouge) à partir de 250 heures.
-- Un compteur RH ne peut pas être inférieur à la valeur déjà enregistrée (relevé précédent du groupe ou valeur remplacée lors d’une correction, y compris sur la fiche du groupe). Seul le **Manager GMAO** peut approuver une diminution, en corrigeant lui-même la valeur ; les autres rôles reçoivent un refus explicite. La correction reste tracée dans **Historique des modifications**.
+```mermaid
+flowchart LR
+    EQ[Équipements<br/>code, nom, site] --> RH[Suivi GE<br/>relevé RH mensuel]
+    RH -->|heures = RH − RH précédent| CONS[Consommation par GE<br/>litres saisis, L/h]
+    CONS -->|somme des groupes| FUEL[Fuel-GE<br/>journal mensuel du site]
+    RAV[Ravitaillements<br/>du mois] -->|somme| FUEL
+    FUEL -->|stock final| NEXT[Stock initial<br/>du mois suivant]
+```
 
-### Saisie quotidienne des compteurs GE
+Ordre de saisie conseillé : fiche et relevés RH, ravitaillements, consommation par GE, Fuel-GE. Les feuilles sont reliées par le **site**, le **mois (`AAAA-MM`)** et le **code du groupe**.
 
-- Le champ **RH actuel** est le compteur cumulatif lu sur l’armoire du groupe.
-- Si le groupe n’a pas fonctionné, on conserve la dernière valeur (on ne saisit pas zéro).
-- Si le groupe a fonctionné 20 heures et affichait 200 h, on saisit 220 h, jamais seulement 20 h.
-- **RH. depuis dernière PM** et **RH. Prochaine PM** restent calculés automatiquement par l’API ; aucune saisie manuelle de ces résultats n’est nécessaire.
-- Chaque enregistrement met à jour automatiquement le champ updated_at, affiché dans la feuille comme dernier relevé.
-- La feuille indique la fraîcheur du relevé : **À jour** (< 7 jours), **À mettre à jour** (7 à 13 jours) ou **Relevé ancien** (14 jours ou plus).
-- Cette indication signale qu’une nouvelle lecture terrain est nécessaire ; elle ne modifie pas le classement PM ni le compteur cumulatif.
-### Notifications internes
+| Règle | Formule ou comportement |
+|---|---|
+| Heures depuis la dernière PM | `RH actuel − RH dernière PM` |
+| Prochaine PM | `RH dernière PM + 250` |
+| Heures GE du mois (par groupe) | `RH du mois − RH du relevé précédent` |
+| Litres par heure | `litres / heures` (si heures > 0) |
+| Stock final | `stock initial + ravitaillements − consommation` ; un stock négatif est refusé |
+| Stock initial | Stock final du mois précédent ; pour le mois le plus ancien du site, saisi (ou corrigé) par le Chef de site, le Manager ou le Chargé |
+| Disponibilité Grid | Calculée à partir des heures du mois et des heures GE ; **0** pour un site hors réseau SNEL |
+| Recalcul | Toute création, modification ou suppression d'un relevé RH, d'une consommation ou d'un ravitaillement recalcule le mois et les suivants du site, dans une transaction |
+| Champs calculés | Jamais acceptés en saisie manuelle par l'API |
+| Compteur RH | Ne peut pas diminuer ; seul le Manager peut approuver une diminution |
+| Suppression du dernier relevé RH d'un groupe | Supprime aussi la fiche du groupe |
 
-- Chaque fiche ajoutée par un Chef de site produit une notification persistante pour le Manager et le Chargé des opérations.
-- Une préalerte GE de niveau warning est créée à partir de 150 heures depuis la dernière PM.
-- Les passages à **À venir** (175 h), **Urgente** (225 h) et **Dépassé** (250 h) créent une alerte warning ou critical.
-- Une même étape n’est notifiée qu’une fois par groupe, destinataire et cycle de maintenance.
-- Le badge **Notifications** affiche le nombre total d’éléments non lus.
-- Le frontend charge les notifications à la connexion, à l’ouverture du panneau, puis toutes les 30 secondes.
-- À la première ouverture du centre **Notifications**, le navigateur peut demander l’autorisation d’afficher des alertes Windows. Les nouvelles alertes apparaissent même lorsque GMAO est ouverte dans un autre onglet ; un clic ramène à l’application et ouvre la fiche concernée. Le navigateur doit rester ouvert.
-- Un clic marque la notification comme lue, la retire du panneau et ouvre exactement la ligne du tableau concerné.
-- L’action **Tout lire** vide la liste des notifications non lues.
-- Les Chefs de site ne voient pas le centre de notifications global.
-- Les notifications sont persistées dans la table gmao_notifications et restent cohérentes après une reconnexion.
-- Les relevés GE non actualisés depuis 7 jours génèrent une notification warning « Relevé GE à mettre à jour » ; à partir de 14 jours, une notification critical « Relevé GE ancien » est créée pour les Managers et Chargés des opérations. La vérification est effectuée automatiquement lors du rafraîchissement du centre de notifications.
+| État de maintenance | Seuil | Couleur |
+|---|---|---|
+| Normal | < 175 h | Vert |
+| À venir | ≥ 175 h ou retard signalé | Gris |
+| Urgente | ≥ 225 h | Jaune |
+| Dépassé | ≥ 250 h | Rouge |
 
-### Fuel-GE
+La saisie du compteur RH est le **cumul lu sur l'armoire** : si le groupe n'a pas fonctionné, on garde la dernière valeur ; s'il a fonctionné 20 h à 200 h, on saisit 220 h.
 
-- La période doit respecter le format `AAAA-MM`.
-- Les volumes et les heures ne peuvent pas être négatifs.
-- Le stock de départ est le stock initial du mois le plus ancien du site (Chef de site, Manager ou Chargé des opérations). Il peut être ajouté sur un mois plus ancien que les journaux existants, ce qui recalcule les mois suivants, et il reste corrigeable tant que ce mois est le plus ancien. Pour les autres mois, `stock initial = stock final du dernier journal antérieur`, en lecture seule.
-- `ravitaillements du mois = somme des livraisons Fuel du site pendant la période`.
-- `heures GE = somme, par groupe, de RH actuel − RH du relevé précédent`.
-- `stock final = stock initial + ravitaillements − consommation` ; une consommation entraînant un stock négatif est refusée.
-- `litres/heure = consommation / heures GE` lorsque les heures GE sont supérieures à zéro.
-- La disponibilité Grid est calculée à partir des heures du mois et des heures GE.
-- Modifier un ravitaillement, un relevé RH ou un journal Fuel-GE recalcule automatiquement le mois concerné et les mois suivants du même site, dans une transaction.
-- Les champs de calcul (ravitaillements, stocks finaux, heures GE, L/h et disponibilité Grid) ne sont jamais acceptés comme saisie manuelle par l’API.
-- Un site décoché « raccordé au réseau SNEL » a une disponibilité fixée à 0 et une énergie SNEL non applicable. Kikwit et Mbandaka sont hors réseau à l’installation de cette règle.
+### Notifications
 
-### Consommation par groupe GE
+| Événement | Niveau | Destinataires |
+|---|---|---|
+| Fiche créée par un Chef de site | Notification | Manager, Chargé des opérations |
+| 150 h depuis la dernière PM (préalerte) | Warning | Manager, Chargé des opérations |
+| 175 h, 225 h, 250 h | Warning / critical | Manager, Chargé des opérations |
+| Relevé GE non actualisé depuis 7 jours | Warning | Manager, Chargé des opérations |
+| Relevé GE non actualisé depuis 14 jours | Critical | Manager, Chargé des opérations |
 
-- Suivi mensuel de la consommation Fuel de chaque groupe électrogène.
-- Une seule ligne est autorisée par combinaison **site + mois + groupe**.
-- Le chef de site saisit les litres consommés et un commentaire facultatif.
-- Les heures GE sont calculées depuis les deux derniers relevés RH du groupe : `RH du mois − RH précédent`.
-- Une saisie est refusée si un relevé RH manque, si le compteur diminue, ou si les litres sont négatifs ; le formulaire indique le relevé manquant et grise **Enregistrer** tant qu’il n’est pas saisi.
-- Les L/h sont calculés automatiquement. La somme des groupes alimente Fuel-GE ; toute création, correction ou suppression recalcule le mois concerné et les mois suivants.
-- La table correspondante est gérée dans MySQL.
-### Ravitaillement Fuel
+Une même étape n'est notifiée qu'une fois par groupe, destinataire et cycle de maintenance.
 
-- Enregistrement des livraisons entrantes de carburant par site, par mois et par numéro de ravitaillement (1 à 5 par site et par mois, sans doublon). Les anciennes dates sont conservées en base mais ne sont plus affichées ni demandées ; l’API accepte encore une date pour en déduire le mois.
-- Les imports historiques peuvent conserver les stocks avant/après à « Non renseigné » lorsqu’ils ne sont pas disponibles.
-- Calcul automatique du stock après livraison et signalement des écarts.
-- Le chef de site ajoute les ravitaillements de son site ; les rôles globaux consultent les données de tous les sites.
-- Chaque nouvel enregistrement notifie le Manager GMAO et le Chargé des opérations.
-- Le schéma et les données sont gérés dans MySQL par Django.
+### PUE (DC Pigeon)
 
-### PUE
+```mermaid
+flowchart LR
+    UPS[UPS A + B] --> IT[IT total, kW]
+    RED[Redresseurs A + B] --> IT
+    TGBT[TGBT A + B] --> TOT[Total site, kW]
+    IT --> PUE["PUE du jour = Total / IT"]
+    TOT --> PUE
+    PDF["PDF AC et DC<br/>(contrôle)"] -.->|somme ≈ sortie| IT
+```
 
-- Les 21 équipements doivent tous être relevés ; les valeurs sont positives ou nulles.
-- La puissance IT et la puissance totale (TGBT A + B) doivent être strictement positives, et la puissance totale ne peut pas être inférieure à la puissance IT.
-- Un seul relevé par site et par jour, daté par le serveur à l’heure de Kinshasa, à toute heure de la journée ; un relevé existant peut être corrigé par un rôle global ou par le Chef de site de Pigeon ; seuls les rôles globaux peuvent le supprimer.
-- `PUE du jour = total site (kW) / IT (kW)`.
-- La migration `0007_pue_daily_readings` supprime les anciennes lignes mensuelles (énergie IT / énergie totale), qui ne peuvent pas être converties en relevés journaliers.
+| Règle | Détail |
+|---|---|
+| Périmètre | Site Pigeon uniquement ; 21 équipements du schéma unifilaire, tous obligatoires |
+| Relevé | Un par jour, daté par le serveur (heure de Kinshasa), à toute heure |
+| Saisie d'une ligne | kW lus, ou ampères et volts ; les kW lus sont prioritaires et l'écart est affiché |
+| DC | `kW = V × A / 1000` |
+| AC triphasé | `kW = √3 × V × A × cos φ / 1000` (400 V et cos φ = 0,9 par défaut) |
+| Contrôles | IT et total strictement positifs ; total ≥ IT |
+| PUE de la période | `somme des kW totaux / somme des kW IT` des jours retenus (jamais la moyenne des PUE du jour) |
+| Droits | Création : Chef de site de Pigeon ; correction : rôles globaux et Chef de site de Pigeon ; suppression : rôles globaux |
 
 ### Sites
 
-Les libellés doivent correspondre exactement aux données MySQL, notamment `Mbuji mayi`, `MTC` et `New MTC`, car les filtres utilisent les noms des sites.
-
-Chaque site a un raccordement réseau SNEL configurable (case « Raccordé au réseau SNEL » dans **Administration → Gestion des sites**), plutôt qu'une liste de sites fixée dans le code. Un site décoché a sa disponibilité Grid fixée à 0 et son énergie SNEL non applicable en Fuel-GE ; Kikwit et Mbandaka sont hors réseau par défaut. Décocher ou recocher cette case recalcule automatiquement les journaux Fuel-GE du site concerné.
-
-## Tests et compilation
-
-### Frontend
-
-```powershell
-cd gmao-frontend
-npm test -- --watch=false
-npm run build
-```
-
-Les fichiers compilés sont générés dans `gmao-frontend/dist/gmao-frontend/`.
-
-Couverture et parcours de bout en bout :
-
-```powershell
-npm run test:coverage   # couverture Vitest, seuils minimaux dans angular.json
-npm run test:csp        # CSP et navigation dans Chromium, API simulée
-npm run test:e2e        # vrai backend Django + vrai navigateur (voir ci-dessous)
-```
-
-État vérifié au 7 octobre 2026 :
-
-- 23 fichiers et 96 tests frontend réussis ;
-- couverture frontend : 29 % des instructions, 47 % des lignes (seuils de non-régression à 28 % et 45 % ; les pages d'administration et plusieurs pages métier restent peu testées) ;
-- compilation Angular de production réussie sans avertissement de budget ;
-- seuils de budget calibrés à 1,2 Mo pour le bundle initial et 10 Ko par feuille de style.
-
-#### Test de bout en bout
-
-`npm run test:e2e` démarre un backend Django sur une base SQLite jetable (`gmao/scripts/seed_e2e.py`, qui refuse de s'exécuter sans `GMAO_SQLITE_PATH`), compile Angular vers ce backend, puis pilote Chromium : un chef de site saisit et corrige un relevé RH et crée un équipement, n'a pas accès à l'administration, et l'Administrateur retrouve l'ancienne et la nouvelle valeur dans **Administration → Historique des modifications**, sans qu'elles apparaissent dans le journal d'audit. Les comptes de test et leurs mots de passe sont générés à chaque exécution et ne sont jamais écrits dans le dépôt. Le test s'exécute aussi dans le job `e2e` de la CI ; la mise en production sur le serveur suit une CI verte.
-
-### Backend
-
-```powershell
-cd gmao
-$env:DJANGO_DEBUG = 'true' # Uniquement pour les tests en développement local
-.\.venv\Scripts\python.exe manage.py test
-```
-
-Mesure de la couverture (configuration dans `gmao/.coveragerc`, seuil de 80 %, mesuré à 82 % le 7 octobre 2026) :
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install coverage
-.\.venv\Scripts\python.exe -m coverage run manage.py test
-.\.venv\Scripts\python.exe -m coverage report
-```
-
-Organisation du code des fiches métier : l'API des fiches est le paquet `gmao/profiles/records/` (`constants`, `serialization`, `equipment`, `generators`, `fuel`, `deliveries`, `pue`, `endpoints`) et les tests sont répartis par domaine dans `gmao/profiles/test_*.py`.
-
-Avant une livraison, vérifier au minimum :
-
-- la connexion et la déconnexion ;
-- le changement de mot de passe forcé après une création ou une réinitialisation par l'Administrateur ;
-- les permissions de chacun des quatre rôles ;
-- les filtres du tableau de bord ;
-- la création et la modification des fiches ;
-- l’isolation du chef de site ;
-- les exports Excel XLSX ;
-- la sauvegarde à la demande depuis **Administration → Sauvegardes** ;
-- `/health` et `/health/database`.
-
-## Déploiement
-
-- Code source et CI : GitHub, branche `main`.
-- Serveur : Laragon (MySQL, Nginx), API servie par waitress sur `127.0.0.1:8081`.
-
-Le diagnostic `GET /health/database` exige `Authorization: Bearer <GMAO_HEALTH_TOKEN>` et retourne `status=UP`, `database=UP` et `responseTimeMs` si la connexion fonctionne. Sans secret configuré ou avec un jeton incorrect, il retourne HTTP 401. Il ne vérifie pas le schéma et n’expose aucun volume de table ni détail SQL.
-
-L’installation, les mises à jour, les sauvegardes et la supervision sont décrites dans [DEPLOIEMENT.md](DEPLOIEMENT.md) et [docs/installation-serveur.md](docs/installation-serveur.md).
-
-### Détection d’une nouvelle version
-
-Chaque build de production génère `public/version.json` (horodatage), servi tel quel après déploiement. Le frontend le relit toutes les 5 minutes, ainsi qu’à chaque retour sur l’onglet, sans jamais recharger la page tout seul. Dès qu’il détecte un horodatage différent de celui chargé au démarrage, un bandeau orange fixe apparaît en haut de l’écran : « Nouvelle version disponible. » avec un bouton **Rafraîchir**. Rien ne se passe tant que l’utilisateur n’a pas cliqué, pour ne jamais interrompre une saisie en cours. Voir `gmao-frontend/src/app/shared/version-check.service.ts`.
-
-### Hébergement interne (Laragon) : nom et extension de l’application
-
-L’application hébergée avec Laragon est joignable par un nom d’hôte, `gmao.test` par défaut (`.test` est l’extension réservée aux essais, utilisée par défaut par Laragon). Ce nom n’est écrit dans aucun fichier de code : le changer, par exemple pour un nom imposé par l’entreprise, ne demande que de la configuration. Procédure complète : [docs/installation-serveur.md](docs/installation-serveur.md).
-
-| Où | Quoi | Rebuild ou redémarrage |
-| --- | --- | --- |
-| `hosts` ou DNS interne | Le nouveau nom pointe vers le serveur | Aucun |
-| `gmao.test.conf` (Nginx) | `server_name` | Rechargement de Nginx |
-| `gmao\.env.laragon` | `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS` | Redémarrage de l’API |
-| Commande de build | `-ApiUrl https://<nouveau-nom>` | Nouveau build du frontend, car l’adresse de l’API est incluse dans les fichiers générés |
-| Certificat HTTPS | Régénéré pour le nouveau nom | Rechargement de Nginx |
-
-- Le code, la base de données et les données ne changent pas ; la durée est d’une dizaine de minutes.
-- Le certificat HTTPS est généré pour le nom choisi par `ops/laragon/new-certificate.ps1` (auto-signé, à importer sur chaque poste ; le joker `*.test` de Laragon est refusé par Windows). Avec un nom d’entreprise, un certificat émis par l’autorité interne ou un certificat public est préférable.
-- Les utilisateurs doivent utiliser la nouvelle adresse et se reconnecter une fois : la session est liée à l’adresse.
-
-## Dépannage
-
-### L’enregistrement réussit mais la feuille reste visible
-
-
-- Vérifier la console du navigateur et la réponse de la requête.
-- Le frontend Angular fonctionne sans Zone.js : les composants notifient explicitement le changement de vue après les opérations asynchrones.
-- Dans la version actuelle, le formulaire se ferme uniquement après une réponse réussie et reste ouvert en cas d’erreur.
-
-### Le premier enregistrement est très lent
-
-- Ouvrir d’abord /health.
-- Vérifier que la tâche planifiée `GMAO API` est démarrée et que MySQL répond.
-- Tester ensuite `/health/database` avec le secret de supervision pour distinguer un problème de l’API d’un problème MySQL.
-- Éviter de cliquer plusieurs fois sur **Enregistrer** pendant l’attente.
-
-### Le frontend ne charge aucune donnée
-
-- Vérifier que Django répond sur `http://localhost:8080/health`.
-- Vérifier `environment.apiUrl`.
-
-- Vérifier que le compte possède un profil actif dans `user_profiles`.
-- Tester `/health/database` avec le secret de supervision `GMAO_HEALTH_TOKEN` en Bearer.
-
-### Un site ne retourne aucune donnée
-
-- Comparer le libellé du filtre avec la valeur exacte de la colonne `site`.
-- Respecter les espaces et la casse, par exemple `Mbuji mayi`, `MTC` et `New MTC`.
-- Vérifier que le site est actif dans la table `sites`.
-
-### Erreur CORS
-
-- Ajouter l’origine exacte du frontend dans `FRONTEND_ORIGINS`.
-- Séparer plusieurs origines par des virgules.
-- Ne pas ajouter de barre oblique finale si le navigateur n’en envoie pas.
-
-### Le profil est refusé
-
-- Vérifier que l’UUID Auth correspond à l’UUID de `user_profiles`.
-- Vérifier `active = true`.
-- Utiliser un rôle reconnu.
-- Affecter obligatoirement un site au rôle `chef_site`.
-
-### La base ne se connecte pas
-
-
-- Vérifier que MySQL est démarré dans Laragon (port 3306) et que `GMAO_DB_HOST`, `GMAO_DB_PORT` et les identifiants de `gmao\.env.laragon` sont corrects.
-- Relancer `start-django.ps1` si l’identifiant chiffré local doit être recréé.
-
-## Évolutions prévues
-
-- Envoi d’e-mails pour les alertes warning et critical.
-- Import massif de données au format Excel XLSX avec validation et rapport d’erreurs.
-- Réduction future de la taille du bundle initial et des styles partagés.
-- Supervision plus détaillée de la latence API et des échecs d’enregistrement.
-
-## Audit de préparation — 12 septembre 2026
-
-La réévaluation globale du projet a porté sur le code, les droits, la base de données, les dépendances, la compilation et les services de production.
-
-| Contrôle | Résultat |
-|---|---|
-| Frontend Angular — build production | Réussi sans avertissement de budget |
-| Tests frontend | 48 tests réussis dans 14 fichiers |
-| Tests backend Django | 21 tests réussis, vérification Django sans problème |
-| API /health | HTTP 200, statut UP |
-
-| Interface (Nginx) | HTTP 200 |
-| npm audit production | Aucune vulnérabilité détectée |
-| pip-audit | Aucune vulnérabilité connue détectée |
-
-### Points à surveiller
-
-- Les sauvegardes quotidiennes restent sur le serveur tant qu’une copie hors machine n’est pas configurée (`-CopyTo`).
-- Les budgets Angular/SCSS sont dépassés sans bloquer le build ; une réduction des bundles reste recommandée.
-Les suppressions de sites et équipements utilisent une confirmation intégrée à l application, sans boîte de dialogue du navigateur.
-
-- L’import massif XLSX et les e-mails d’alerte ne sont pas encore activés ; les notifications internes persistantes sont opérationnelles.
-
-## Sécurité
-
-- Ne jamais versionner le mot de passe MySQL, un jeton de session ou un fichier `.env`.
-
-- Utiliser HTTPS en production.
-- Désactiver `DJANGO_DEBUG` en production.
-- Restreindre `DJANGO_ALLOWED_HOSTS` et `FRONTEND_ORIGINS`.
-- Maintenir les contrôles d’autorisation côté Django, même si l’interface masque déjà les actions interdites.
-- Un compte créé par l'Administrateur, ou dont le mot de passe est réinitialisé par lui, doit obligatoirement en choisir un nouveau à la connexion suivante ; toute autre route API est bloquée (HTTP 403) tant que ce n'est pas fait.
-- Sauvegarder régulièrement la base MySQL et tester la restauration. La page **Sauvegardes** et la tâche planifiée quotidienne couvrent un export applicatif complet, pas une sauvegarde native MySQL au niveau moteur.
-
----
-
-Ce README décrit l’état vérifié du projet GMAO ORDC au **29 septembre 2026**. Il doit être mis à jour lors de l’ajout d’un module, d’un rôle, d’une table, d’une route API, d’une variable d’environnement ou d’une règle métier.
+Les libellés doivent correspondre exactement à la base (`Mbuji mayi`, `MTC`, `New MTC`) : les filtres utilisent le nom. Le raccordement SNEL est configurable par site (Administration, Gestion des sites) ; Kikwit et Mbandaka sont hors réseau. Renommer un site déplace toutes ses données, notifications et son Chef de site.
 
 ## Administration
 
-La page **Administration** est réservée à l'Administrateur : gestion des sites, gestion des utilisateurs, journal d'audit et sauvegardes. Tant qu'aucun Administrateur actif n'existe, elle reste provisoirement accessible au Manager pour créer le premier compte Administrateur ; dès cette création, Django lui retire automatiquement cet accès.
+| Fonction | Règles |
+|---|---|
+| Sites | Ajout, renommage, code unique, raccordement SNEL, activation. La désactivation ne supprime aucune donnée. |
+| Utilisateurs | Création, modification (nom, rôle, site, état), désactivation. Suppression refusée pour son propre compte, un profil affecté à un site, ou un profil ayant créé ou modifié des données métier. |
+| Mots de passe | 14 caractères minimum ; valeurs courantes, numériques ou compromises refusées ; 5 anciens hachages conservés ; changement forcé après création ou réinitialisation ; la réinitialisation exige le mot de passe de l'Administrateur. |
+| Journal d'audit | Connexions, échecs, mots de passe, comptes, suppressions sensibles ; sans mot de passe ni jeton ; **append-only**. |
+| Historique des modifications | Création, modification et suppression de chaque fiche, avec ancienne et nouvelle valeur. |
+| Sauvegardes | Archive ZIP à la demande (données métier, sites, comptes hors mots de passe, journal d'audit). |
 
-**Gestion des sites**
+Les adresses e-mail servent d'identifiants : aucune boîte n'est requise.
 
-- ajouter un site avec un nom et un code unique ;
-- modifier le nom, le code et le raccordement réseau SNEL d’un site (renommer un site déplace automatiquement toutes ses données métier, notifications et le chef de site associé) ;
-- désactiver ou réactiver un site ;
-- voir le statut et le raccordement réseau de chaque site.
+## Développement local
 
-Les sites actifs sont utilisés automatiquement par les filtres, les formulaires et le tableau de bord. Après l’ajout d’un site, actualiser la session pour recharger la liste des sites autorisés. La désactivation n’efface aucune donnée historique. Un chef de site affecté à un site désactivé ne peut plus se connecter ; son accès revient automatiquement lorsque le site est réactivé.
+| Étape | Commande |
+|---|---|
+| Frontend (http://localhost:4200) | `cd gmao-frontend` puis `npm install` puis `npm start` |
+| Backend (http://localhost:8080) | `cd gmao` puis `python -m venv .venv` puis `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` puis `.\start-django.ps1` |
+| Santé | `Invoke-WebRequest http://localhost:8080/health` |
+| Tests frontend | `npm run test:ci` (couverture : `npm run test:coverage`) |
+| Tests backend | `$env:DJANGO_DEBUG='true'; python manage.py test` (couverture : `python -m coverage run manage.py test`) |
+| CSP dans Chromium | `npm run build:production` puis `npm run test:csp` |
+| Bout en bout | `npm run test:e2e` (vrai Django sur SQLite jetable et vrai Chromium) |
 
-**Sauvegardes**
+| Contrôle | Seuil |
+|---|---|
+| Couverture backend | 80 % (`gmao/.coveragerc`) |
+| Couverture frontend | seuils de non-régression dans `angular.json` |
+| Budget Angular | 1,2 Mo pour le bundle initial, 10 Ko par feuille de style |
 
-Depuis **Administration → Sauvegardes**, l'Administrateur génère à la demande une archive ZIP complète (données métier, sites, comptes hors mots de passe, journal d'audit), téléchargée immédiatement, sans rien conserver sur le serveur. Une sauvegarde complète de la base est aussi créée chaque nuit par la tâche planifiée `GMAO sauvegarde`. Voir [DEPLOIEMENT.md](DEPLOIEMENT.md).
+Sans `GMAO_DATABASE_ENGINE=mysql`, Django utilise SQLite. Le chemin `gmao/profiles/records/` contient l'API des fiches (`constants`, `serialization`, `equipment`, `generators`, `fuel`, `deliveries`, `pue`, `endpoints`) ; les tests sont répartis par domaine dans `gmao/profiles/test_*.py`.
 
-Routes API protégées : les rôles métier globaux peuvent continuer à lire `GET /api/sites`, mais seuls les Administrateurs peuvent utiliser `POST /api/sites`, `PATCH /api/sites/<nom>` et `DELETE /api/sites/<nom>` après l'amorçage.
+## Configuration
 
-La page **Gestion des utilisateurs** permet à l'Administrateur de choisir le site actif de chaque compte `chef_site`. Les rôles globaux ne sont pas associés à un site.
+Fichier `gmao\.env.laragon` (ignoré par git, modèle : `ops/laragon/gmao.env.example`).
 
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | Clé cryptographique | Obligatoire hors debug |
+| `DJANGO_DEBUG` | Mode debug | `false` |
+| `DJANGO_ALLOWED_HOSTS` | Hôtes autorisés | `localhost,127.0.0.1` |
+| `FRONTEND_ORIGINS` | Origines CORS | Ports Angular locaux |
+| `GMAO_DATABASE_ENGINE` | `mysql` en exploitation | SQLite |
+| `GMAO_DB_HOST` / `PORT` / `NAME` / `USER` / `PASSWORD` | Connexion MySQL | `-` / `3306` / `gmao` / `gmao_app` / `-` |
+| `GMAO_DB_CA_PATH` / `GMAO_DB_CA_PEM` | Certificat CA (TLS) | Aucun |
+| `GMAO_MYSQL_SSL` | `false` seulement pour un MySQL sur la même machine | `true` |
+| `GMAO_TRUSTED_PROXIES` | Proxys autorisés à fournir `X-Real-IP` | `127.0.0.1,::1` |
+| `GMAO_HEALTH_TOKEN` | Secret de `/health/database` (vide = sonde désactivée) | Vide |
+| `GMAO_BACKUP_TOKEN` | Secret de l'export planifié (vide = désactivé) | Vide |
+| `GMAO_LOCAL_TOKEN_MAX_AGE` | Durée de session (s) | `43200` |
+| `GMAO_PWNED_PASSWORD_CHECK` | Contrôle des mots de passe compromis (service en ligne) | `true` hors debug |
+| `DJANGO_SECURE_SSL_REDIRECT` / `DJANGO_SECURE_HSTS_SECONDS` | Redirection HTTPS et HSTS | `false` / `0` |
+
+Frontend : `src/environments/environment.ts` (`apiUrl`), généré en production par `GMAO_API_URL`. Le navigateur ne reçoit aucune clé de base de données.
+
+## Base de données
+
+Les 16 tables métier sont gérées par des **migrations Django versionnées** (`profiles`) ; les tables techniques par `login_guard`. Le démarrage de l'API applique les migrations puis `verify_business_schema`. Voir [docs/migrations-metier.md](docs/migrations-metier.md).
+
+| Groupe | Tables |
+|---|---|
+| Comptes | `user_profiles`, `sites`, `gmao_local_credentials`, `gmao_password_history` |
+| Métier | `gmao_equipements`, `gmao_tickets`, `gmao_groupes_electrogenes`, `gmao_releves_rh_ge`, `gmao_fuel_ge`, `gmao_fuel_ravitaillements`, `gmao_consommations_groupes_ge`, `gmao_fuel_monthly_summary`, `gmao_pue`, `gmao_problemes_datacenter`, `gmao_interventions`, `gmao_pieces_rechange` |
+| Technique | `gmao_notifications`, `gmao_login_buckets`, `audit_log` (append-only, déclencheurs d'immutabilité) |
+
+## API
+
+Toutes les routes, hors santé, exigent `Authorization: Bearer <jeton de session>`.
+
+| Méthode | Route | Rôle |
+|---|---|---|
+| `GET` | `/health` | Santé du serveur (public) |
+| `GET` | `/health/database` | Connexion MySQL ; `GMAO_HEALTH_TOKEN` en Bearer |
+| `POST` | `/api/auth/local/login` · `logout` · `change-password` | Session |
+| `GET` | `/api/me` | Profil et permissions calculées |
+| `GET` `POST` | `/api/records/<ressource>` | Liste, création |
+| `PUT` `PATCH` `DELETE` | `/api/records/<ressource>/<uuid>` | Modification, suppression |
+| `GET` `PATCH` | `/api/notifications`, `/<uuid>/read`, `/read-all` | Notifications |
+| `GET` `POST` `PATCH` `DELETE` | `/api/sites`, `/api/sites/<nom>` | Sites (écriture : Administrateur) |
+| `GET` `POST` `PATCH` | `/api/profiles`, `/<uuid>`, `/<uuid>/password`, `/<uuid>/delete` | Utilisateurs (Administrateur) |
+| `GET` | `/api/audit-logs`, `/api/change-history` | Journal d'audit, historique (Administrateur) |
+| `POST` | `/api/backups/export` | Archive ZIP (Administrateur) |
+| `POST` | `/api/backups/scheduled-export` | Même archive, `GMAO_BACKUP_TOKEN` en Bearer |
+
+Ressources : `equipements`, `tickets`, `groupes-electrogenes`, `releves-rh-ge`, `fuel-ge`, `consommations-groupes-ge`, `fuel-ravitaillements`, `fuel-summary`, `pue`, `problemes-datacenter`, `interventions`, `pieces-rechange`. Un Chef de site ne reçoit que les données de son site.
+
+## Exploitation
+
+### Composants installés
+
+| Composant | Détail |
+|---|---|
+| Interface | `C:\GMAO\web`, servie par Nginx (`ops\laragon\gmao.test.conf`) |
+| API | `gmao\.venv-laragon`, tâche `GMAO API` (`ops\laragon\start-api.ps1`) |
+| Base | MySQL 8.4 de Laragon, `127.0.0.1`, base `gmao` |
+| Secrets, certificat, sauvegardes | `C:\GMAO\.secrets`, `C:\GMAO\ssl`, `C:\GMAO\backups` |
+
+### Mettre à jour le serveur
+
+| Étape | Commande |
+|---|---|
+| 1. Sauvegarder | `.\ops\laragon\backup-mysql.ps1` |
+| 2. Récupérer le code (CI verte) | `git pull origin main` |
+| 3. Publier l'interface | `.\ops\laragon\build-frontend.ps1` (tests, build, copie vers `C:\GMAO\web`) |
+| 4. Redémarrer l'API | `Stop-ScheduledTask 'GMAO API'; Start-ScheduledTask 'GMAO API'` |
+
+Le démarrage de l'API attend MySQL (jusqu'à 15 minutes), applique les migrations, contrôle le schéma et purge les compteurs de connexion ; il échoue si une étape échoue.
+
+### Tâches planifiées
+
+| Tâche | Déclencheur | Script |
+|---|---|---|
+| `GMAO API` | Démarrage de Windows | `ops\laragon\start-api.ps1` |
+| `GMAO sauvegarde` | Chaque jour à 02:00 | `ops\laragon\backup-mysql.ps1` (option `-CopyTo` pour une copie hors disque) |
+| `GMAO santé` | Toutes les 10 minutes | `ops\laragon\check-health.ps1` (journal `C:\GMAO\health.log`) |
+
+Laragon démarre MySQL et Nginx à l'ouverture de session (réglages : démarrer avec Windows, tout démarrer automatiquement, minimisé, mise à jour automatique désactivée). Procédure d'incident : [docs/incident-disponibilite.md](docs/incident-disponibilite.md).
+
+### API Django
+
+- `/health` est public et indépendant de MySQL. `/health/database` répond 401 sans jeton valide, 200 (`status=UP`, `database=UP`, `responseTimeMs`) si la connexion fonctionne, 503 sinon. La sonde exécute `SELECT 1` : elle ne vérifie pas le schéma.
+- `GMAO_HEALTH_TOKEN` : 32 octets aléatoires au moins, distinct de `DJANGO_SECRET_KEY`, jamais placé dans Angular ni dans une URL.
+- Sans `DJANGO_SECRET_KEY`, le démarrage est refusé hors debug.
+
+### Protection des connexions
+
+| Limite | Valeur |
+|---|---|
+| Échecs par couple IP et e-mail | 5 sur 15 minutes, attente de 1, 2, 4 puis 8 secondes entre les essais |
+| Échecs par IP, tous e-mails confondus | 50 sur 15 minutes |
+| Refus | HTTP 429 avec `Retry-After` ; HTTP 503 si le stockage des compteurs est indisponible (jamais de contournement) |
+| Adresse du client | `X-Real-IP`, écrasé par Nginx, seulement si la connexion TCP vient d'un proxy de confiance (`GMAO_TRUSTED_PROXIES`) ; `X-Forwarded-For` toujours ignoré |
+| Journalisation | Identifiants HMAC, sans mot de passe, jeton, IP brute ni e-mail brut |
+
+`purge_login_buckets` supprime les fenêtres de plus de 24 heures. Changer `DJANGO_SECRET_KEY` change les clés HMAC et redémarre les quotas. Vérification : un identifiant inexistant, cinq essais, puis HTTP 429 au sixième.
+
+### Sauvegardes
+
+| Mode | Contenu | Où |
+|---|---|---|
+| Quotidienne | `mysqldump` complet compressé, rotation de 30 jours | `C:\GMAO\backups` (+ `-CopyTo`) |
+| À la demande | ZIP applicatif lisible, JSON par table, comptes sans mots de passe | Téléchargement (Administration, Sauvegardes) |
+
+Restaurer : importer le `.sql` d'une archive dans une base vide, démarrer l'API. Tester la restauration au moins une fois par trimestre.
+
+### Nom d'hôte et certificat
+
+Le nom (`gmao.test` par défaut) n'est écrit dans aucun fichier de code.
+
+| Où | Quoi | Ensuite |
+|---|---|---|
+| `hosts` ou DNS interne | Le nom pointe vers le serveur | Rien |
+| `gmao.test.conf` (Nginx) | `server_name` | Recharger Nginx |
+| `gmao\.env.laragon` | `DJANGO_ALLOWED_HOSTS`, `FRONTEND_ORIGINS` | Redémarrer l'API |
+| Build | `build-frontend.ps1 -ApiUrl https://<nom>` | Nouveau build |
+| Certificat | `new-certificate.ps1 -HostName <nom>` puis import sur chaque poste | Recharger Nginx |
+
+Le joker `*.test` de Laragon est refusé par Windows : le nom doit figurer tel quel dans le certificat. Les utilisateurs se reconnectent une fois sur la nouvelle adresse.
+
+### Détection d'une nouvelle version
+
+Chaque build produit `public/version.json`. L'interface le relit toutes les 5 minutes et à chaque retour sur l'onglet, et propose un rafraîchissement sans jamais recharger toute seule.
+
+## Sécurité
+
+| Mesure | Détail |
+|---|---|
+| Secrets | Jamais versionnés (`.env*`, mots de passe, jetons) ; dossier `C:\GMAO\.secrets` restreint |
+| Transport | HTTPS, HSTS, TLS 1.2+ ; API joignable uniquement par Nginx (`127.0.0.1`) |
+| CSP | Politique unique dans `ops/laragon/gmao.test.conf`, vérifiée dans Chromium par la CI |
+| Sessions | Stockage de l'onglet ; cookie `HttpOnly` non encore réalisé ([docs](gmao-frontend/docs/security-browser.md)) |
+| Autorisations | Contrôlées côté Django, quelle que soit l'interface |
+| Base | MySQL sur la machine, compte applicatif limité à la base `gmao`, compte de sauvegarde en lecture seule |
+
+## Dépannage
+
+| Symptôme | Cause probable | Action |
+|---|---|---|
+| Enregistrement réussi mais feuille visible | Réponse en erreur | Console du navigateur et réponse de la requête ; la feuille ne se ferme qu'après succès |
+| Lenteur, erreur 502 | API arrêtée ou MySQL indisponible | `/health`, tâche `GMAO API`, MySQL dans Laragon |
+| Aucune donnée | API injoignable, `apiUrl` faux, profil inactif | `/health`, `environment.apiUrl`, `user_profiles.active` |
+| Un site sans données | Libellé ou casse différents, site inactif | Comparer avec la colonne `site` et la table `sites` |
+| Erreur CORS | Origine absente de `FRONTEND_ORIGINS` | Ajouter l'origine exacte, sans barre finale |
+| Profil refusé | UUID différent, `active = false`, rôle inconnu, `chef_site` sans site | Corriger le profil |
+| Base injoignable | MySQL arrêté ou identifiants faux | Port 3306 dans Laragon, `GMAO_DB_*` |
+| HTTP 429 à la connexion | 5 échecs en 15 minutes | Attendre le délai de `Retry-After` |
+| Avertissement du navigateur | Certificat non importé | `Import-Certificate` du `.crt` de `C:\GMAO\ssl` |
+
+## Charte visuelle Orange
+
+| Élément | Règle |
+|---|---|
+| Typographie | Helvetica Neue 55, 65, 75 |
+| Couleurs | Noir, blanc, Orange `#FF7900`, gris ; vert = validation, Orange = attention, rouge = erreur |
+| Icônes | Pack Solaris local (`gmao-frontend/public/assets/orange/icons`) |
+| Logo | Master Logo Orange officiel (`.../logo/orange-master-logo.png`) |
+
+## Documentation détaillée
+
+| Document | Sujet |
+|---|---|
+| [docs/installation-serveur.md](docs/installation-serveur.md) | Installation pas à pas sur Laragon |
+| [docs/incident-disponibilite.md](docs/incident-disponibilite.md) | Supervision et procédure d'incident |
+| [docs/migrations-metier.md](docs/migrations-metier.md) | Migrations, adoption du schéma, retour arrière |
+| [docs/politique-mots-de-passe.md](docs/politique-mots-de-passe.md) | Règles de mot de passe |
+| [docs/gestion-utilisateurs.md](docs/gestion-utilisateurs.md) | Administration des comptes |
+| [docs/journal-audit.md](docs/journal-audit.md) | Journal d'audit |
+| [gmao-frontend/docs/security-browser.md](gmao-frontend/docs/security-browser.md) | CSP et sessions navigateur |
+
+## Évolutions prévues
+
+- Envoi d'e-mails pour les alertes warning et critical.
+- Import massif XLSX avec validation et rapport d'erreurs (aujourd'hui : exports seulement).
+- Réduction des bundles Angular et des styles partagés.
+- Copie automatique des sauvegardes hors du serveur.
+
+Tenir ce fichier à jour lors de l'ajout d'un module, d'un rôle, d'une table, d'une route, d'une variable ou d'une règle métier.

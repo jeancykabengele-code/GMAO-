@@ -253,7 +253,7 @@ Register-ScheduledTask -TaskName 'GMAO sauvegarde' -Action $action -Trigger $tri
 
 ## 11. Supervision
 
-La tâche planifiée `GMAO santé` (`ops\laragon\check-health.ps1`) contrôle toutes les 10 minutes l'interface, `/health` et `/health/database`, et journalise le résultat dans `C:\GMAO\health.log`. Sa mise en place et la procédure d'incident sont décrites dans [DEPLOIEMENT.md](../DEPLOIEMENT.md) et [incident-disponibilite.md](incident-disponibilite.md).
+La tâche planifiée `GMAO santé` (`ops\laragon\check-health.ps1`) contrôle toutes les 10 minutes l'interface, `/health` et `/health/database`, et journalise le résultat dans `C:\GMAO\health.log`. Sa mise en place et la procédure d'incident sont décrites dans [README.md](../README.md) et [incident-disponibilite.md](incident-disponibilite.md).
 
 ## 12. Mettre à jour l'application
 

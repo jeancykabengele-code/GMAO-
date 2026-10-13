@@ -19,4 +19,4 @@ Les colonnes `created_at` et `updated_at` du profil sont renseignées automatiqu
 
 La même permission `manageUsers` réserve aussi la page **Sauvegardes** (`/administration/sauvegardes`) : elle génère à la demande une archive ZIP de toutes les tables métier, des sites, des comptes (hors mots de passe) et du journal d'audit, via `POST /api/backups/export`, puis la fait télécharger immédiatement par le navigateur. Rien n'est écrit sur le disque du serveur : l'archive est construite en mémoire pour la durée de la requête. Chaque export est tracé dans le journal d'audit (action `backup_export`), visible depuis la page elle-même ou depuis le journal complet.
 
-Une sauvegarde complète de la base est aussi créée chaque nuit par une tâche planifiée du serveur, sans intervention de l'Administrateur — voir [DEPLOIEMENT.md](../DEPLOIEMENT.md).
+Une sauvegarde complète de la base est aussi créée chaque nuit par une tâche planifiée du serveur, sans intervention de l'Administrateur — voir [README.md](../README.md).
