@@ -41,29 +41,6 @@
         @if (dateFrom || dateTo) { <button type="button" class="secondary-button filter-reset" (click)="clearPeriod()">Toute la période</button> }
       </div>
 
-      <div class="summary-cards" aria-label="Résultats de la période">
-        <article class="summary-card">
-          <span>PUE de la période</span>
-          <strong [class.good-value]="periodPue > 0 && periodPue <= threshold" [class.alert-value]="periodPue > threshold">{{ retainedDays ? (periodPue | number:'1.2-3':'fr') : '—' }}</strong>
-          <small>Somme des kW totaux ÷ somme des kW IT</small>
-        </article>
-        <article class="summary-card">
-          <span>Jours retenus</span>
-          <strong>{{ retainedDays }}@if (hasFullPeriod) { <em> sur {{ periodDays }}</em> }</strong>
-          <small>Jours avec un relevé complet</small>
-        </article>
-        <article class="summary-card">
-          <span>IT moyen</span>
-          <strong>{{ retainedDays ? (averageIt | number:'1.0-1':'fr') : '—' }} <em>kW</em></strong>
-          <small>Sorties UPS + redresseurs</small>
-        </article>
-        <article class="summary-card">
-          <span>Total site moyen</span>
-          <strong>{{ retainedDays ? (averageTotal | number:'1.0-1':'fr') : '—' }} <em>kW</em></strong>
-          <small>TGBT A + TGBT B</small>
-        </article>
-      </div>
-
       <div class="table-wrapper">
         <table [class.read-only-table]="!canModify">
           <thead>
