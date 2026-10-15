@@ -24,6 +24,12 @@ describe('PUE lines', () => {
     expect(computeLine(dc, { kwLus: null, a: 1000, v: 53.5 })).toMatchObject({ kw: 53.5, origine: 'Calculé' });
     expect(computeLine(ac, { kwLus: null, a: 700, v: null }).kw).toBeCloseTo(436.477, 3);
     expect(computeLine(ac, { kwLus: null, a: 100, v: 230 }).kw).toBeCloseTo(35.853, 3);
+    // cos φ lu sur l'équipement : √3 × 400 × 700 × 0,95 ÷ 1000
+    expect(computeLine(ac, { kwLus: null, a: 700, v: null, cosPhi: 0.95 }).kw).toBeCloseTo(460.726, 3);
+    // cos φ hors de ]0 ; 1] : l'aperçu retombe sur 0,9 et le formulaire refuse l'enregistrement
+    expect(computeLine(ac, { kwLus: null, a: 700, v: null, cosPhi: 1.5 }).kw).toBeCloseTo(436.477, 3);
+    // le cos φ n'a pas de sens en continu
+    expect(computeLine(dc, { kwLus: null, a: 1000, v: 53.5, cosPhi: 0.5 }).kw).toBe(53.5);
   });
 
   it('keeps the read kW as the retained value and reports the gap with the calculation', () => {

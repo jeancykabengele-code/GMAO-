@@ -65,10 +65,10 @@ def _number(value, label, field):
     return number
 
 
-def _kw_from_amps(line, amps, volts):
+def _kw_from_amps(line, amps, volts, cos_phi=None):
     if line.kind == "dc":
         return amps * volts / 1000
-    return SQRT3 * volts * amps * COS_PHI / 1000
+    return SQRT3 * volts * amps * (cos_phi if cos_phi is not None else COS_PHI) / 1000
 
 
 def _compute_line(line, raw):
@@ -77,6 +77,10 @@ def _compute_line(line, raw):
     kw_read = _number(raw.get("kwLus"), line.label, "les kW lus")
     amps = _number(raw.get("a"), line.label, "les ampères")
     volts = _number(raw.get("v"), line.label, "la tension")
+    # Le cos φ ne concerne que le triphasé : lu sur l'équipement avec les ampères, 0,9 à défaut.
+    cos_phi = _number(raw.get("cosPhi"), line.label, "le cos φ") if line.kind == "ac" else None
+    if cos_phi is not None and not 0 < cos_phi <= 1:
+        raise ValidationError(f"{line.label} : le cos φ doit être compris entre 0 (exclu) et 1.")
     if line.kind == "ac" and volts is None:
         volts = AC_VOLTAGE
         entered_volts = None
@@ -84,7 +88,7 @@ def _compute_line(line, raw):
         entered_volts = volts
     calculated = None
     if amps is not None and volts is not None:
-        calculated = _kw_from_amps(line, amps, volts)
+        calculated = _kw_from_amps(line, amps, volts, cos_phi)
     if kw_read is None and calculated is None:
         if line.kind == "dc" and amps is not None:
             raise ValidationError(f"{line.label} : la tension (V) est obligatoire avec les ampères.")
@@ -100,6 +104,7 @@ def _compute_line(line, raw):
         "kwLus": float(kw_read) if kw_read is not None else None,
         "a": float(amps) if amps is not None else None,
         "v": float(entered_volts) if entered_volts is not None else None,
+        "cosPhi": float(cos_phi) if cos_phi is not None else None,
         "kw": float(retained.quantize(KW_PLACES)),
         "origine": origin,
         "ecart": float(gap) if gap is not None else None,

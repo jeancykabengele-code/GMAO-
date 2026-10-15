@@ -10,7 +10,7 @@ const KINSHASA_OFFSET_MINUTES = 60;
 export type PueRole = 'it' | 'pdf' | 'cooling' | 'tertiary' | 'total';
 
 export interface PueLine { code: string; label: string; kind: 'ac' | 'dc'; role: PueRole; }
-export interface PueInput { kwLus: number | null; a: number | null; v: number | null; }
+export interface PueInput { kwLus: number | null; a: number | null; v: number | null; cosPhi?: number | null; }
 export interface PueLineResult { kw: number | null; origine: 'Lu' | 'Calculé' | ''; ecart: number | null; }
 export interface PueSection { title: string; lines: PueLine[]; }
 
@@ -55,7 +55,7 @@ export const PUE_CHECKS: Array<{ label: string; output: string; parts: string[] 
 export type PueInputs = Record<string, PueInput>;
 
 export function emptyInputs(): PueInputs {
-  return Object.fromEntries(PUE_LINES.map((line) => [line.code, { kwLus: null, a: null, v: null }]));
+  return Object.fromEntries(PUE_LINES.map((line) => [line.code, { kwLus: null, a: null, v: null, cosPhi: null }]));
 }
 
 const toNumber = (value: unknown): number | null => {
@@ -64,15 +64,26 @@ const toNumber = (value: unknown): number | null => {
   return Number.isFinite(number) ? number : null;
 };
 
-export function kwFromAmps(line: PueLine, amps: number, volts: number): number {
-  return line.kind === 'dc' ? (amps * volts) / 1000 : (Math.sqrt(3) * volts * amps * COS_PHI) / 1000;
+export function kwFromAmps(line: PueLine, amps: number, volts: number, cosPhi: number | null = null): number {
+  return line.kind === 'dc' ? (amps * volts) / 1000 : (Math.sqrt(3) * volts * amps * (cosPhi ?? COS_PHI)) / 1000;
+}
+
+/** Le cos φ saisi doit être dans ]0 ; 1] ; sinon la valeur par défaut s'applique à l'aperçu (le serveur refuse l'enregistrement). */
+const validCosPhi = (value: unknown): number | null => {
+  const number = toNumber(value);
+  return number !== null && number > 0 && number <= 1 ? number : null;
+};
+
+export function isCosPhiInvalid(value: unknown): boolean {
+  const number = toNumber(value);
+  return number !== null && !(number > 0 && number <= 1);
 }
 
 export function computeLine(line: PueLine, input: PueInput | undefined): PueLineResult {
   const kwRead = toNumber(input?.kwLus);
   const amps = toNumber(input?.a);
   const volts = toNumber(input?.v) ?? (line.kind === 'ac' ? AC_VOLTAGE : null);
-  const calculated = amps !== null && volts !== null ? kwFromAmps(line, amps, volts) : null;
+  const calculated = amps !== null && volts !== null ? kwFromAmps(line, amps, volts, line.kind === 'ac' ? validCosPhi(input?.cosPhi) : null) : null;
   const ecart = kwRead !== null && calculated !== null && calculated > 0
     ? Math.round(((kwRead - calculated) / calculated) * 1000) / 10
     : null;
@@ -125,7 +136,7 @@ export function inputsFromRow(row: PueRow): PueInputs {
   const inputs = emptyInputs();
   for (const line of PUE_LINES) {
     const saved = row.mesures?.[line.code];
-    if (saved) inputs[line.code] = { kwLus: saved.kwLus ?? null, a: saved.a ?? null, v: saved.v ?? null };
+    if (saved) inputs[line.code] = { kwLus: saved.kwLus ?? null, a: saved.a ?? null, v: saved.v ?? null, cosPhi: saved.cosPhi ?? null };
   }
   return inputs;
 }

@@ -133,23 +133,28 @@
     <form (ngSubmit)="saveEntry()">
       <p class="sheet-help">
         Pour chaque équipement, saisir les <strong>kW lus</strong> s’ils sont affichés, sinon les <strong>ampères</strong> (et la tension).
-        Les kW lus sont prioritaires ; en AC la tension par défaut est 400 V avec cos φ = 0,9.
+        Les kW lus sont prioritaires ; en AC la tension par défaut est 400 V et le cos φ lu sur l’équipement est pris en compte (0,9 s’il n’est pas renseigné).
       </p>
 
       <div class="lines-wrapper">
         <table class="lines-table">
           <thead>
-            <tr><th scope="col">&Eacute;quipement</th><th scope="col">kW lus</th><th scope="col">A</th><th scope="col">V</th><th scope="col">kW retenus</th><th scope="col">Origine</th><th scope="col">&Eacute;cart</th></tr>
+            <tr><th scope="col">&Eacute;quipement</th><th scope="col">kW lus</th><th scope="col">A</th><th scope="col">V</th><th scope="col">cos φ</th><th scope="col">kW retenus</th><th scope="col">Origine</th><th scope="col">&Eacute;cart</th></tr>
           </thead>
           @for (section of sections; track section.title) {
             <tbody>
-              <tr class="section-row"><td colspan="7">{{ section.title }}</td></tr>
+              <tr class="section-row"><td colspan="8">{{ section.title }}</td></tr>
               @for (line of section.lines; track line.code) {
                 <tr>
                   <td class="line-label">{{ line.label }}</td>
                   <td><input type="number" min="0" step="any" [name]="line.code + '-kw'" [attr.aria-label]="line.label + ' kW lus'" [(ngModel)]="inputs[line.code].kwLus" /></td>
                   <td><input type="number" min="0" step="any" [name]="line.code + '-a'" [attr.aria-label]="line.label + ' ampères'" [(ngModel)]="inputs[line.code].a" /></td>
                   <td><input type="number" min="0" step="any" [name]="line.code + '-v'" [attr.aria-label]="line.label + ' volts'" [placeholder]="line.kind === 'ac' ? '400' : ''" [(ngModel)]="inputs[line.code].v" /></td>
+                  <td>
+                    @if (line.kind === 'ac') {
+                      <input type="number" min="0" max="1" step="any" [name]="line.code + '-cos'" [attr.aria-label]="line.label + ' cos φ'" placeholder="0,9" [class.input-invalid]="isCosPhiInvalid(inputs[line.code].cosPhi)" [(ngModel)]="inputs[line.code].cosPhi" />
+                    } @else { — }
+                  </td>
                   <td class="retained">{{ result(line).kw !== null ? (result(line).kw | number:'1.0-3':'fr') : '—' }}</td>
                   <td>{{ result(line).origine || '—' }}</td>
                   <td [class.gap-high]="result(line).ecart !== null && (result(line).ecart! > 10 || result(line).ecart! < -10)">{{ result(line).ecart !== null ? ((result(line).ecart | number:'1.0-1':'fr') + ' %') : '—' }}</td>

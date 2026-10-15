@@ -7,7 +7,7 @@ import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 import {
   PUE_CHECKS, PUE_LINES, PUE_SECTIONS, PUE_SITE, PUE_THRESHOLD, PueInputs, PueLine, PueLineResult, PueRow, PueSummary,
-  computeLine, emptyInputs, inputsFromRow, kinshasaNow, lineLabel, periodPue, summarize,
+  computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, summarize,
 } from './pue-lines';
 
 export interface CalendarDay { date: string; row: PueRow | null; }
@@ -122,8 +122,12 @@ export class PuePageComponent {
   get calculatedPue(): number { return this.summary.pue ?? 0; }
   get sheetTitle(): string { return this.editingRow ? 'Modifier le relevé du ' + this.formatDate(this.editingRow.dateReleve) : 'Relevé PUE du jour'; }
   get canSubmit(): boolean {
-    return !this.saving && !this.deleting && this.summary.complete && this.summary.pue !== null;
+    return !this.saving && !this.deleting && this.summary.complete && this.summary.pue !== null && !this.hasInvalidCosPhi;
   }
+  get hasInvalidCosPhi(): boolean {
+    return PUE_LINES.some((line) => line.kind === 'ac' && isCosPhiInvalid(this.inputs[line.code].cosPhi));
+  }
+  isCosPhiInvalid(value: unknown): boolean { return isCosPhiInvalid(value); }
 
   result(line: PueLine): PueLineResult { return computeLine(line, this.inputs[line.code]); }
 
@@ -182,14 +186,16 @@ export class PuePageComponent {
 
   async saveEntry(): Promise<void> {
     if (!this.canSubmit) {
-      this.saveError = this.summary.complete
+      this.saveError = this.hasInvalidCosPhi
+        ? 'Le cos φ doit être compris entre 0 (exclu) et 1.'
+        : this.summary.complete
         ? 'Le total du site (TGBT A + B) ne peut pas être inférieur à la puissance IT.'
         : `Relevé incomplet : ${this.summary.missing.join(', ')}.`;
       return;
     }
     const mesures = Object.fromEntries(PUE_LINES.map((line) => {
       const input = this.inputs[line.code];
-      return [line.code, { kwLus: this.numberOrNull(input.kwLus), a: this.numberOrNull(input.a), v: this.numberOrNull(input.v) }];
+      return [line.code, { kwLus: this.numberOrNull(input.kwLus), a: this.numberOrNull(input.a), v: this.numberOrNull(input.v), ...(line.kind === 'ac' ? { cosPhi: this.numberOrNull(input.cosPhi) } : {}) }];
     }));
     this.saving = true;
     this.saveError = '';

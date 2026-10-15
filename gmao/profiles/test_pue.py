@@ -45,6 +45,27 @@ class PueLineConversionTests(SimpleTestCase):
         # √3 × 400 V × 700 A × 0,9 ÷ 1000
         self.assertAlmostEqual(computed["ups_a"]["kw"], 436.477, places=3)
 
+    def test_ac_line_uses_the_power_factor_read_on_the_equipment(self):
+        computed = _compute_lines(full_reading() | {"ups_a": {"a": 700, "cosPhi": 0.95}})
+        # √3 × 400 V × 700 A × 0,95 ÷ 1000
+        self.assertAlmostEqual(computed["ups_a"]["kw"], 460.726, places=3)
+        self.assertEqual(computed["ups_a"]["cosPhi"], 0.95)
+
+    def test_missing_power_factor_falls_back_to_the_default(self):
+        computed = _compute_lines(full_reading() | {"ups_a": {"a": 700, "cosPhi": None}})
+        self.assertAlmostEqual(computed["ups_a"]["kw"], 436.477, places=3)
+        self.assertIsNone(computed["ups_a"]["cosPhi"])
+
+    def test_power_factor_must_be_between_zero_and_one(self):
+        for bad in (0, 1.2, -0.5):
+            with self.subTest(cos_phi=bad), self.assertRaisesMessage(ValidationError, "cos φ"):
+                _compute_lines(full_reading() | {"ups_a": {"a": 700, "cosPhi": bad}})
+
+    def test_power_factor_is_ignored_on_dc_lines(self):
+        computed = _compute_lines(full_reading() | {"redresseurs_a": {"a": 1000, "v": 53.5, "cosPhi": 0.5}})
+        self.assertEqual(computed["redresseurs_a"]["kw"], 53.5)
+        self.assertIsNone(computed["redresseurs_a"]["cosPhi"])
+
     def test_ac_line_uses_the_entered_voltage(self):
         computed = _compute_lines(full_reading() | {"ups_a": {"a": 100, "v": 230}})
         self.assertAlmostEqual(computed["ups_a"]["kw"], 35.853, places=3)
