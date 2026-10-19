@@ -95,17 +95,15 @@
         </table>
       </div>
       } @else {
-        <p class="details-note">AVR, UPS, redresseurs et PDF sont facultatifs : un « — » signale une ligne non renseignée. L’écart compare l’IT lu (UPS + redresseurs) à l’IT déduit du relevé.</p>
+        <p class="details-note">Les AVR et les PDF sont facultatifs : un « — » signale une ligne non renseignée. Les sommes de PDF sont données par voie.</p>
         <div class="details-wrapper">
           <table class="details-table">
             <thead>
               <tr>
                 <th scope="col" class="sticky-col">Date</th>
                 <th scope="col">Heure</th>
+                <th scope="col">Scénario</th>
                 @for (column of detailColumns; track column.code) { <th scope="col">{{ column.label }}</th> }
-                <th scope="col">IT lu</th>
-                <th scope="col">IT déduit</th>
-                <th scope="col">Écart</th>
                 @for (group of pdfGroups; track group.label) { <th scope="col">{{ group.label }}</th> }
                 @if (canModify) { <th scope="col">Action</th> }
               </tr>
@@ -115,19 +113,17 @@
                 <tr [attr.data-record-id]="reading.id || null" [class.notification-target-row]="notificationFocus?.isTarget(reading.id)">
                   <td class="sticky-col">{{ formatDate(reading.dateReleve) }}</td>
                   <td>{{ reading.heureReleve.slice(0, 5) }}</td>
+                  <td>{{ reading.scenario || '—' }}</td>
                   @for (column of detailColumns; track column.code) {
                     <td [class.no-value]="lineKw(reading, column.code) === null">{{ lineKw(reading, column.code) !== null ? (lineKw(reading, column.code) | number:'1.0-1':'fr') : '—' }}</td>
                   }
-                  <td [class.no-value]="itRead(reading) === null">{{ itRead(reading) !== null ? (itRead(reading) | number:'1.0-1':'fr') : '—' }}</td>
-                  <td>{{ reading.itKw | number:'1.0-1':'fr' }}</td>
-                  <td [class.no-value]="itGap(reading) === null" [class.gap-high]="isGapHigh(itGap(reading))">{{ itGap(reading) !== null ? ((itGap(reading) | number:'1.0-1':'fr') + ' %') : '—' }}</td>
                   @for (group of pdfGroups; track group.label) {
                     <td [class.no-value]="pdfSum(reading, group.codes) === null">{{ pdfSum(reading, group.codes) !== null ? (pdfSum(reading, group.codes) | number:'1.0-1':'fr') : '—' }}</td>
                   }
                   @if (canModify) { <td class="action-cell"><button type="button" class="row-action" (click)="editEntry(reading)">Modifier</button></td> }
                 </tr>
               } @empty {
-                <tr class="empty-row"><td [attr.colspan]="detailColumns.length + pdfGroups.length + (canModify ? 6 : 5)" class="empty-message">Aucun relevé PUE pour cette période.</td></tr>
+                <tr class="empty-row"><td [attr.colspan]="detailColumns.length + pdfGroups.length + (canModify ? 4 : 3)" class="empty-message">Aucun relevé PUE pour cette période.</td></tr>
               }
             </tbody>
           </table>
@@ -160,10 +156,18 @@
     </header>
 
     <form (ngSubmit)="saveEntry()">
+      <div class="scenario-picker" role="radiogroup" aria-label="Scénario de saisie">
+        @for (option of scenarios; track option.code) {
+          <button type="button" role="radio" class="scenario-option" [class.active]="scenario === option.code" [attr.aria-checked]="scenario === option.code" (click)="scenario = option.code">
+            <strong>{{ option.title }}</strong>
+            <span>Vous mesurez {{ option.measured }} · {{ option.deduced }} déduit</span>
+          </button>
+        }
+      </div>
+
       <p class="sheet-help">
-        Renseigner le <strong>total des TGBT</strong>, la <strong>climatisation</strong> et les <strong>charges tertiaires</strong> :
-        l’IT et le PUE en sont déduits. Pour chaque équipement, saisir les <strong>kW lus</strong> s’ils sont affichés, sinon les
-        <strong>ampères</strong> (et la tension). En AC : 400 V par défaut et le cos φ lu sur l’équipement (0,9 s’il n’est pas renseigné).
+        Pour chaque équipement, saisir les <strong>kW lus</strong> s’ils sont affichés, sinon les <strong>ampères</strong> (et la tension).
+        En AC : 400 V par défaut et le cos φ lu sur l’équipement (0,9 s’il n’est pas renseigné).
       </p>
 
       <ng-template #linesTable let-sections>
@@ -201,50 +205,44 @@
 
       <section class="sheet-step" aria-labelledby="pue-step-main">
         <h3 id="pue-step-main"><span class="step-number">1</span> Mesures principales</h3>
-        <ng-container *ngTemplateOutlet="linesTable; context: { $implicit: [mainSection] }"></ng-container>
+        <p class="step-note">{{ scenario === 'S1' ? 'Saisir le total des TGBT et l’IT : le hors IT en est déduit.' : 'Saisir l’IT et le hors IT : le total du site en est déduit.' }}</p>
+        <ng-container *ngTemplateOutlet="linesTable; context: { $implicit: mainSections }"></ng-container>
       </section>
 
       <section class="sheet-step" aria-labelledby="pue-step-result">
         <h3 id="pue-step-result"><span class="step-number">2</span> Résultat du jour</h3>
         <div class="results">
-          <div class="result-card">
-            <span>Total site</span>
+          <div class="result-card" [class.result-deduced]="scenario === 'S2'">
+            <span>Total site @if (scenario === 'S2') { <b class="deduced-tag">déduit</b> }</span>
             <strong>{{ summary.totalKw | number:'1.0-1':'fr' }} <em>kW</em></strong>
-            <small>TGBT A + TGBT B</small>
+            <small>{{ scenario === 'S1' ? 'TGBT A + TGBT B' : 'IT + hors IT' }}</small>
+          </div>
+          <div class="result-card" [class.result-deduced]="scenario === 'S1'">
+            <span>Hors IT @if (scenario === 'S1') { <b class="deduced-tag">déduit</b> }</span>
+            <strong>{{ summary.nonItKw | number:'1.0-1':'fr' }} <em>kW</em></strong>
+            <small>{{ scenario === 'S1' ? 'Total site − IT' : 'Climatisation + charges tertiaires' }}</small>
           </div>
           <div class="result-card">
-            <span>Hors IT</span>
-            <strong>{{ summary.nonItKw | number:'1.0-1':'fr' }} <em>kW</em></strong>
-            <small>Climatisation + charges tertiaires</small>
-          </div>
-          <div class="result-card result-it">
-            <span>IT déduit</span>
+            <span>IT</span>
             <strong>{{ summary.itKw > 0 ? (summary.itKw | number:'1.0-1':'fr') : '—' }} <em>kW</em></strong>
-            <small>Total site − hors IT</small>
+            <small>UPS + redresseurs</small>
           </div>
           <div class="result-card pue-result" [class.good-value]="calculatedPue > 0 && calculatedPue <= threshold" [class.alert-value]="calculatedPue > threshold">
             <span>PUE du jour</span>
             <strong>{{ calculatedPue ? (calculatedPue | number:'1.3-3':'fr') : '—' }}</strong>
-            <small>Total site ÷ IT déduit · seuil {{ threshold | number:'1.1-1':'fr' }}</small>
+            <small>Total site ÷ IT · seuil {{ threshold | number:'1.1-1':'fr' }}</small>
           </div>
         </div>
       </section>
 
       <section class="sheet-step" aria-labelledby="pue-step-detail">
         <h3 id="pue-step-detail"><span class="step-number">3</span> Détails et contrôles <em>facultatif</em></h3>
-        <p class="step-note">AVR, UPS, redresseurs et PDF ne changent pas le PUE : ils servent à vérifier les mesures principales.</p>
+        <p class="step-note">AVR et PDF ne changent pas le PUE : ils servent à vérifier les mesures principales, dans les deux scénarios.</p>
         <ng-container *ngTemplateOutlet="linesTable; context: { $implicit: detailSections }"></ng-container>
 
         <section class="checks" aria-label="Contrôles">
           <h4>Contrôles</h4>
           <ul>
-            <li [class.gap-high]="isGapHigh(summary.itGap)">
-              <span class="check-label">IT lu (UPS + redresseurs) ↔ IT déduit</span>
-              <span class="check-values">
-                @if (summary.itGap === null) { — } @else { {{ summary.itReadKw | number:'1.0-1':'fr' }} kW lus pour {{ summary.itKw | number:'1.0-1':'fr' }} kW déduits }
-              </span>
-              <span class="check-gap">@if (summary.itGap !== null) { {{ summary.itGap | number:'1.0-1':'fr' }} % }</span>
-            </li>
             @for (check of checks; track check.label) {
               <li [class.gap-high]="isGapHigh(check.gap)">
                 <span class="check-label">{{ check.partsLabel }} ↔ {{ check.label }}</span>
@@ -259,7 +257,7 @@
       </section>
 
       @if (!summary.complete) { <p class="form-warning">Il manque : {{ summary.missing.join(', ') }}.</p> }
-      @else if (summary.pue === null) { <p class="form-warning">La puissance IT déduite (TGBT − climatisation − charges tertiaires) doit être supérieure à zéro.</p> }
+      @else if (summary.pue === null) { <p class="form-warning">{{ inconsistencyMessage }}</p> }
       @if (saveError) { <p class="form-error" role="alert">{{ saveError }}</p> }
 
       <div class="sheet-actions">

@@ -179,6 +179,7 @@ class PueRecord(BusinessRecord):
     """Relevé du PUE : une ligne par saisie (plusieurs possibles par jour), avec la puissance de chaque équipement."""
     date_releve = models.DateField()
     heure_releve = models.TimeField()
+    scenario = models.CharField(max_length=2, blank=True, default="")
     mesures = models.JSONField(default=dict)
     it_kw = models.DecimalField(max_digits=14, decimal_places=3)
     total_kw = models.DecimalField(max_digits=14, decimal_places=3)

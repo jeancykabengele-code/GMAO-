@@ -6,8 +6,9 @@ import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 import {
-  PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_PDF_GROUPS, PUE_LINES, PUE_MAIN_SECTION, PUE_SITE, PUE_THRESHOLD, PueInputs, PueLine, PueLineResult, PueRow, PueSummary,
-  computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, summarize,
+  PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_LINES, PUE_MAIN_SECTIONS, PUE_PDF_GROUPS, PUE_SCENARIOS, PUE_SITE, PUE_TABLE_LINES, PUE_THRESHOLD,
+  PueInputs, PueLine, PueLineResult, PueRow, PueScenario, PueSummary,
+  computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, summarize, visibleCodes,
 } from './pue-lines';
 
 /** Synthèse d'une journée ayant plusieurs relevés : moyennes en kW et PUE du jour (Σ total ÷ Σ IT). */
@@ -29,7 +30,7 @@ export class PuePageComponent {
   readonly rowsPerPage = 20;
   readonly site = PUE_SITE;
   readonly threshold = PUE_THRESHOLD;
-  readonly mainSection = PUE_MAIN_SECTION;
+  readonly scenarios = PUE_SCENARIOS;
   readonly detailSections = PUE_DETAIL_SECTIONS;
 
   /** Corriger un relevé : rôles globaux et Chef de site (sur son site). */
@@ -68,6 +69,8 @@ export class PuePageComponent {
   dateTo = '';
   editingRow: PueRow | null = null;
   inputs: PueInputs = emptyInputs();
+  /** S1 : TGBT + IT mesurés, hors IT déduit. S2 : IT + hors IT mesurés, total déduit. */
+  scenario: PueScenario = 'S1';
   saving = false;
   saveError = '';
   deleting = false;
@@ -137,7 +140,7 @@ export class PuePageComponent {
 
   // Tableau des détails : un relevé par ligne, sans les jours manquants ni les synthèses.
   /** AVR, UPS et redresseurs : une colonne chacun ; les PDF sont additionnés par voie. */
-  readonly detailColumns = PUE_DETAIL_SECTIONS.slice(0, 2).flatMap((section) => section.lines);
+  readonly detailColumns = PUE_TABLE_LINES;
   readonly pdfGroups = PUE_PDF_GROUPS;
 
   get visibleDetailRows(): PueRow[] {
@@ -149,19 +152,6 @@ export class PuePageComponent {
   lineKw(row: PueRow, code: string): number | null {
     const value = row.mesures?.[code]?.kw;
     return typeof value === 'number' ? value : null;
-  }
-
-  /** IT lu = UPS A + UPS B + Redresseurs A + Redresseurs B, seulement si les quatre sont renseignés. */
-  itRead(row: PueRow): number | null {
-    const values = ['ups_a', 'ups_b', 'redresseurs_a', 'redresseurs_b'].map((code) => this.lineKw(row, code));
-    return values.every((value) => value !== null) ? values.reduce((sum: number, value) => sum + (value ?? 0), 0) : null;
-  }
-
-  /** Écart de l'IT lu par rapport à l'IT déduit enregistré, en %. */
-  itGap(row: PueRow): number | null {
-    const read = this.itRead(row);
-    const deduced = Number(row.itKw);
-    return read !== null && deduced > 0 ? Math.round(((read - deduced) / deduced) * 1000) / 10 : null;
   }
 
   /** Somme des PDF d'une voie, seulement si tous sont renseignés. */
@@ -185,7 +175,8 @@ export class PuePageComponent {
   get averageTotal(): number { return this.average((row) => Number(row.totalKw)); }
 
   // Relevé en cours de saisie.
-  get summary(): PueSummary { return summarize(this.inputs); }
+  get mainSections() { return PUE_MAIN_SECTIONS[this.scenario]; }
+  get summary(): PueSummary { return summarize(this.inputs, this.scenario); }
   get calculatedPue(): number { return this.summary.pue ?? 0; }
   get sheetTitle(): string { return this.editingRow ? 'Modifier le relevé du ' + this.formatDate(this.editingRow.dateReleve) : 'Relevé PUE du jour'; }
   get canSubmit(): boolean {
@@ -199,16 +190,29 @@ export class PuePageComponent {
   result(line: PueLine): PueLineResult { return computeLine(line, this.inputs[line.code]); }
 
   get checks(): Array<{ label: string; partsLabel: string; output: number | null; parts: number | null; gap: number | null }> {
-    return PUE_CHECKS.map((check) => {
+    const pdfChecks = PUE_CHECKS.map((check) => {
       const output = this.result(this.lineByCode(check.output)).kw;
       const partValues = check.parts.map((code) => this.result(this.lineByCode(code)).kw);
       const parts = partValues.some((value) => value === null) ? null : partValues.reduce((sum: number, value) => sum + (value ?? 0), 0);
       const gap = output !== null && parts !== null && output > 0 ? Math.round(((parts - output) / output) * 1000) / 10 : null;
       return { label: check.label, partsLabel: check.partsLabel, output, parts, gap };
     });
+    // Les AVR alimentent les TGBT : leur somme doit rester proche du total du site (l'écart correspond aux pertes).
+    const avr = ['avr_a', 'avr_b'].map((code) => this.result(this.lineByCode(code)).kw);
+    const avrParts = avr.some((value) => value === null) ? null : avr.reduce((sum: number, value) => sum + (value ?? 0), 0);
+    const total = this.summary.totalKw > 0 ? this.summary.totalKw : null;
+    const avrGap = total !== null && avrParts !== null ? Math.round(((avrParts - total) / total) * 1000) / 10 : null;
+    return [{ label: 'Total site', partsLabel: 'AVR A + B', output: total, parts: avrParts, gap: avrGap }, ...pdfChecks];
   }
 
   /** Écart en % : au-delà de 10 %, la saisie mérite d'être revérifiée. */
+  /** Message affiché quand toutes les mesures sont là mais que le résultat est incohérent. */
+  get inconsistencyMessage(): string {
+    return this.scenario === 'S1'
+      ? 'La puissance IT ne peut pas dépasser la puissance totale du site (TGBT A + B).'
+      : 'La puissance IT (UPS + redresseurs) doit être supérieure à zéro.';
+  }
+
   isGapHigh(gap: number | null): boolean { return gap !== null && (gap > 10 || gap < -10); }
 
   isMissingLabel(line: PueLine): boolean { return this.result(line).kw === null; }
@@ -233,7 +237,7 @@ export class PuePageComponent {
   }
 
   private exportDetailsExcel(): void {
-    const lines = PUE_DETAIL_SECTIONS.flatMap((section) => section.lines);
+    const pdfLines = PUE_DETAIL_SECTIONS.slice(1).flatMap((section) => section.lines);
     this.excelExporter.exportTable({
       title: `Détails du PUE — ${PUE_SITE}`,
       fileName: 'details-pue',
@@ -241,10 +245,11 @@ export class PuePageComponent {
       columns: [
         { header: 'Date', value: (row) => row.dateReleve },
         { header: 'Heure', value: (row) => row.heureReleve?.slice(0, 5) },
-        ...lines.map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => this.lineKw(row, line.code) ?? '' })),
-        { header: 'IT lu (kW)', value: (row) => this.itRead(row) ?? '' },
-        { header: 'IT déduit (kW)', value: (row) => row.itKw },
-        { header: 'Écart IT lu / déduit (%)', value: (row) => this.itGap(row) ?? '' },
+        { header: 'Scénario', value: (row) => row.scenario || '' },
+        ...[...PUE_TABLE_LINES, ...pdfLines].map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => this.lineKw(row, line.code) ?? '' })),
+        { header: 'IT (kW)', value: (row) => row.itKw },
+        { header: 'Hors IT (kW)', value: (row) => this.nonItKw(row) },
+        { header: 'Total site (kW)', value: (row) => row.totalKw },
       ],
     });
   }
@@ -262,6 +267,7 @@ export class PuePageComponent {
     if (!this.canEnterData) return;
     this.editingRow = null;
     this.inputs = emptyInputs();
+    this.scenario = 'S1';
     this.saveError = '';
     this.sheetOpen = true;
   }
@@ -278,19 +284,21 @@ export class PuePageComponent {
       this.saveError = this.hasInvalidCosPhi
         ? 'Le cos φ doit être compris entre 0 (exclu) et 1.'
         : this.summary.complete
-        ? 'La puissance IT déduite (TGBT − climatisation − charges tertiaires) doit être supérieure à zéro.'
+        ? this.inconsistencyMessage
         : `Relevé incomplet : ${this.summary.missing.join(', ')}.`;
       return;
     }
+    // Les équipements qui ne font pas partie du scénario choisi ne sont pas envoyés.
+    const visible = visibleCodes(this.scenario);
     const mesures = Object.fromEntries(PUE_LINES.map((line) => {
-      const input = this.inputs[line.code];
+      const input = visible.has(line.code) ? this.inputs[line.code] : { kwLus: null, a: null, v: null, cosPhi: null };
       return [line.code, { kwLus: this.numberOrNull(input.kwLus), a: this.numberOrNull(input.a), v: this.numberOrNull(input.v), ...(line.kind === 'ac' ? { cosPhi: this.numberOrNull(input.cosPhi) } : {}) }];
     }));
     this.saving = true;
     this.saveError = '';
     try {
-      if (this.editingRow) await this.dataStore.updateRecord('pue', this.editingRow, { site: PUE_SITE, mesures });
-      else await this.dataStore.createRecord('pue', { site: PUE_SITE, mesures });
+      if (this.editingRow) await this.dataStore.updateRecord('pue', this.editingRow, { site: PUE_SITE, scenario: this.scenario, mesures });
+      else await this.dataStore.createRecord('pue', { site: PUE_SITE, scenario: this.scenario, mesures });
       this.currentPage = 1;
       this.tableOpen = true;
       this.saving = false;
@@ -306,6 +314,7 @@ export class PuePageComponent {
   editEntry(row: PueRow): void {
     this.editingRow = row;
     this.inputs = inputsFromRow(row);
+    this.scenario = row.scenario === 'S2' ? 'S2' : 'S1';
     this.saveError = '';
     this.sheetOpen = true;
   }

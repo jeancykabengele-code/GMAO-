@@ -1,6 +1,6 @@
 """Calcul du PUE à partir du relevé journalier de DC Pigeon (puissances en kW).
 
-IT déduit = TGBT A + B − climatisation − charges tertiaires ; PUE = (TGBT A + B) ÷ IT déduit."""
+PUE = total site ÷ IT. S1 : TGBT et IT mesurés, hors IT déduit ; S2 : IT et hors IT mesurés, total déduit."""
 
 import math
 from dataclasses import dataclass
@@ -22,7 +22,13 @@ PUE_PLACES = Decimal("0.001")
 GAP_PLACES = Decimal("0.1")
 
 
-REQUIRED_ROLES = ("total", "cooling", "tertiary")
+# Deux scénarios de saisie. Le PUE vaut toujours total site ÷ IT ; seul ce qui est mesuré change.
+#   S1 : TGBT A + B et IT (UPS + redresseurs) mesurés ; le hors IT se déduit (total − IT).
+#   S2 : IT (UPS + redresseurs) et hors IT (climatisation + charges tertiaires) mesurés ; le total se déduit (IT + hors IT).
+SCENARIOS = {
+    "S1": frozenset({"tgbt_a", "tgbt_b", "ups_a", "ups_b", "redresseurs_a", "redresseurs_b"}),
+    "S2": frozenset({"ups_a", "ups_b", "redresseurs_a", "redresseurs_b", "clim_a", "clim_b", "tertiaire"}),
+}
 
 
 @dataclass(frozen=True)
@@ -31,11 +37,6 @@ class PueLine:
     label: str
     kind: str  # "ac" (triphasé) ou "dc"
     role: str  # avr | it | pdf | cooling | tertiary | total
-
-    @property
-    def required(self):
-        """Le PUE se déduit du total site et des charges hors IT ; UPS, redresseurs et PDF ne servent qu'au contrôle."""
-        return self.role in REQUIRED_ROLES
 
 
 def _lines():
@@ -94,8 +95,8 @@ def _empty_result():
     return {"kwLus": None, "a": None, "v": None, "cosPhi": None, "kw": None, "origine": "", "ecart": None}
 
 
-def _compute_line(line, raw):
-    if not line.required and _is_empty(raw):
+def _compute_line(line, raw, required):
+    if not required and _is_empty(raw):
         return _empty_result()
     if not isinstance(raw, dict):
         raise ValidationError(f"{line.label} : relevé manquant.")
@@ -136,13 +137,14 @@ def _compute_line(line, raw):
     }
 
 
-def _compute_lines(mesures):
+def _compute_lines(mesures, scenario):
     if not isinstance(mesures, dict):
         raise ValidationError("Les mesures du relevé sont obligatoires.")
     unknown = sorted(set(mesures) - set(LINES_BY_CODE))
     if unknown:
         raise ValidationError(f"Équipement inconnu dans le relevé : {unknown[0]}.")
-    return {line.code: _compute_line(line, mesures.get(line.code)) for line in PUE_LINES}
+    required = SCENARIOS[scenario]
+    return {line.code: _compute_line(line, mesures.get(line.code), line.code in required) for line in PUE_LINES}
 
 
 def _sum_kw(computed, role):
@@ -157,8 +159,12 @@ def _calculate_pue_values(values, record=None, now=None):
     site = values.get("site", getattr(record, "site", None))
     if site != PUE_SITE:
         raise ValidationError(f"Le PUE se renseigne uniquement pour le site {PUE_SITE}.")
+    scenario = values.get("scenario") or getattr(record, "scenario", "")
+    if scenario not in SCENARIOS:
+        raise ValidationError("Le scénario de saisie est obligatoire : S1 ou S2.")
+    values["scenario"] = scenario
     mesures = values.get("mesures", getattr(record, "mesures", None))
-    computed = _compute_lines(mesures)
+    computed = _compute_lines(mesures, scenario)
 
     if record is None:
         local_now = (now or datetime.now(timezone.utc)).astimezone(SITE_TIMEZONE)
@@ -168,16 +174,17 @@ def _calculate_pue_values(values, record=None, now=None):
         for field in ("date_releve", "heure_releve"):
             values.pop(field, None)
 
-    # L'IT se déduit du total site : TGBT A + B, moins la climatisation et les charges tertiaires.
-    total_kw = _sum_kw(computed, "total")
-    non_it_kw = _sum_kw(computed, "cooling") + _sum_kw(computed, "tertiary")
-    it_kw = total_kw - non_it_kw
-    if total_kw <= 0:
-        raise ValidationError("La puissance totale (TGBT A + B) doit être supérieure à zéro.")
+    it_kw = _sum_kw(computed, "it")
     if it_kw <= 0:
-        raise ValidationError(
-            "La puissance IT déduite (TGBT A + B − climatisation − charges tertiaires) doit être supérieure à zéro."
-        )
+        raise ValidationError("La puissance IT (UPS + redresseurs) doit être supérieure à zéro.")
+    if scenario == "S1":
+        total_kw = _sum_kw(computed, "total")
+        if total_kw <= 0:
+            raise ValidationError("La puissance totale (TGBT A + B) doit être supérieure à zéro.")
+        if it_kw > total_kw:
+            raise ValidationError("La puissance IT ne peut pas dépasser la puissance totale du site (TGBT A + B).")
+    else:
+        total_kw = it_kw + _sum_kw(computed, "cooling") + _sum_kw(computed, "tertiary")
     values["mesures"] = computed
     values["it_kw"] = it_kw.quantize(KW_PLACES)
     values["total_kw"] = total_kw.quantize(KW_PLACES)

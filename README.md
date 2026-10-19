@@ -120,27 +120,32 @@ Une même étape n'est notifiée qu'une fois par groupe, destinataire et cycle d
 
 ```mermaid
 flowchart LR
-    TGBT[TGBT A + B] --> TOT[Total site, kW]
-    CLIM[Climatisation A + B] --> HORS[Hors IT, kW]
-    TERT[Charges tertiaires] --> HORS
-    TOT --> IT["IT déduit = Total − Hors IT"]
-    HORS --> IT
-    TOT --> PUE["PUE = Total / IT déduit"]
-    IT --> PUE
-    DET["AVR, UPS, redresseurs, PDF<br/>(facultatifs)"] -.->|contrôle de l'écart| IT
+    subgraph S1["S1 : TGBT + IT mesurés"]
+      T1[TGBT A + B] --> TOT1[Total site]
+      I1[UPS + redresseurs] --> IT1[IT]
+      TOT1 --> H1["Hors IT = Total − IT (déduit)"]
+      IT1 --> H1
+    end
+    subgraph S2["S2 : IT + hors IT mesurés"]
+      I2[UPS + redresseurs] --> IT2[IT]
+      H2[Climatisation + charges tertiaires] --> HI2[Hors IT]
+      IT2 --> TOT2["Total = IT + Hors IT (déduit)"]
+      HI2 --> TOT2
+    end
+    TOT1 --> PUE["PUE = Total ÷ IT"]
+    TOT2 --> PUE
 ```
 
 | Règle | Détail |
 |---|---|
 | Périmètre | Site Pigeon uniquement |
-| Mesures principales (obligatoires) | TGBT A et B, TDBT Climatisation A et B, Charges tertiaires |
-| Détails (facultatifs) | AVR A et B, UPS A et B, Redresseurs A et B, PDF AC (2 par voie) et DC (4 par voie) : ils ne changent pas le PUE, ils servent à contrôler les mesures |
+| Scénario | Choisi à chaque relevé et enregistré avec lui. **S1** : TGBT A et B + IT (UPS A/B et redresseurs A/B) mesurés, hors IT déduit (`total − IT`, l'IT ne peut pas dépasser le total). **S2** : IT + hors IT (TDBT climatisation A/B, charges tertiaires) mesurés, total déduit (`IT + hors IT`) |
+| Détails (facultatifs, identiques dans les deux scénarios) | AVR A et B, PDF AC (2 par voie) et DC (4 par voie) : ils ne changent pas le PUE, ils servent à contrôler les mesures |
 | Relevé | Autant que nécessaire par jour, daté par le serveur (heure de Kinshasa) |
 | Saisie d'une ligne | kW lus, ou ampères et volts ; les kW lus sont prioritaires et l'écart est affiché |
 | DC | `kW = V × A / 1000` |
 | AC triphasé | `kW = √3 × V × A × cos φ / 1000` (400 V par défaut ; cos φ lu sur l'équipement, 0,9 à défaut, compris entre 0 exclu et 1) |
-| IT déduit | `TGBT A + B − climatisation − charges tertiaires`, strictement positif |
-| Contrôles affichés | IT lu (UPS + redresseurs) ↔ IT déduit ; TGBT ↔ AVR de la même voie ; somme des PDF ↔ sortie UPS ou redresseurs |
+| Contrôles affichés | Somme des AVR ↔ total du site ; somme des PDF ↔ sortie UPS ou redresseurs |
 | PUE du jour | Avec plusieurs relevés dans la journée : `somme des kW totaux / somme des kW IT` des relevés du jour (jamais la moyenne des PUE), affiché sur une ligne de synthèse du tableau |
 | PUE de la période | Même règle sur la période : `somme des kW totaux / somme des kW IT` |
 | Droits | Création : Chef de site de Pigeon ; correction : rôles globaux et Chef de site de Pigeon ; suppression : rôles globaux |

@@ -1,6 +1,8 @@
-/** Relevé journalier du PUE de DC Pigeon : équipements du schéma unifilaire et conversions en kW.
- *  IT déduit = TGBT A + B − climatisation − charges tertiaires ; PUE = (TGBT A + B) ÷ IT déduit.
- *  UPS, redresseurs et PDF sont facultatifs : ils servent à contrôler l'IT déduit.
+/** Relevé du PUE de DC Pigeon : équipements du schéma unifilaire et conversions en kW.
+ *  PUE = total site ÷ IT. Deux scénarios de saisie :
+ *   - S1 : TGBT A + B et IT (UPS + redresseurs) mesurés ; le hors IT se déduit (total − IT) ;
+ *   - S2 : IT (UPS + redresseurs) et hors IT (climatisation + charges tertiaires) mesurés ; le total se déduit (IT + hors IT).
+ *  AVR et PDF sont facultatifs et identiques dans les deux scénarios : ils servent à contrôler les mesures.
  *  Miroir de `gmao/profiles/records/pue.py` : le serveur reste la référence, ce fichier sert à l'aperçu en direct. */
 
 export const PUE_SITE = 'Pigeon';
@@ -24,34 +26,68 @@ const pdfLines = (kind: 'ac' | 'dc', count: number): PueLine[] =>
     role: 'pdf' as const,
   })));
 
-/** Mesures principales : elles suffisent à calculer l'IT déduit et le PUE. */
-export const PUE_MAIN_SECTION: PueSection = { title: 'Mesures principales', lines: [
+export type PueScenario = 'S1' | 'S2';
+
+export const PUE_SCENARIOS: Array<{ code: PueScenario; title: string; measured: string; deduced: string }> = [
+  { code: 'S1', title: 'S1 — TGBT et IT', measured: 'TGBT A + B et IT', deduced: 'Hors IT' },
+  { code: 'S2', title: 'S2 — IT et hors IT', measured: 'IT et hors IT', deduced: 'Total site' },
+];
+
+const TOTAL_SECTION: PueSection = { title: 'Total du site — TGBT', lines: [
   { code: 'tgbt_a', label: 'TGBT A (MDB A)', kind: 'ac', role: 'total' },
   { code: 'tgbt_b', label: 'TGBT B (MDB B)', kind: 'ac', role: 'total' },
+] };
+
+const IT_SECTION: PueSection = { title: 'IT — sorties des UPS et des redresseurs', lines: [
+  { code: 'ups_a', label: 'UPS A', kind: 'ac', role: 'it' },
+  { code: 'ups_b', label: 'UPS B', kind: 'ac', role: 'it' },
+  { code: 'redresseurs_a', label: 'Redresseurs A', kind: 'dc', role: 'it' },
+  { code: 'redresseurs_b', label: 'Redresseurs B', kind: 'dc', role: 'it' },
+] };
+
+const NON_IT_SECTION: PueSection = { title: 'Hors IT — climatisation et charges tertiaires', lines: [
   { code: 'clim_a', label: 'TDBT Climatisation A', kind: 'ac', role: 'cooling' },
   { code: 'clim_b', label: 'TDBT Climatisation B', kind: 'ac', role: 'cooling' },
   { code: 'tertiaire', label: 'Charges tertiaires', kind: 'ac', role: 'tertiary' },
 ] };
 
-/** Détails facultatifs, pour contrôler l'IT déduit. */
+/** Mesures à saisir selon le scénario. */
+export const PUE_MAIN_SECTIONS: Record<PueScenario, PueSection[]> = {
+  S1: [TOTAL_SECTION, IT_SECTION],
+  S2: [IT_SECTION, NON_IT_SECTION],
+};
+
+/** Détails facultatifs, identiques dans les deux scénarios. */
+const AVR_SECTION: PueSection = { title: 'Amont — sorties des AVR (régulation de tension)', lines: [
+  { code: 'avr_a', label: 'AVR A', kind: 'ac', role: 'avr' },
+  { code: 'avr_b', label: 'AVR B', kind: 'ac', role: 'avr' },
+] };
+
 export const PUE_DETAIL_SECTIONS: PueSection[] = [
-  { title: 'Amont — sorties des AVR (régulation de tension)', lines: [
-    { code: 'avr_a', label: 'AVR A', kind: 'ac', role: 'avr' },
-    { code: 'avr_b', label: 'AVR B', kind: 'ac', role: 'avr' },
-  ] },
-  { title: 'IT — sorties des UPS et des redresseurs', lines: [
-    { code: 'ups_a', label: 'UPS A', kind: 'ac', role: 'it' },
-    { code: 'ups_b', label: 'UPS B', kind: 'ac', role: 'it' },
-    { code: 'redresseurs_a', label: 'Redresseurs A', kind: 'dc', role: 'it' },
-    { code: 'redresseurs_b', label: 'Redresseurs B', kind: 'dc', role: 'it' },
-  ] },
+  AVR_SECTION,
   { title: 'IT — détail des PDF AC', lines: pdfLines('ac', 2) },
   { title: 'IT — détail des PDF DC', lines: pdfLines('dc', 4) },
 ];
 
-export const PUE_SECTIONS: PueSection[] = [PUE_MAIN_SECTION, ...PUE_DETAIL_SECTIONS];
+export const PUE_LINES: PueLine[] = [
+  ...AVR_SECTION.lines, ...IT_SECTION.lines,
+  ...PUE_DETAIL_SECTIONS.slice(1).flatMap((section) => section.lines),
+  ...NON_IT_SECTION.lines, ...TOTAL_SECTION.lines,
+];
 
-export const PUE_LINES: PueLine[] = PUE_SECTIONS.flatMap((section) => section.lines);
+/** Équipements dont la mesure est obligatoire selon le scénario. */
+export const PUE_REQUIRED: Record<PueScenario, Set<string>> = {
+  S1: new Set(PUE_MAIN_SECTIONS.S1.flatMap((section) => section.lines.map((line) => line.code))),
+  S2: new Set(PUE_MAIN_SECTIONS.S2.flatMap((section) => section.lines.map((line) => line.code))),
+};
+
+/** Lignes affichées dans le scénario (mesures principales + détails) : les autres ne sont pas envoyées. */
+export function visibleCodes(scenario: PueScenario): Set<string> {
+  return new Set([...PUE_MAIN_SECTIONS[scenario], ...PUE_DETAIL_SECTIONS].flatMap((section) => section.lines.map((line) => line.code)));
+}
+
+/** Colonnes du tableau « Détails » : AVR, UPS et redresseurs un par un ; les PDF sont additionnés par voie. */
+export const PUE_TABLE_LINES: PueLine[] = [...AVR_SECTION.lines, ...IT_SECTION.lines];
 
 /** Colonnes de somme des PDF par voie, pour le tableau des détails. */
 export const PUE_PDF_GROUPS: Array<{ label: string; codes: string[] }> = [
@@ -63,9 +99,6 @@ export const PUE_PDF_GROUPS: Array<{ label: string; codes: string[] }> = [
 
 /** Contrôle : la somme des PDF d'une voie doit rester proche de la sortie de l'UPS ou des redresseurs correspondants. */
 export const PUE_CHECKS: Array<{ label: string; partsLabel: string; output: string; parts: string[] }> = [
-  // Les AVR sont en amont des TGBT : l'écart correspond aux pertes et aux dérivations entre les deux.
-  { label: 'AVR A', partsLabel: 'TGBT A', output: 'avr_a', parts: ['tgbt_a'] },
-  { label: 'AVR B', partsLabel: 'TGBT B', output: 'avr_b', parts: ['tgbt_b'] },
   { label: 'UPS A', partsLabel: 'Somme des PDF', output: 'ups_a', parts: ['pdf_ac_a1', 'pdf_ac_a2'] },
   { label: 'UPS B', partsLabel: 'Somme des PDF', output: 'ups_b', parts: ['pdf_ac_b1', 'pdf_ac_b2'] },
   { label: 'Redresseurs A', partsLabel: 'Somme des PDF', output: 'redresseurs_a', parts: ['pdf_dc_a1', 'pdf_dc_a2', 'pdf_dc_a3', 'pdf_dc_a4'] },
@@ -112,47 +145,31 @@ export function computeLine(line: PueLine, input: PueInput | undefined): PueLine
   return { kw: null, origine: '', ecart: null };
 }
 
-export const PUE_REQUIRED_ROLES: PueRole[] = ['total', 'cooling', 'tertiary'];
-
 export interface PueSummary {
   complete: boolean;
   missing: string[];
-  /** TGBT A + B. */
+  /** Total site : TGBT A + B (S1) ou IT + hors IT (S2). */
   totalKw: number;
-  /** Climatisation + charges tertiaires. */
+  /** Hors IT : total − IT (S1) ou climatisation + charges tertiaires (S2). */
   nonItKw: number;
-  /** IT déduit : total − hors IT. */
+  /** IT : UPS + redresseurs. */
   itKw: number;
   pue: number | null;
-  /** IT lu sur les UPS et les redresseurs, seulement si les quatre sont renseignés. */
-  itReadKw: number | null;
-  /** Écart de l'IT lu par rapport à l'IT déduit, en %. */
-  itGap: number | null;
 }
 
-export function summarize(inputs: PueInputs): PueSummary {
+export function summarize(inputs: PueInputs, scenario: PueScenario): PueSummary {
   const results = Object.fromEntries(PUE_LINES.map((line) => [line.code, computeLine(line, inputs[line.code])]));
-  const required = PUE_LINES.filter((line) => PUE_REQUIRED_ROLES.includes(line.role));
+  const required = PUE_LINES.filter((line) => PUE_REQUIRED[scenario].has(line.code));
   const missing = required.filter((line) => results[line.code].kw === null).map((line) => line.label);
   const sum = (role: PueRole) => PUE_LINES.filter((line) => line.role === role)
     .reduce((total, line) => total + (results[line.code].kw ?? 0), 0);
-  const totalKw = sum('total');
-  const nonItKw = sum('cooling') + sum('tertiary');
-  const itKw = totalKw - nonItKw;
-  const itLines = PUE_LINES.filter((line) => line.role === 'it');
-  const itRead = itLines.every((line) => results[line.code].kw !== null)
-    ? itLines.reduce((total, line) => total + (results[line.code].kw ?? 0), 0)
-    : null;
-  return {
-    complete: missing.length === 0,
-    missing,
-    totalKw,
-    nonItKw,
-    itKw,
-    pue: itKw > 0 && totalKw > 0 ? totalKw / itKw : null,
-    itReadKw: itRead,
-    itGap: itRead !== null && itKw > 0 ? Math.round(((itRead - itKw) / itKw) * 1000) / 10 : null,
-  };
+  const itKw = sum('it');
+  const measuredTotal = sum('total');
+  const totalKw = scenario === 'S1' ? measuredTotal : itKw + sum('cooling') + sum('tertiary');
+  const nonItKw = scenario === 'S1' ? totalKw - itKw : sum('cooling') + sum('tertiary');
+  // S1 : l'IT ne peut pas dépasser le total mesuré aux TGBT.
+  const consistent = itKw > 0 && totalKw > 0 && (scenario === 'S2' || itKw <= totalKw);
+  return { complete: missing.length === 0, missing, totalKw, nonItKw, itKw, pue: consistent ? totalKw / itKw : null };
 }
 
 /** Heure de Kinshasa (UTC+1, sans heure d'été), quel que soit le fuseau de l'ordinateur. */
@@ -170,6 +187,7 @@ export interface PueRow {
   site: string;
   dateReleve: string;
   heureReleve: string;
+  scenario?: PueScenario | '';
   mesures: Record<string, Partial<PueInput> & { kw?: number; origine?: string; ecart?: number | null }>;
   itKw: number;
   totalKw: number;

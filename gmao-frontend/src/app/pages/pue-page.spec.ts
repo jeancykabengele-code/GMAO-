@@ -32,14 +32,14 @@ describe('PUE lines', () => {
     expect(computeLine(dc, { kwLus: null, a: 1000, v: 53.5, cosPhi: 0.5 }).kw).toBe(53.5);
   });
 
-  it('checks each AVR against the TGBT of its voie without changing the PUE', () => {
+  it('checks the sum of the AVR against the total of the site without changing the PUE', () => {
     const component = new PuePageComponent();
     fillAllLines(component, { avr_a: 55, avr_b: 50 });
-    const [avrA, avrB] = component.checks;
-    expect(avrA).toMatchObject({ label: 'AVR A', partsLabel: 'TGBT A', output: 55, parts: 52 });
-    expect(avrA.gap).toBeCloseTo(-5.5, 1);
-    expect(avrB).toMatchObject({ label: 'AVR B', output: 50, parts: 48, gap: -4 });
-    expect(summarize(component.inputs)).toMatchObject({ itKw: 80, pue: 1.25 });
+    const [avrCheck] = component.checks;
+    // total du site 100 kW pour 105 kW en sortie des AVR : +5 %
+    expect(avrCheck).toMatchObject({ label: 'Total site', partsLabel: 'AVR A + B', output: 100, parts: 105, gap: 5 });
+    expect(summarize(component.inputs, 'S1')).toMatchObject({ itKw: 80, pue: 1.25 });
+    expect(summarize(component.inputs, 'S2')).toMatchObject({ itKw: 80, pue: 1.25 });
   });
 
   it('keeps the read kW as the retained value and reports the gap with the calculation', () => {
@@ -48,24 +48,44 @@ describe('PUE lines', () => {
     expect(computeLine(dc, { kwLus: null, a: 1000, v: null }).kw).toBeNull();
   });
 
-  it('deduces the IT from the total minus cooling and tertiary, and computes the PUE', () => {
-    expect(summarize(emptyInputs()).complete).toBe(false);
+  it('S1 measures the TGBT and the IT and deduces the non-IT load', () => {
+    expect(summarize(emptyInputs(), 'S1').complete).toBe(false);
     const component = new PuePageComponent();
     fillAllLines(component);
-    expect(summarize(component.inputs)).toMatchObject({ complete: true, totalKw: 100, nonItKw: 20, itKw: 80, pue: 1.25 });
+    expect(summarize(component.inputs, 'S1')).toMatchObject({ complete: true, totalKw: 100, itKw: 80, nonItKw: 20, pue: 1.25 });
+    // l'IT ne peut pas dépasser le total mesuré aux TGBT
     component.inputs['tgbt_a'].kwLus = 10;
     component.inputs['tgbt_b'].kwLus = 10;
-    expect(summarize(component.inputs).pue).toBeNull();
+    expect(summarize(component.inputs, 'S1').pue).toBeNull();
   });
 
-  it('needs only the main lines; UPS, rectifiers and PDF are optional controls of the deduced IT', () => {
-    const inputs = emptyInputs();
-    for (const [code, kw] of Object.entries({ tgbt_a: 52, tgbt_b: 48, clim_a: 8, clim_b: 8, tertiaire: 4 })) inputs[code].kwLus = kw;
-    expect(summarize(inputs)).toMatchObject({ complete: true, itKw: 80, pue: 1.25, itReadKw: null, itGap: null });
+  it('S2 measures the IT and the non-IT load and deduces the total of the site', () => {
+    const component = new PuePageComponent();
+    fillAllLines(component, { tgbt_a: 999 });
+    // 80 kW d'IT + (8 + 8 + 4) kW hors IT = 100 kW ; les TGBT ne comptent pas
+    expect(summarize(component.inputs, 'S2')).toMatchObject({ complete: true, totalKw: 100, itKw: 80, nonItKw: 20, pue: 1.25 });
+    component.inputs['clim_a'].kwLus = 18;
+    expect(summarize(component.inputs, 'S2')).toMatchObject({ totalKw: 110, pue: 1.375 });
+  });
 
-    for (const [code, kw] of Object.entries({ ups_a: 30, ups_b: 20, redresseurs_a: 15, redresseurs_b: 20 })) inputs[code].kwLus = kw;
-    // IT lu 85 kW pour 80 kW déduits : +6,3 %, sans effet sur le PUE
-    expect(summarize(inputs)).toMatchObject({ pue: 1.25, itReadKw: 85, itGap: 6.3 });
+  it('asks only for the lines of the chosen scenario', () => {
+    const s1 = emptyInputs();
+    for (const [code, kw] of Object.entries({ tgbt_a: 52, tgbt_b: 48, ups_a: 30, ups_b: 20, redresseurs_a: 15, redresseurs_b: 15 })) s1[code].kwLus = kw;
+    expect(summarize(s1, 'S1')).toMatchObject({ complete: true, pue: 1.25 });
+    expect(summarize(s1, 'S2').missing).toEqual(['TDBT Climatisation A', 'TDBT Climatisation B', 'Charges tertiaires']);
+
+    const s2 = emptyInputs();
+    for (const [code, kw] of Object.entries({ ups_a: 30, ups_b: 20, redresseurs_a: 15, redresseurs_b: 15, clim_a: 8, clim_b: 8, tertiaire: 4 })) s2[code].kwLus = kw;
+    expect(summarize(s2, 'S2')).toMatchObject({ complete: true, pue: 1.25 });
+    expect(summarize(s2, 'S1').missing).toEqual(['TGBT A (MDB A)', 'TGBT B (MDB B)']);
+  });
+
+  it('shows the lines of the chosen scenario and keeps the same details for both', () => {
+    const component = new PuePageComponent();
+    const codes = (scenario: 'S1' | 'S2') => { component.scenario = scenario; return component.mainSections.flatMap((section) => section.lines.map((line) => line.code)); };
+    expect(codes('S1')).toEqual(['tgbt_a', 'tgbt_b', 'ups_a', 'ups_b', 'redresseurs_a', 'redresseurs_b']);
+    expect(codes('S2')).toEqual(['ups_a', 'ups_b', 'redresseurs_a', 'redresseurs_b', 'clim_a', 'clim_b', 'tertiaire']);
+    expect(component.detailSections.flatMap((section) => section.lines.map((line) => line.code))).toHaveLength(14);
   });
 
   it('uses the Kinshasa clock (UTC+1) to decide the day of the reading', () => {
@@ -96,6 +116,7 @@ describe('PuePageComponent', () => {
     expect(create).toHaveBeenCalledTimes(1);
     const payload = create.mock.calls[0][1] as { site: string; mesures: Record<string, unknown>; pue?: number };
     expect(payload.site).toBe('Pigeon');
+    expect((payload as { scenario?: string }).scenario).toBe('S1');
     expect(Object.keys(payload.mesures)).toHaveLength(23);
     expect(payload.pue).toBeUndefined();
   });
@@ -184,16 +205,11 @@ describe('PuePageComponent', () => {
     const component = new PuePageComponent(store);
     const [full, mainOnly] = component.pueRows;
 
-    // IT lu 85 kW pour 80 kW déduits : +6,3 %
-    expect(component.itRead(full)).toBe(85);
-    expect(component.itGap(full)).toBe(6.3);
     expect(component.lineKw(full, 'avr_a')).toBe(55);
     expect(component.lineKw(full, 'avr_b')).toBeNull();
     expect(component.pdfSum(full, ['pdf_ac_a1', 'pdf_ac_a2'])).toBe(28);
     expect(component.pdfSum(full, ['pdf_ac_b1', 'pdf_ac_b2'])).toBeNull();
 
-    expect(component.itRead(mainOnly)).toBeNull();
-    expect(component.itGap(mainOnly)).toBeNull();
     expect(component.lineKw(mainOnly, 'ups_a')).toBeNull();
   });
 
