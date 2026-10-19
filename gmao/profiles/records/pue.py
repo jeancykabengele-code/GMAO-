@@ -30,7 +30,7 @@ class PueLine:
     code: str
     label: str
     kind: str  # "ac" (triphasé) ou "dc"
-    role: str  # it | pdf | cooling | tertiary | total
+    role: str  # avr | it | pdf | cooling | tertiary | total
 
     @property
     def required(self):
@@ -40,6 +40,8 @@ class PueLine:
 
 def _lines():
     lines = [
+        PueLine("avr_a", "AVR A", "ac", "avr"),
+        PueLine("avr_b", "AVR B", "ac", "avr"),
         PueLine("ups_a", "UPS A", "ac", "it"),
         PueLine("ups_b", "UPS B", "ac", "it"),
         PueLine("redresseurs_a", "Redresseurs A", "dc", "it"),

@@ -9,7 +9,7 @@ export const COS_PHI = 0.9;
 export const AC_VOLTAGE = 400;
 const KINSHASA_OFFSET_MINUTES = 60;
 
-export type PueRole = 'it' | 'pdf' | 'cooling' | 'tertiary' | 'total';
+export type PueRole = 'avr' | 'it' | 'pdf' | 'cooling' | 'tertiary' | 'total';
 
 export interface PueLine { code: string; label: string; kind: 'ac' | 'dc'; role: PueRole; }
 export interface PueInput { kwLus: number | null; a: number | null; v: number | null; cosPhi?: number | null; }
@@ -35,6 +35,10 @@ export const PUE_MAIN_SECTION: PueSection = { title: 'Mesures principales', line
 
 /** Détails facultatifs, pour contrôler l'IT déduit. */
 export const PUE_DETAIL_SECTIONS: PueSection[] = [
+  { title: 'Amont — sorties des AVR (régulation de tension)', lines: [
+    { code: 'avr_a', label: 'AVR A', kind: 'ac', role: 'avr' },
+    { code: 'avr_b', label: 'AVR B', kind: 'ac', role: 'avr' },
+  ] },
   { title: 'IT — sorties des UPS et des redresseurs', lines: [
     { code: 'ups_a', label: 'UPS A', kind: 'ac', role: 'it' },
     { code: 'ups_b', label: 'UPS B', kind: 'ac', role: 'it' },
@@ -50,11 +54,14 @@ export const PUE_SECTIONS: PueSection[] = [PUE_MAIN_SECTION, ...PUE_DETAIL_SECTI
 export const PUE_LINES: PueLine[] = PUE_SECTIONS.flatMap((section) => section.lines);
 
 /** Contrôle : la somme des PDF d'une voie doit rester proche de la sortie de l'UPS ou des redresseurs correspondants. */
-export const PUE_CHECKS: Array<{ label: string; output: string; parts: string[] }> = [
-  { label: 'UPS A', output: 'ups_a', parts: ['pdf_ac_a1', 'pdf_ac_a2'] },
-  { label: 'UPS B', output: 'ups_b', parts: ['pdf_ac_b1', 'pdf_ac_b2'] },
-  { label: 'Redresseurs A', output: 'redresseurs_a', parts: ['pdf_dc_a1', 'pdf_dc_a2', 'pdf_dc_a3', 'pdf_dc_a4'] },
-  { label: 'Redresseurs B', output: 'redresseurs_b', parts: ['pdf_dc_b1', 'pdf_dc_b2', 'pdf_dc_b3', 'pdf_dc_b4'] },
+export const PUE_CHECKS: Array<{ label: string; partsLabel: string; output: string; parts: string[] }> = [
+  // Les AVR sont en amont des TGBT : l'écart correspond aux pertes et aux dérivations entre les deux.
+  { label: 'AVR A', partsLabel: 'TGBT A', output: 'avr_a', parts: ['tgbt_a'] },
+  { label: 'AVR B', partsLabel: 'TGBT B', output: 'avr_b', parts: ['tgbt_b'] },
+  { label: 'UPS A', partsLabel: 'Somme des PDF', output: 'ups_a', parts: ['pdf_ac_a1', 'pdf_ac_a2'] },
+  { label: 'UPS B', partsLabel: 'Somme des PDF', output: 'ups_b', parts: ['pdf_ac_b1', 'pdf_ac_b2'] },
+  { label: 'Redresseurs A', partsLabel: 'Somme des PDF', output: 'redresseurs_a', parts: ['pdf_dc_a1', 'pdf_dc_a2', 'pdf_dc_a3', 'pdf_dc_a4'] },
+  { label: 'Redresseurs B', partsLabel: 'Somme des PDF', output: 'redresseurs_b', parts: ['pdf_dc_b1', 'pdf_dc_b2', 'pdf_dc_b3', 'pdf_dc_b4'] },
 ];
 
 export type PueInputs = Record<string, PueInput>;

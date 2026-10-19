@@ -102,9 +102,16 @@ class PueLineConversionTests(SimpleTestCase):
         with self.assertRaises(ValidationError):
             _compute_lines(full_reading() | {"ups_a": {"kwLus": -3}})
 
-    def test_the_sheet_lists_the_21_equipments_of_the_single_line_diagram(self):
-        self.assertEqual(len(PUE_LINES), 21)
-        self.assertEqual(len(LINES_BY_CODE), 21)
+    def test_the_sheet_lists_the_23_equipments_of_the_single_line_diagram(self):
+        self.assertEqual(len(PUE_LINES), 23)
+        self.assertEqual(len(LINES_BY_CODE), 23)
+
+    def test_avr_lines_are_optional_and_converted_like_the_other_ac_lines(self):
+        reading = full_reading() | {"avr_a": {"a": 700}}
+        del reading["avr_b"]
+        computed = _compute_lines(reading)
+        self.assertAlmostEqual(computed["avr_a"]["kw"], 436.477, places=3)
+        self.assertIsNone(computed["avr_b"]["kw"])
 
 
 class PueDailyReadingTests(TestCase):
@@ -124,6 +131,11 @@ class PueDailyReadingTests(TestCase):
         # 100 − (10 + 8) − 6 = 76 kW d'IT
         self.assertEqual(values["it_kw"], Decimal("76.000"))
         self.assertEqual(values["pue"], Decimal("1.316"))
+
+    def test_avr_lines_do_not_change_the_pue(self):
+        base = _calculate_pue_values(self.values(), now=at(11))
+        changed = _calculate_pue_values(self.values(avr_a=120, avr_b=105), now=at(11))
+        self.assertEqual((base["pue"], base["it_kw"]), (changed["pue"], changed["it_kw"]))
 
     def test_ups_rectifier_and_pdf_lines_do_not_change_the_pue(self):
         base = _calculate_pue_values(self.values(), now=at(11))

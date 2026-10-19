@@ -13,9 +13,9 @@ function row(dateReleve: string, itKw: number, totalKw: number): PueRow {
 }
 
 describe('PUE lines', () => {
-  it('lists the 21 equipments of the single line diagram', () => {
-    expect(PUE_LINES).toHaveLength(21);
-    expect(new Set(PUE_LINES.map((line) => line.code)).size).toBe(21);
+  it('lists the 23 equipments of the single line diagram', () => {
+    expect(PUE_LINES).toHaveLength(23);
+    expect(new Set(PUE_LINES.map((line) => line.code)).size).toBe(23);
   });
 
   it('converts DC with V x A and AC with the three-phase formula', () => {
@@ -30,6 +30,16 @@ describe('PUE lines', () => {
     expect(computeLine(ac, { kwLus: null, a: 700, v: null, cosPhi: 1.5 }).kw).toBeCloseTo(436.477, 3);
     // le cos φ n'a pas de sens en continu
     expect(computeLine(dc, { kwLus: null, a: 1000, v: 53.5, cosPhi: 0.5 }).kw).toBe(53.5);
+  });
+
+  it('checks each AVR against the TGBT of its voie without changing the PUE', () => {
+    const component = new PuePageComponent();
+    fillAllLines(component, { avr_a: 55, avr_b: 50 });
+    const [avrA, avrB] = component.checks;
+    expect(avrA).toMatchObject({ label: 'AVR A', partsLabel: 'TGBT A', output: 55, parts: 52 });
+    expect(avrA.gap).toBeCloseTo(-5.5, 1);
+    expect(avrB).toMatchObject({ label: 'AVR B', output: 50, parts: 48, gap: -4 });
+    expect(summarize(component.inputs)).toMatchObject({ itKw: 80, pue: 1.25 });
   });
 
   it('keeps the read kW as the retained value and reports the gap with the calculation', () => {
@@ -86,7 +96,7 @@ describe('PuePageComponent', () => {
     expect(create).toHaveBeenCalledTimes(1);
     const payload = create.mock.calls[0][1] as { site: string; mesures: Record<string, unknown>; pue?: number };
     expect(payload.site).toBe('Pigeon');
-    expect(Object.keys(payload.mesures)).toHaveLength(21);
+    expect(Object.keys(payload.mesures)).toHaveLength(23);
     expect(payload.pue).toBeUndefined();
   });
 
@@ -159,7 +169,7 @@ describe('PuePageComponent', () => {
     component.editEntry(component.pueRows[0]);
     fillAllLines(component);
     await component.saveEntry();
-    expect(Object.keys(component.pueRows[0].mesures)).toHaveLength(21);
+    expect(Object.keys(component.pueRows[0].mesures)).toHaveLength(23);
 
     component.editEntry(component.pueRows[0]);
     component.requestDeletion();

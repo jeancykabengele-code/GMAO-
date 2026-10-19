@@ -180,7 +180,7 @@
 
       <section class="sheet-step" aria-labelledby="pue-step-detail">
         <h3 id="pue-step-detail"><span class="step-number">3</span> Détails et contrôles <em>facultatif</em></h3>
-        <p class="step-note">UPS, redresseurs et PDF ne changent pas le PUE : ils servent à vérifier l’IT déduit.</p>
+        <p class="step-note">AVR, UPS, redresseurs et PDF ne changent pas le PUE : ils servent à vérifier les mesures principales.</p>
         <ng-container *ngTemplateOutlet="linesTable; context: { $implicit: detailSections }"></ng-container>
 
         <section class="checks" aria-label="Contrôles">
@@ -195,9 +195,9 @@
             </li>
             @for (check of checks; track check.label) {
               <li [class.gap-high]="isGapHigh(check.gap)">
-                <span class="check-label">Somme des PDF ↔ {{ check.label }}</span>
+                <span class="check-label">{{ check.partsLabel }} ↔ {{ check.label }}</span>
                 <span class="check-values">
-                  @if (check.gap === null) { — } @else { {{ check.parts | number:'1.0-1':'fr' }} kW de PDF pour {{ check.output | number:'1.0-1':'fr' }} kW }
+                  @if (check.gap === null) { — } @else { {{ check.parts | number:'1.0-1':'fr' }} kW pour {{ check.output | number:'1.0-1':'fr' }} kW }
                 </span>
                 <span class="check-gap">@if (check.gap !== null) { {{ check.gap | number:'1.0-1':'fr' }} % }</span>
               </li>

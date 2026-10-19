@@ -132,13 +132,13 @@ export class PuePageComponent {
 
   result(line: PueLine): PueLineResult { return computeLine(line, this.inputs[line.code]); }
 
-  get checks(): Array<{ label: string; output: number | null; parts: number | null; gap: number | null }> {
+  get checks(): Array<{ label: string; partsLabel: string; output: number | null; parts: number | null; gap: number | null }> {
     return PUE_CHECKS.map((check) => {
       const output = this.result(this.lineByCode(check.output)).kw;
       const partValues = check.parts.map((code) => this.result(this.lineByCode(code)).kw);
       const parts = partValues.some((value) => value === null) ? null : partValues.reduce((sum: number, value) => sum + (value ?? 0), 0);
       const gap = output !== null && parts !== null && output > 0 ? Math.round(((parts - output) / output) * 1000) / 10 : null;
-      return { label: check.label, output, parts, gap };
+      return { label: check.label, partsLabel: check.partsLabel, output, parts, gap };
     });
   }
 
