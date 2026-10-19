@@ -244,7 +244,7 @@ th:last-child,
   top: 0;
   right: 0;
   z-index: 21;
-  width: min(880px, 100%);
+  width: min(1180px, 100%);
   height: 100vh;
   box-sizing: border-box;
   padding: 28px;
@@ -347,12 +347,14 @@ th:last-child,
 .state-missing { color: #92400e; background: #fef3c7; }
 .sheet-help { margin: 0; color: var(--slate); line-height: 1.45; }
 .lines-wrapper { overflow-x: auto; border: 1px solid var(--light-gray); border-radius: 10px; background: #fff; }
-.lines-table { min-width: 680px; table-layout: auto; }
+.lines-table { width: 100%; min-width: 1000px; table-layout: fixed; }
+/* Libellé plus large ; les 7 autres colonnes ont toutes la même largeur. */
+.lines-table th:first-child { width: 190px; }
+.lines-table th:not(:first-child) { width: calc((100% - 190px) / 7); }
 .lines-table th, .lines-table td { height: 42px; padding: 4px 8px; }
 .lines-table thead th { position: sticky; top: 0; font-size: 0.85rem; }
 .lines-table .line-label { font-weight: 700; white-space: nowrap; }
 .lines-table .section-row td { color: var(--anthracite); background: #ededee; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
-.lines-table th:last-child, .lines-table td:last-child { width: auto; min-width: 0; text-align: left; }
 .lines-table input { min-height: 36px; padding: 6px 8px; }
 .lines-table .retained { font-weight: 800; }
 .gap-high { color: #991b1b; font-weight: 800; }
@@ -369,4 +371,4 @@ th:last-child,
   .filters { grid-template-columns: 1fr; }
   .results { grid-template-columns: 1fr; }
 }
-.lines-table td:last-child, .lines-table td:nth-child(5), .lines-table td:nth-child(6) { white-space: nowrap; }
+.lines-table td:not(:first-child) { white-space: nowrap; text-align: left; }
