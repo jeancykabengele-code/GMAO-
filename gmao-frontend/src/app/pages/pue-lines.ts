@@ -53,6 +53,14 @@ export const PUE_SECTIONS: PueSection[] = [PUE_MAIN_SECTION, ...PUE_DETAIL_SECTI
 
 export const PUE_LINES: PueLine[] = PUE_SECTIONS.flatMap((section) => section.lines);
 
+/** Colonnes de somme des PDF par voie, pour le tableau des détails. */
+export const PUE_PDF_GROUPS: Array<{ label: string; codes: string[] }> = [
+  { label: 'PDF AC A', codes: ['pdf_ac_a1', 'pdf_ac_a2'] },
+  { label: 'PDF AC B', codes: ['pdf_ac_b1', 'pdf_ac_b2'] },
+  { label: 'PDF DC A', codes: ['pdf_dc_a1', 'pdf_dc_a2', 'pdf_dc_a3', 'pdf_dc_a4'] },
+  { label: 'PDF DC B', codes: ['pdf_dc_b1', 'pdf_dc_b2', 'pdf_dc_b3', 'pdf_dc_b4'] },
+];
+
 /** Contrôle : la somme des PDF d'une voie doit rester proche de la sortie de l'UPS ou des redresseurs correspondants. */
 export const PUE_CHECKS: Array<{ label: string; partsLabel: string; output: string; parts: string[] }> = [
   // Les AVR sont en amont des TGBT : l'écart correspond aux pertes et aux dérivations entre les deux.

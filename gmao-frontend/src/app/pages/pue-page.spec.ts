@@ -171,6 +171,45 @@ describe('PuePageComponent', () => {
     expect(summary).toMatchObject({ count: 2, itKw: 55, totalKw: 85, nonItKw: 30 });
   });
 
+  it('shows the optional details of each reading, with dashes for lines that were not read', () => {
+    const store = new GmaoDataStore();
+    const kw = (value: number) => ({ kw: value });
+    store.pueRows = [
+      { ...row('2026-01-26', 80, 100), id: 'full', mesures: {
+        avr_a: kw(55), ups_a: kw(30), ups_b: kw(20), redresseurs_a: kw(15), redresseurs_b: kw(20),
+        pdf_ac_a1: kw(10), pdf_ac_a2: kw(18),
+      } },
+      { ...row('2026-01-25', 80, 100), id: 'main-only', mesures: { tgbt_a: kw(52) } },
+    ];
+    const component = new PuePageComponent(store);
+    const [full, mainOnly] = component.pueRows;
+
+    // IT lu 85 kW pour 80 kW déduits : +6,3 %
+    expect(component.itRead(full)).toBe(85);
+    expect(component.itGap(full)).toBe(6.3);
+    expect(component.lineKw(full, 'avr_a')).toBe(55);
+    expect(component.lineKw(full, 'avr_b')).toBeNull();
+    expect(component.pdfSum(full, ['pdf_ac_a1', 'pdf_ac_a2'])).toBe(28);
+    expect(component.pdfSum(full, ['pdf_ac_b1', 'pdf_ac_b2'])).toBeNull();
+
+    expect(component.itRead(mainOnly)).toBeNull();
+    expect(component.itGap(mainOnly)).toBeNull();
+    expect(component.lineKw(mainOnly, 'ups_a')).toBeNull();
+  });
+
+  it('switches between the summary and the details tabs and paginates each one', () => {
+    const store = new GmaoDataStore();
+    store.pueRows = Array.from({ length: 25 }, (_, index) => ({ ...row(`2026-02-${String(index + 1).padStart(2, '0')}`, 80, 100), id: `r${index}` }));
+    const component = new PuePageComponent(store);
+    expect(component.view).toBe('synthese');
+    component.currentPage = 2;
+    component.setView('details');
+    expect(component.view).toBe('details');
+    expect(component.currentPage).toBe(1);
+    expect(component.pageCount).toBe(2);
+    expect(component.visibleDetailRows).toHaveLength(20);
+  });
+
   it('updates and deletes a reading after confirmation', async () => {
     const store = new GmaoDataStore();
     store.pueRows = [row('2026-01-26', 100, 150)];

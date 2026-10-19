@@ -6,7 +6,7 @@ import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 import {
-  PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_LINES, PUE_MAIN_SECTION, PUE_SITE, PUE_THRESHOLD, PueInputs, PueLine, PueLineResult, PueRow, PueSummary,
+  PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_PDF_GROUPS, PUE_LINES, PUE_MAIN_SECTION, PUE_SITE, PUE_THRESHOLD, PueInputs, PueLine, PueLineResult, PueRow, PueSummary,
   computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, summarize,
 } from './pue-lines';
 
@@ -52,6 +52,7 @@ export class PuePageComponent {
         this.dateFrom = '';
         this.dateTo = '';
         this.tableOpen = true;
+        this.view = 'synthese';
       },
       setPage: (page) => { this.currentPage = page; },
       pageSize: this.rowsPerPage,
@@ -59,6 +60,8 @@ export class PuePageComponent {
   }
 
   tableOpen = true;
+  /** Onglet du tableau : synthèse (IT, hors IT, total, PUE) ou détails facultatifs relevé par relevé. */
+  view: 'synthese' | 'details' = 'synthese';
   sheetOpen = false;
   currentPage = 1;
   dateFrom = '';
@@ -123,7 +126,48 @@ export class PuePageComponent {
   }
 
   get pageCount(): number {
-    return Math.max(1, Math.ceil(this.calendarRows.length / this.rowsPerPage));
+    const total = this.view === 'details' ? this.filteredRows.length : this.calendarRows.length;
+    return Math.max(1, Math.ceil(total / this.rowsPerPage));
+  }
+
+  setView(view: 'synthese' | 'details'): void {
+    this.view = view;
+    this.currentPage = 1;
+  }
+
+  // Tableau des détails : un relevé par ligne, sans les jours manquants ni les synthèses.
+  /** AVR, UPS et redresseurs : une colonne chacun ; les PDF sont additionnés par voie. */
+  readonly detailColumns = PUE_DETAIL_SECTIONS.slice(0, 2).flatMap((section) => section.lines);
+  readonly pdfGroups = PUE_PDF_GROUPS;
+
+  get visibleDetailRows(): PueRow[] {
+    const start = (this.currentPage - 1) * this.rowsPerPage;
+    return this.filteredRows.slice(start, start + this.rowsPerPage);
+  }
+
+  /** kW retenus d'un équipement dans un relevé ; null si la ligne n'a pas été renseignée (ou n'existait pas encore). */
+  lineKw(row: PueRow, code: string): number | null {
+    const value = row.mesures?.[code]?.kw;
+    return typeof value === 'number' ? value : null;
+  }
+
+  /** IT lu = UPS A + UPS B + Redresseurs A + Redresseurs B, seulement si les quatre sont renseignés. */
+  itRead(row: PueRow): number | null {
+    const values = ['ups_a', 'ups_b', 'redresseurs_a', 'redresseurs_b'].map((code) => this.lineKw(row, code));
+    return values.every((value) => value !== null) ? values.reduce((sum: number, value) => sum + (value ?? 0), 0) : null;
+  }
+
+  /** Écart de l'IT lu par rapport à l'IT déduit enregistré, en %. */
+  itGap(row: PueRow): number | null {
+    const read = this.itRead(row);
+    const deduced = Number(row.itKw);
+    return read !== null && deduced > 0 ? Math.round(((read - deduced) / deduced) * 1000) / 10 : null;
+  }
+
+  /** Somme des PDF d'une voie, seulement si tous sont renseignés. */
+  pdfSum(row: PueRow, codes: string[]): number | null {
+    const values = codes.map((code) => this.lineKw(row, code));
+    return values.every((value) => value !== null) ? Math.round(values.reduce((sum: number, value) => sum + (value ?? 0), 0) * 1000) / 1000 : null;
   }
 
   get visibleDays(): CalendarDay[] {
@@ -179,6 +223,7 @@ export class PuePageComponent {
 
   exportExcel(): void {
     if (!this.canExportExcel) return;
+    if (this.view === 'details') { this.exportDetailsExcel(); return; }
     this.excelExporter.exportTable({
       title: `Suivi du PUE — ${PUE_SITE}`,
       fileName: 'suivi-pue',
@@ -191,6 +236,23 @@ export class PuePageComponent {
         { header: 'Total site (kW)', value: (row) => row.totalKw },
         { header: 'PUE', value: (row) => row.pue },
         { header: 'État', value: (row) => this.getState(row.pue) },
+      ],
+    });
+  }
+
+  private exportDetailsExcel(): void {
+    const lines = PUE_DETAIL_SECTIONS.flatMap((section) => section.lines);
+    this.excelExporter.exportTable({
+      title: `Détails du PUE — ${PUE_SITE}`,
+      fileName: 'details-pue',
+      rows: this.filteredRows,
+      columns: [
+        { header: 'Date', value: (row) => row.dateReleve },
+        { header: 'Heure', value: (row) => row.heureReleve?.slice(0, 5) },
+        ...lines.map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => this.lineKw(row, line.code) ?? '' })),
+        { header: 'IT lu (kW)', value: (row) => this.itRead(row) ?? '' },
+        { header: 'IT déduit (kW)', value: (row) => row.itKw },
+        { header: 'Écart IT lu / déduit (%)', value: (row) => this.itGap(row) ?? '' },
       ],
     });
   }

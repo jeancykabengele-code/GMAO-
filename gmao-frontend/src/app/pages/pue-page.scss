@@ -411,3 +411,18 @@ th:last-child,
 @media (max-width: 560px) {
   .results { grid-template-columns: 1fr; }
 }
+
+/* Onglets du tableau et tableau des détails. */
+.view-tabs { display: inline-flex; gap: 4px; margin-bottom: 16px; padding: 4px; border-radius: 12px; background: var(--light-gray); }
+.view-tab { min-height: 38px; padding: 8px 20px; border: 0; border-radius: 9px; color: var(--anthracite); background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.view-tab.active { color: #fff; background: #000; }
+.view-tab:not(.active):hover { background: #fff; }
+.details-note { margin: 0 0 12px; color: var(--slate); }
+.details-wrapper { width: 100%; overflow-x: auto; border: 3px solid var(--anthracite); border-radius: 12px; background: #fff; }
+.details-table { width: max-content; min-width: 100%; table-layout: auto; }
+.details-table th, .details-table td { min-width: 92px; padding: 8px 12px; white-space: nowrap; }
+.details-table th:first-child, .details-table td:first-child { min-width: 112px; }
+.details-table .sticky-col { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 2px 0 0 var(--light-gray); }
+.details-table th.sticky-col { z-index: 2; background: var(--anthracite); }
+.details-table td.no-value { color: var(--slate); }
+.details-table th:last-child, .details-table td:last-child { width: auto; min-width: 92px; }

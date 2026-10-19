@@ -41,6 +41,12 @@
         @if (dateFrom || dateTo) { <button type="button" class="secondary-button filter-reset" (click)="clearPeriod()">Toute la période</button> }
       </div>
 
+      <div class="view-tabs" role="tablist" aria-label="Affichage du tableau PUE">
+        <button type="button" role="tab" class="view-tab" [class.active]="view === 'synthese'" [attr.aria-selected]="view === 'synthese'" (click)="setView('synthese')">Synthèse</button>
+        <button type="button" role="tab" class="view-tab" [class.active]="view === 'details'" [attr.aria-selected]="view === 'details'" (click)="setView('details')">Détails</button>
+      </div>
+
+      @if (view === 'synthese') {
       <div class="table-wrapper">
         <table [class.read-only-table]="!canModify">
           <thead>
@@ -96,6 +102,45 @@
           </tbody>
         </table>
       </div>
+      } @else {
+        <p class="details-note">AVR, UPS, redresseurs et PDF sont facultatifs : un « — » signale une ligne non renseignée. L’écart compare l’IT lu (UPS + redresseurs) à l’IT déduit du relevé.</p>
+        <div class="details-wrapper">
+          <table class="details-table">
+            <thead>
+              <tr>
+                <th scope="col" class="sticky-col">Date</th>
+                <th scope="col">Heure</th>
+                @for (column of detailColumns; track column.code) { <th scope="col">{{ column.label }}</th> }
+                <th scope="col">IT lu</th>
+                <th scope="col">IT déduit</th>
+                <th scope="col">Écart</th>
+                @for (group of pdfGroups; track group.label) { <th scope="col">{{ group.label }}</th> }
+                @if (canModify) { <th scope="col">Action</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (reading of visibleDetailRows; track reading.id ?? reading.dateReleve + reading.heureReleve) {
+                <tr [attr.data-record-id]="reading.id || null" [class.notification-target-row]="notificationFocus?.isTarget(reading.id)">
+                  <td class="sticky-col">{{ formatDate(reading.dateReleve) }}</td>
+                  <td>{{ reading.heureReleve.slice(0, 5) }}</td>
+                  @for (column of detailColumns; track column.code) {
+                    <td [class.no-value]="lineKw(reading, column.code) === null">{{ lineKw(reading, column.code) !== null ? (lineKw(reading, column.code) | number:'1.0-1':'fr') : '—' }}</td>
+                  }
+                  <td [class.no-value]="itRead(reading) === null">{{ itRead(reading) !== null ? (itRead(reading) | number:'1.0-1':'fr') : '—' }}</td>
+                  <td>{{ reading.itKw | number:'1.0-1':'fr' }}</td>
+                  <td [class.no-value]="itGap(reading) === null" [class.gap-high]="isGapHigh(itGap(reading))">{{ itGap(reading) !== null ? ((itGap(reading) | number:'1.0-1':'fr') + ' %') : '—' }}</td>
+                  @for (group of pdfGroups; track group.label) {
+                    <td [class.no-value]="pdfSum(reading, group.codes) === null">{{ pdfSum(reading, group.codes) !== null ? (pdfSum(reading, group.codes) | number:'1.0-1':'fr') : '—' }}</td>
+                  }
+                  @if (canModify) { <td class="action-cell"><button type="button" class="row-action" (click)="editEntry(reading)">Modifier</button></td> }
+                </tr>
+              } @empty {
+                <tr class="empty-row"><td [attr.colspan]="detailColumns.length + pdfGroups.length + (canModify ? 6 : 5)" class="empty-message">Aucun relevé PUE pour cette période.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
 
       <div class="pagination" aria-label="Pagination du tableau PUE">
         <button type="button" class="page-button" aria-label="Page pr&eacute;c&eacute;dente" [disabled]="currentPage === 1" (click)="previousPage()">
