@@ -263,6 +263,33 @@ describe('PuePageComponent', () => {
     expect(component.deleteConfirmationOpen).toBe(false);
   });
 
+  it('exports one workbook with a PUE sheet and a Details sheet, whatever the tab', () => {
+    const access = { allowedSites: ['Pigeon'], currentSite: 'Pigeon', canModifyExisting: true, isChefSite: false, canEnterSiteData: false, canExportData: true };
+    const store = new GmaoDataStore(access as never);
+    store.pueRows = [{ ...row('2026-01-26', 80, 100), id: 'a', scenario: 'S1', mesures: { avr_a: { kw: 54 }, pdf_ac_a1: { kw: 14 }, pdf_ac_a2: { kw: 16 } } }];
+    const exporter = { exportWorkbook: vi.fn().mockResolvedValue(undefined), exportTable: vi.fn() };
+    const component = new PuePageComponent(store, exporter as never);
+
+    for (const view of ['synthese', 'details'] as const) {
+      component.view = view;
+      component.exportExcel();
+    }
+
+    expect(exporter.exportTable).not.toHaveBeenCalled();
+    expect(exporter.exportWorkbook).toHaveBeenCalledTimes(2);
+    const [fileName, sheets] = exporter.exportWorkbook.mock.calls[0];
+    expect(fileName).toBe('suivi-pue');
+    expect(sheets.map((sheet: { sheetName: string }) => sheet.sheetName)).toEqual(['PUE', 'Détails']);
+    const [pue, details] = sheets as Array<{ columns: Array<{ header: string; value: (row: PueRow) => unknown }>; rows: PueRow[] }>;
+    expect(pue.columns.map((column) => column.header)).toEqual(['Date', 'Heure', 'Scénario', 'IT (kW)', 'Hors IT (kW)', 'Total site (kW)', 'PUE', 'État']);
+    const value = (header: string) => details.columns.find((column) => column.header === header)!.value(details.rows[0]);
+    expect(value('Hors IT (kW)')).toBe(20);
+    expect(value('AVR A (kW)')).toBe(54);
+    expect(value('PDF AC A1 (kW)')).toBe(14);
+    expect(value('AVR B (kW)')).toBe('');
+    expect(value('Scénario')).toBe('S1');
+  });
+
   it('derives the non-IT load of a day as total minus IT', () => {
     const component = new PuePageComponent();
     expect(component.nonItKw(row('2026-01-26', 80, 100))).toBe(20);

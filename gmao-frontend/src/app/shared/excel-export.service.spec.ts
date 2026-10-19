@@ -41,6 +41,28 @@ describe('ExcelExportService', () => {
     expect(spreadsheetRows[4][3]).toBe(true);
   });
 
+  it('creates a workbook with several named sheets', async () => {
+    const service = new ExcelExportService();
+    let generatedBlob: Blob | undefined;
+    let generatedFileName = '';
+    (service as unknown as { download: (blob: Blob, fileName: string) => void }).download = (blob, fileName) => {
+      generatedBlob = blob;
+      generatedFileName = fileName;
+    };
+
+    await service.exportWorkbook('Suivi PUE', [
+      { title: 'Suivi du PUE', sheetName: 'PUE', columns: [{ header: 'Date', value: (row: { d: string }) => row.d }], rows: [{ d: '2026-10-19' }] },
+      { title: 'Détails du PUE', sheetName: 'Détails', columns: [{ header: 'AVR A (kW)', value: (row: { avr: number }) => row.avr }], rows: [{ avr: 54 }] },
+    ]);
+
+    expect(generatedFileName).toBe('suivi-pue.xlsx');
+    const sheets = await readXlsxFile(generatedBlob!, { dateFormat: 'yyyy-mm-dd' });
+    expect(sheets.map((sheet) => sheet.sheet)).toEqual(['PUE', 'Détails']);
+    expect(sheets[0].data[0][0]).toBe('Suivi du PUE');
+    expect(sheets[1].data[3][0]).toBe('AVR A (kW)');
+    expect(sheets[1].data[4][0]).toBe(54);
+  });
+
   it('attaches the download link before clicking and revokes the URL later', () => {
     const service = new ExcelExportService();
     const blob = new Blob(['xlsx']);

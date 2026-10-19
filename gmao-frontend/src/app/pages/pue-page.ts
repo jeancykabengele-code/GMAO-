@@ -217,41 +217,42 @@ export class PuePageComponent {
 
   isMissingLabel(line: PueLine): boolean { return this.result(line).kw === null; }
 
+  /** Un classeur de deux feuilles, quel que soit l'onglet affiché : « PUE » (synthèse) et « Détails ». */
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    if (this.view === 'details') { this.exportDetailsExcel(); return; }
-    this.excelExporter.exportTable({
-      title: `Suivi du PUE — ${PUE_SITE}`,
-      fileName: 'suivi-pue',
-      rows: this.filteredRows,
-      columns: [
-        { header: 'Date', value: (row) => row.dateReleve },
-        { header: 'Heure', value: (row) => row.heureReleve?.slice(0, 5) },
-        { header: 'IT (kW)', value: (row) => row.itKw },
-        { header: 'Hors IT (kW)', value: (row) => this.nonItKw(row) },
-        { header: 'Total site (kW)', value: (row) => row.totalKw },
-        { header: 'PUE', value: (row) => row.pue },
-        { header: 'État', value: (row) => this.getState(row.pue) },
-      ],
-    });
-  }
-
-  private exportDetailsExcel(): void {
     const pdfLines = PUE_DETAIL_SECTIONS.slice(1).flatMap((section) => section.lines);
-    this.excelExporter.exportTable({
-      title: `Détails du PUE — ${PUE_SITE}`,
-      fileName: 'details-pue',
-      rows: this.filteredRows,
-      columns: [
-        { header: 'Date', value: (row) => row.dateReleve },
-        { header: 'Heure', value: (row) => row.heureReleve?.slice(0, 5) },
-        { header: 'Scénario', value: (row) => row.scenario || '' },
-        ...[...PUE_TABLE_LINES, ...pdfLines].map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => this.lineKw(row, line.code) ?? '' })),
-        { header: 'IT (kW)', value: (row) => row.itKw },
-        { header: 'Hors IT (kW)', value: (row) => this.nonItKw(row) },
-        { header: 'Total site (kW)', value: (row) => row.totalKw },
-      ],
-    });
+    const common = [
+      { header: 'Date', value: (row: PueRow) => row.dateReleve },
+      { header: 'Heure', value: (row: PueRow) => row.heureReleve?.slice(0, 5) },
+      { header: 'Scénario', value: (row: PueRow) => row.scenario || '' },
+    ];
+    void this.excelExporter.exportWorkbook('suivi-pue', [
+      {
+        title: `Suivi du PUE — ${PUE_SITE}`,
+        sheetName: 'PUE',
+        rows: this.filteredRows,
+        columns: [
+          ...common,
+          { header: 'IT (kW)', value: (row: PueRow) => row.itKw },
+          { header: 'Hors IT (kW)', value: (row: PueRow) => this.nonItKw(row) },
+          { header: 'Total site (kW)', value: (row: PueRow) => row.totalKw },
+          { header: 'PUE', value: (row: PueRow) => row.pue },
+          { header: 'État', value: (row: PueRow) => this.getState(row.pue) },
+        ],
+      },
+      {
+        title: `Détails du PUE — ${PUE_SITE}`,
+        sheetName: 'Détails',
+        rows: this.filteredRows,
+        columns: [
+          ...common,
+          ...[...PUE_TABLE_LINES, ...pdfLines].map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => this.lineKw(row, line.code) ?? '' })),
+          { header: 'IT (kW)', value: (row: PueRow) => row.itKw },
+          { header: 'Hors IT (kW)', value: (row: PueRow) => this.nonItKw(row) },
+          { header: 'Total site (kW)', value: (row: PueRow) => row.totalKw },
+        ],
+      },
+    ]);
   }
 
   toggleTable(): void { this.tableOpen = !this.tableOpen; }

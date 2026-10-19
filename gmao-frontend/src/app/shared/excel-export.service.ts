@@ -13,12 +13,35 @@ export interface ExcelTableExport<T> {
   fileName: string;
   columns: ExcelTableColumn<T>[];
   rows: T[];
+  /** Nom de la feuille (31 caractères au plus) ; à défaut, le titre. */
+  sheetName?: string;
 }
+
+/** Une feuille d'un classeur : même description qu'un tableau, sans nom de fichier. */
+export type ExcelSheetExport<T = never> = Omit<ExcelTableExport<T>, 'fileName'>;
 
 @Injectable({ providedIn: 'root' })
 export class ExcelExportService {
-  async exportTable<T>({ title, fileName, columns, rows }: ExcelTableExport<T>): Promise<void> {
+  async exportTable<T>({ title, fileName, columns, rows, sheetName }: ExcelTableExport<T>): Promise<void> {
     const { default: writeExcelFile } = await import('write-excel-file/universal');
+    const blob = await writeExcelFile([this.buildSheet({ title, columns, rows, sheetName })], {
+      fontFamily: 'Arial',
+      fontSize: 10,
+    }).toBlob();
+    this.download(blob, `${this.safeFileName(fileName)}.xlsx`);
+  }
+
+  /** Un seul fichier .xlsx contenant plusieurs feuilles, chacune au même format qu'un export de tableau. */
+  async exportWorkbook(fileName: string, sheets: Array<ExcelSheetExport<any>>): Promise<void> {
+    const { default: writeExcelFile } = await import('write-excel-file/universal');
+    const blob = await writeExcelFile(sheets.map((sheet) => this.buildSheet(sheet)), {
+      fontFamily: 'Arial',
+      fontSize: 10,
+    }).toBlob();
+    this.download(blob, `${this.safeFileName(fileName)}.xlsx`);
+  }
+
+  private buildSheet<T>({ title, columns, rows, sheetName }: ExcelSheetExport<T>) {
     const columnCount = Math.max(columns.length, 1);
     const sheetData: SheetData = [
       this.spanningRow({
@@ -77,18 +100,14 @@ export class ExcelExportService {
       return { width: column.width ?? Math.min(Math.max(contentWidth + 2, 12), 40) };
     });
 
-    const blob = await writeExcelFile(sheetData, {
-      sheet: this.safeSheetName(title),
+    return {
+      data: sheetData,
+      sheet: this.safeSheetName(sheetName ?? title),
       columns: columnWidths,
       stickyRowsCount: 4,
       showGridLines: false,
       dateFormat: 'yyyy-mm-dd',
-    }, {
-      fontFamily: 'Arial',
-      fontSize: 10,
-    }).toBlob();
-
-    this.download(blob, `${this.safeFileName(fileName)}.xlsx`);
+    };
   }
 
   private dataCell(value: unknown, rowIndex: number): CellObject {
