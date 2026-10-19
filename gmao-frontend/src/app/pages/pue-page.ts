@@ -184,14 +184,6 @@ export class PuePageComponent {
   get averageIt(): number { return this.average((row) => Number(row.itKw)); }
   get averageTotal(): number { return this.average((row) => Number(row.totalKw)); }
 
-  // Aujourd'hui (heure de Kinshasa).
-  get todayKey(): string { return kinshasaNow().date; }
-  /** Relevés du jour, le plus récent en premier. */
-  get todayRows(): PueRow[] { return this.pueRows.filter((row) => row.dateReleve === this.todayKey); }
-  get todayRow(): PueRow | null { return this.todayRows[0] ?? null; }
-  /** PUE du jour : rapport des sommes de tous les relevés d'aujourd'hui. */
-  get todayPue(): number { return periodPue(this.todayRows); }
-
   // Relevé en cours de saisie.
   get summary(): PueSummary { return summarize(this.inputs); }
   get calculatedPue(): number { return this.summary.pue ?? 0; }

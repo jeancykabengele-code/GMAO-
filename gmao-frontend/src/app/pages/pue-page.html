@@ -20,14 +20,6 @@
       </div>
     </div>
 
-    <p class="today-banner" [class.done]="todayRow" [class.open]="!todayRow">
-      @if (todayRow) {
-        PUE du jour {{ todayPue | number:'1.0-3':'fr' }} — {{ todayRows.length }} relevé{{ todayRows.length > 1 ? 's' : '' }} aujourd’hui, dernier à {{ todayRow.heureReleve.slice(0, 5) }}.
-      } @else {
-        Aucun relevé enregistré aujourd’hui.
-      }
-    </p>
-
     @if (tableOpen) {
       <div class="filters">
         <label class="filter-field">
