@@ -22,7 +22,7 @@
 
     <p class="today-banner" [class.done]="todayRow" [class.open]="!todayRow">
       @if (todayRow) {
-        {{ todayRows.length }} relevé{{ todayRows.length > 1 ? 's' : '' }} aujourd’hui — dernier à {{ todayRow.heureReleve.slice(0, 5) }}, PUE {{ todayRow.pue | number:'1.0-3':'fr' }}.
+        PUE du jour {{ todayPue | number:'1.0-3':'fr' }} — {{ todayRows.length }} relevé{{ todayRows.length > 1 ? 's' : '' }} aujourd’hui, dernier à {{ todayRow.heureReleve.slice(0, 5) }}.
       } @else {
         Aucun relevé enregistré aujourd’hui.
       }
@@ -57,6 +57,18 @@
           </thead>
           <tbody>
             @for (day of visibleDays; track day.row?.id ?? day.date + $index) {
+              @if (day.summary) {
+                <tr class="day-summary-row">
+                  <td>{{ formatDate(day.date) }}</td>
+                  <td>Moy. de {{ day.summary.count }}</td>
+                  <td>{{ day.summary.itKw | number:'1.0-1':'fr' }}</td>
+                  <td>{{ day.summary.nonItKw | number:'1.0-1':'fr' }}</td>
+                  <td>{{ day.summary.totalKw | number:'1.0-1':'fr' }}</td>
+                  <td>{{ day.summary.pue | number:'1.0-3':'fr' }}</td>
+                  <td><span class="state-badge" [class.state-good]="day.summary.pue <= threshold" [class.state-alert]="day.summary.pue > threshold">PUE du jour</span></td>
+                  @if (canModify) { <td class="action-cell"></td> }
+                </tr>
+              } @else {
               <tr [class.missing-row]="!day.row" [attr.data-record-id]="day.row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(day.row?.id)">
                 <td>{{ formatDate(day.date) }}</td>
                 <td>{{ day.row ? day.row.heureReleve.slice(0, 5) : '' }}</td>
@@ -77,6 +89,7 @@
                   </td>
                 }
               </tr>
+              }
             } @empty {
               <tr class="empty-row"><td [attr.colspan]="canModify ? 8 : 7" class="empty-message">Aucun relevé PUE pour cette période.</td></tr>
             }

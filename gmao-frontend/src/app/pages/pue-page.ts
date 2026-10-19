@@ -10,7 +10,10 @@ import {
   computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, summarize,
 } from './pue-lines';
 
-export interface CalendarDay { date: string; row: PueRow | null; }
+/** Synthèse d'une journée ayant plusieurs relevés : moyennes en kW et PUE du jour (Σ total ÷ Σ IT). */
+export interface DaySummary { count: number; itKw: number; nonItKw: number; totalKw: number; pue: number; }
+
+export interface CalendarDay { date: string; row: PueRow | null; summary?: DaySummary; }
 
 const DAY_MS = 86400000;
 const MAX_CALENDAR_DAYS = 366;
@@ -81,11 +84,11 @@ export class PuePageComponent {
 
   /** Avec une période complète, chaque jour apparaît (relevé ou « Manquant ») ; sinon seulement les relevés saisis. */
   get calendarRows(): CalendarDay[] {
-    if (!this.dateFrom || !this.dateTo || this.dateFrom > this.dateTo) {
-      return this.filteredRows.map((row) => ({ date: row.dateReleve, row }));
-    }
     const byDate = new Map<string, PueRow[]>();
     for (const row of this.filteredRows) byDate.set(row.dateReleve, [...(byDate.get(row.dateReleve) ?? []), row]);
+    if (!this.dateFrom || !this.dateTo || this.dateFrom > this.dateTo) {
+      return [...byDate.entries()].flatMap(([date, rows]) => this.expandDay(date, rows));
+    }
     const today = kinshasaNow().date;
     const last = this.dateTo < today ? this.dateTo : today;
     const days: CalendarDay[] = [];
@@ -94,10 +97,29 @@ export class PuePageComponent {
     for (let time = end, count = 0; time >= start && count < MAX_CALENDAR_DAYS; time -= DAY_MS, count++) {
       const date = new Date(time).toISOString().slice(0, 10);
       const rows = byDate.get(date);
-      if (rows) days.push(...rows.map((row) => ({ date, row })));
+      if (rows) days.push(...this.expandDay(date, rows));
       else days.push({ date, row: null });
     }
     return days;
+  }
+
+  /** Une journée à plusieurs relevés commence par sa synthèse, suivie des relevés du plus récent au plus ancien. */
+  private expandDay(date: string, rows: PueRow[]): CalendarDay[] {
+    const readings = rows.map((row) => ({ date, row }));
+    return rows.length > 1 ? [{ date, row: null, summary: this.daySummary(rows) }, ...readings] : readings;
+  }
+
+  /** PUE d'une journée : rapport des sommes, jamais la moyenne des PUE (même règle que pour une période). */
+  daySummary(rows: PueRow[]): DaySummary {
+    const count = rows.length;
+    const mean = (pick: (row: PueRow) => number) => rows.reduce((sum, row) => sum + pick(row), 0) / count;
+    return {
+      count,
+      itKw: mean((row) => Number(row.itKw)),
+      nonItKw: mean((row) => this.nonItKw(row)),
+      totalKw: mean((row) => Number(row.totalKw)),
+      pue: periodPue(rows),
+    };
   }
 
   get pageCount(): number {
@@ -123,6 +145,8 @@ export class PuePageComponent {
   /** Relevés du jour, le plus récent en premier. */
   get todayRows(): PueRow[] { return this.pueRows.filter((row) => row.dateReleve === this.todayKey); }
   get todayRow(): PueRow | null { return this.todayRows[0] ?? null; }
+  /** PUE du jour : rapport des sommes de tous les relevés d'aujourd'hui. */
+  get todayPue(): number { return periodPue(this.todayRows); }
 
   // Relevé en cours de saisie.
   get summary(): PueSummary { return summarize(this.inputs); }

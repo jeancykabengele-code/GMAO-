@@ -344,6 +344,7 @@ th:last-child,
 .good-value { color: #166534; }
 .alert-value { color: #991b1b; }
 .empty-message { margin: 0; padding: 18px; color: var(--slate); text-align: center; }
+.day-summary-row td { color: #000; background: #fff3e6; font-weight: 800; border-top: 2px solid var(--orange); }
 .missing-row td { color: var(--slate); background: #fafafa; }
 .state-missing { color: #92400e; background: #fef3c7; }
 .sheet-help { margin: 0; color: var(--slate); line-height: 1.45; }

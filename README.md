@@ -141,7 +141,8 @@ flowchart LR
 | AC triphasé | `kW = √3 × V × A × cos φ / 1000` (400 V par défaut ; cos φ lu sur l'équipement, 0,9 à défaut, compris entre 0 exclu et 1) |
 | IT déduit | `TGBT A + B − climatisation − charges tertiaires`, strictement positif |
 | Contrôles affichés | IT lu (UPS + redresseurs) ↔ IT déduit ; TGBT ↔ AVR de la même voie ; somme des PDF ↔ sortie UPS ou redresseurs |
-| PUE de la période | `somme des kW totaux / somme des kW IT` (jamais la moyenne des PUE du jour) |
+| PUE du jour | Avec plusieurs relevés dans la journée : `somme des kW totaux / somme des kW IT` des relevés du jour (jamais la moyenne des PUE), affiché sur une ligne de synthèse du tableau |
+| PUE de la période | Même règle sur la période : `somme des kW totaux / somme des kW IT` |
 | Droits | Création : Chef de site de Pigeon ; correction : rôles globaux et Chef de site de Pigeon ; suppression : rôles globaux |
 
 ### Sites

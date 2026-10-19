@@ -151,9 +151,24 @@ describe('PuePageComponent', () => {
 
     component.dateFrom = '2026-01-26';
     component.dateTo = '2026-01-28';
-    expect(component.calendarRows.map((day) => day.row?.id ?? null)).toEqual(['c', null, 'b', 'a']);
+    // la journée du 26 commence par sa synthèse ; le 27 est manquant
+    expect(component.calendarRows.map((day) => day.summary ? 'summary' : day.row?.id ?? null))
+      .toEqual(['c', null, 'summary', 'b', 'a']);
     expect(component.periodDays).toBe(3);
     expect(component.retainedDays).toBe(2);
+  });
+
+  it('computes the PUE of a day as the ratio of sums, not the mean of the PUE', () => {
+    const store = new GmaoDataStore();
+    store.pueRows = [
+      { ...row('2026-01-26', 100, 150), heureReleve: '09:00:00', id: 'a' },
+      { ...row('2026-01-26', 10, 20), heureReleve: '15:00:00', id: 'b' },
+    ];
+    const component = new PuePageComponent(store);
+    const summary = component.calendarRows.find((day) => day.summary)!.summary!;
+    // PUE 1,5 et 2,0 : moyenne simple 1,75 ; rapport des sommes 170 ÷ 110
+    expect(summary.pue).toBeCloseTo(1.5454, 3);
+    expect(summary).toMatchObject({ count: 2, itKw: 55, totalKw: 85, nonItKw: 30 });
   });
 
   it('updates and deletes a reading after confirmation', async () => {
