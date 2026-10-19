@@ -2,9 +2,9 @@ import { GmaoDataStore } from '../data/gmao-data-store';
 import { PuePageComponent } from './pue-page';
 import { PUE_LINES, PueRow, computeLine, emptyInputs, kinshasaNow, periodPue, summarize } from './pue-lines';
 
-/** Un relevé complet en kW lus : IT = 80 kW, total = 100 kW. */
+/** Un relevé complet en kW lus : total = 100 kW, hors IT = 20 kW, donc IT déduit = 80 kW. */
 function fillAllLines(component: PuePageComponent, overrides: Record<string, number> = {}): void {
-  const kw: Record<string, number> = { ups_a: 30, ups_b: 20, redresseurs_a: 15, redresseurs_b: 15, tgbt_a: 52, tgbt_b: 48 };
+  const kw: Record<string, number> = { ups_a: 30, ups_b: 20, redresseurs_a: 15, redresseurs_b: 15, tgbt_a: 52, tgbt_b: 48, clim_a: 8, clim_b: 8, tertiaire: 4 };
   for (const line of PUE_LINES) component.inputs[line.code].kwLus = overrides[line.code] ?? kw[line.code] ?? 5;
 }
 
@@ -38,14 +38,24 @@ describe('PUE lines', () => {
     expect(computeLine(dc, { kwLus: null, a: 1000, v: null }).kw).toBeNull();
   });
 
-  it('computes the PUE of the day as total over IT and flags incomplete readings', () => {
+  it('deduces the IT from the total minus cooling and tertiary, and computes the PUE', () => {
     expect(summarize(emptyInputs()).complete).toBe(false);
     const component = new PuePageComponent();
     fillAllLines(component);
-    expect(summarize(component.inputs)).toMatchObject({ complete: true, itKw: 80, totalKw: 100, pue: 1.25 });
+    expect(summarize(component.inputs)).toMatchObject({ complete: true, totalKw: 100, nonItKw: 20, itKw: 80, pue: 1.25 });
     component.inputs['tgbt_a'].kwLus = 10;
     component.inputs['tgbt_b'].kwLus = 10;
     expect(summarize(component.inputs).pue).toBeNull();
+  });
+
+  it('needs only the main lines; UPS, rectifiers and PDF are optional controls of the deduced IT', () => {
+    const inputs = emptyInputs();
+    for (const [code, kw] of Object.entries({ tgbt_a: 52, tgbt_b: 48, clim_a: 8, clim_b: 8, tertiaire: 4 })) inputs[code].kwLus = kw;
+    expect(summarize(inputs)).toMatchObject({ complete: true, itKw: 80, pue: 1.25, itReadKw: null, itGap: null });
+
+    for (const [code, kw] of Object.entries({ ups_a: 30, ups_b: 20, redresseurs_a: 15, redresseurs_b: 20 })) inputs[code].kwLus = kw;
+    // IT lu 85 kW pour 80 kW déduits : +6,3 %, sans effet sur le PUE
+    expect(summarize(inputs)).toMatchObject({ pue: 1.25, itReadKw: 85, itGap: 6.3 });
   });
 
   it('uses the Kinshasa clock (UTC+1) to decide the day of the reading', () => {
@@ -88,9 +98,9 @@ describe('PuePageComponent', () => {
     vi.setSystemTime(new Date('2026-10-12T10:30:00Z'));
     component.openSheet();
     fillAllLines(component);
-    component.inputs['pdf_dc_b4'].kwLus = null;
+    component.inputs['tgbt_b'].kwLus = null;
     await component.saveEntry();
-    expect(component.saveError).toContain('PDF DC B4');
+    expect(component.saveError).toContain('TGBT B');
 
     expect(create).not.toHaveBeenCalled();
 

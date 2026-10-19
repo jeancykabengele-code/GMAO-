@@ -109,60 +109,105 @@
 
     <form (ngSubmit)="saveEntry()">
       <p class="sheet-help">
-        Pour chaque équipement, saisir les <strong>kW lus</strong> s’ils sont affichés, sinon les <strong>ampères</strong> (et la tension).
-        Les kW lus sont prioritaires ; en AC la tension par défaut est 400 V et le cos φ lu sur l’équipement est pris en compte (0,9 s’il n’est pas renseigné).
+        Renseigner le <strong>total des TGBT</strong>, la <strong>climatisation</strong> et les <strong>charges tertiaires</strong> :
+        l’IT et le PUE en sont déduits. Pour chaque équipement, saisir les <strong>kW lus</strong> s’ils sont affichés, sinon les
+        <strong>ampères</strong> (et la tension). En AC : 400 V par défaut et le cos φ lu sur l’équipement (0,9 s’il n’est pas renseigné).
       </p>
 
-      <div class="lines-wrapper">
-        <table class="lines-table">
-          <thead>
-            <tr><th scope="col">&Eacute;quipement</th><th scope="col">kW lus</th><th scope="col">A</th><th scope="col">V</th><th scope="col">cos φ</th><th scope="col">kW retenus</th><th scope="col">Origine</th><th scope="col">&Eacute;cart</th></tr>
-          </thead>
-          @for (section of sections; track section.title) {
-            <tbody>
-              <tr class="section-row"><td colspan="8">{{ section.title }}</td></tr>
-              @for (line of section.lines; track line.code) {
-                <tr>
-                  <td class="line-label">{{ line.label }}</td>
-                  <td><input type="number" min="0" step="any" [name]="line.code + '-kw'" [attr.aria-label]="line.label + ' kW lus'" [(ngModel)]="inputs[line.code].kwLus" /></td>
-                  <td><input type="number" min="0" step="any" [name]="line.code + '-a'" [attr.aria-label]="line.label + ' ampères'" [(ngModel)]="inputs[line.code].a" /></td>
-                  <td><input type="number" min="0" step="any" [name]="line.code + '-v'" [attr.aria-label]="line.label + ' volts'" [placeholder]="line.kind === 'ac' ? '400' : ''" [(ngModel)]="inputs[line.code].v" /></td>
-                  <td>
-                    @if (line.kind === 'ac') {
-                      <input type="number" min="0" max="1" step="any" [name]="line.code + '-cos'" [attr.aria-label]="line.label + ' cos φ'" placeholder="0,9" [class.input-invalid]="isCosPhiInvalid(inputs[line.code].cosPhi)" [(ngModel)]="inputs[line.code].cosPhi" />
-                    } @else { — }
-                  </td>
-                  <td class="retained">{{ result(line).kw !== null ? (result(line).kw | number:'1.0-3':'fr') : '—' }}</td>
-                  <td>{{ result(line).origine || '—' }}</td>
-                  <td [class.gap-high]="result(line).ecart !== null && (result(line).ecart! > 10 || result(line).ecart! < -10)">{{ result(line).ecart !== null ? ((result(line).ecart | number:'1.0-1':'fr') + ' %') : '—' }}</td>
-                </tr>
-              }
-            </tbody>
-          }
-        </table>
-      </div>
-
-      <div class="results">
-        <div><span>IT total</span><strong>{{ summary.itKw | number:'1.0-1':'fr' }} kW</strong></div>
-        <div><span>Total site</span><strong>{{ summary.totalKw | number:'1.0-1':'fr' }} kW</strong></div>
-        <div class="pue-result" [class.good-value]="calculatedPue > 0 && calculatedPue <= threshold" [class.alert-value]="calculatedPue > threshold">
-          <span>PUE du jour</span><strong>{{ calculatedPue ? (calculatedPue | number:'1.3-3':'fr') : '—' }}</strong>
+      <ng-template #linesTable let-sections>
+        <div class="lines-wrapper">
+          <table class="lines-table">
+            <thead>
+              <tr><th scope="col">&Eacute;quipement</th><th scope="col">kW lus</th><th scope="col">A</th><th scope="col">V</th><th scope="col">cos φ</th><th scope="col">kW retenus</th><th scope="col">Origine</th><th scope="col">&Eacute;cart</th></tr>
+            </thead>
+            @for (section of sections; track section.title) {
+              <tbody>
+                <tr class="section-row"><td colspan="8">{{ section.title }}</td></tr>
+                @for (line of section.lines; track line.code) {
+                  <tr>
+                    <td class="line-label">{{ line.label }}</td>
+                    <td><input type="number" min="0" step="any" [name]="line.code + '-kw'" [attr.aria-label]="line.label + ' kW lus'" [(ngModel)]="inputs[line.code].kwLus" /></td>
+                    <td><input type="number" min="0" step="any" [name]="line.code + '-a'" [attr.aria-label]="line.label + ' ampères'" [(ngModel)]="inputs[line.code].a" /></td>
+                    <td><input type="number" min="0" step="any" [name]="line.code + '-v'" [attr.aria-label]="line.label + ' volts'" [placeholder]="line.kind === 'ac' ? '400' : ''" [(ngModel)]="inputs[line.code].v" /></td>
+                    <td>
+                      @if (line.kind === 'ac') {
+                        <input type="number" min="0" max="1" step="any" [name]="line.code + '-cos'" [attr.aria-label]="line.label + ' cos φ'" placeholder="0,9" [class.input-invalid]="isCosPhiInvalid(inputs[line.code].cosPhi)" [(ngModel)]="inputs[line.code].cosPhi" />
+                      } @else { <span class="not-applicable">—</span> }
+                    </td>
+                    <td class="retained">{{ result(line).kw !== null ? (result(line).kw | number:'1.0-3':'fr') : '—' }}</td>
+                    <td>
+                      @if (result(line).origine) { <span class="origin-badge" [class.origin-read]="result(line).origine === 'Lu'">{{ result(line).origine }}</span> } @else { <span class="not-applicable">—</span> }
+                    </td>
+                    <td [class.gap-high]="isGapHigh(result(line).ecart)">{{ result(line).ecart !== null ? ((result(line).ecart | number:'1.0-1':'fr') + ' %') : '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            }
+          </table>
         </div>
-      </div>
+      </ng-template>
 
-      <section class="checks" aria-label="Contrôles PDF">
-        <h3>Contrôle : somme des PDF ≈ sortie</h3>
-        <ul>
-          @for (check of checks; track check.label) {
-            <li [class.gap-high]="check.gap !== null && (check.gap > 10 || check.gap < -10)">
-              {{ check.label }} : @if (check.gap === null) { — } @else { PDF {{ check.parts | number:'1.0-1':'fr' }} kW pour {{ check.output | number:'1.0-1':'fr' }} kW ({{ check.gap | number:'1.0-1':'fr' }} %) }
+      <section class="sheet-step" aria-labelledby="pue-step-main">
+        <h3 id="pue-step-main"><span class="step-number">1</span> Mesures principales</h3>
+        <ng-container *ngTemplateOutlet="linesTable; context: { $implicit: [mainSection] }"></ng-container>
+      </section>
+
+      <section class="sheet-step" aria-labelledby="pue-step-result">
+        <h3 id="pue-step-result"><span class="step-number">2</span> Résultat du jour</h3>
+        <div class="results">
+          <div class="result-card">
+            <span>Total site</span>
+            <strong>{{ summary.totalKw | number:'1.0-1':'fr' }} <em>kW</em></strong>
+            <small>TGBT A + TGBT B</small>
+          </div>
+          <div class="result-card">
+            <span>Hors IT</span>
+            <strong>{{ summary.nonItKw | number:'1.0-1':'fr' }} <em>kW</em></strong>
+            <small>Climatisation + charges tertiaires</small>
+          </div>
+          <div class="result-card result-it">
+            <span>IT déduit</span>
+            <strong>{{ summary.itKw > 0 ? (summary.itKw | number:'1.0-1':'fr') : '—' }} <em>kW</em></strong>
+            <small>Total site − hors IT</small>
+          </div>
+          <div class="result-card pue-result" [class.good-value]="calculatedPue > 0 && calculatedPue <= threshold" [class.alert-value]="calculatedPue > threshold">
+            <span>PUE du jour</span>
+            <strong>{{ calculatedPue ? (calculatedPue | number:'1.3-3':'fr') : '—' }}</strong>
+            <small>Total site ÷ IT déduit · seuil {{ threshold | number:'1.1-1':'fr' }}</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="sheet-step" aria-labelledby="pue-step-detail">
+        <h3 id="pue-step-detail"><span class="step-number">3</span> Détails et contrôles <em>facultatif</em></h3>
+        <p class="step-note">UPS, redresseurs et PDF ne changent pas le PUE : ils servent à vérifier l’IT déduit.</p>
+        <ng-container *ngTemplateOutlet="linesTable; context: { $implicit: detailSections }"></ng-container>
+
+        <section class="checks" aria-label="Contrôles">
+          <h4>Contrôles</h4>
+          <ul>
+            <li [class.gap-high]="isGapHigh(summary.itGap)">
+              <span class="check-label">IT lu (UPS + redresseurs) ↔ IT déduit</span>
+              <span class="check-values">
+                @if (summary.itGap === null) { — } @else { {{ summary.itReadKw | number:'1.0-1':'fr' }} kW lus pour {{ summary.itKw | number:'1.0-1':'fr' }} kW déduits }
+              </span>
+              <span class="check-gap">@if (summary.itGap !== null) { {{ summary.itGap | number:'1.0-1':'fr' }} % }</span>
             </li>
-          }
-        </ul>
+            @for (check of checks; track check.label) {
+              <li [class.gap-high]="isGapHigh(check.gap)">
+                <span class="check-label">Somme des PDF ↔ {{ check.label }}</span>
+                <span class="check-values">
+                  @if (check.gap === null) { — } @else { {{ check.parts | number:'1.0-1':'fr' }} kW de PDF pour {{ check.output | number:'1.0-1':'fr' }} kW }
+                </span>
+                <span class="check-gap">@if (check.gap !== null) { {{ check.gap | number:'1.0-1':'fr' }} % }</span>
+              </li>
+            }
+          </ul>
+        </section>
       </section>
 
       @if (!summary.complete) { <p class="form-warning">Il manque : {{ summary.missing.join(', ') }}.</p> }
-      @else if (summary.pue === null) { <p class="form-warning">Le total du site (TGBT A + B) ne peut pas être inférieur à la puissance IT.</p> }
+      @else if (summary.pue === null) { <p class="form-warning">La puissance IT déduite (TGBT − climatisation − charges tertiaires) doit être supérieure à zéro.</p> }
       @if (saveError) { <p class="form-error" role="alert">{{ saveError }}</p> }
 
       <div class="sheet-actions">

@@ -6,7 +6,7 @@ import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 import {
-  PUE_CHECKS, PUE_LINES, PUE_SECTIONS, PUE_SITE, PUE_THRESHOLD, PueInputs, PueLine, PueLineResult, PueRow, PueSummary,
+  PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_LINES, PUE_MAIN_SECTION, PUE_SITE, PUE_THRESHOLD, PueInputs, PueLine, PueLineResult, PueRow, PueSummary,
   computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, summarize,
 } from './pue-lines';
 
@@ -26,7 +26,8 @@ export class PuePageComponent {
   readonly rowsPerPage = 20;
   readonly site = PUE_SITE;
   readonly threshold = PUE_THRESHOLD;
-  readonly sections = PUE_SECTIONS;
+  readonly mainSection = PUE_MAIN_SECTION;
+  readonly detailSections = PUE_DETAIL_SECTIONS;
 
   /** Corriger un relevé : rôles globaux et Chef de site (sur son site). */
   get canModify(): boolean { return this.dataStore.canModifyExisting || this.dataStore.isChefSite; }
@@ -141,6 +142,9 @@ export class PuePageComponent {
     });
   }
 
+  /** Écart en % : au-delà de 10 %, la saisie mérite d'être revérifiée. */
+  isGapHigh(gap: number | null): boolean { return gap !== null && (gap > 10 || gap < -10); }
+
   isMissingLabel(line: PueLine): boolean { return this.result(line).kw === null; }
 
   exportExcel(): void {
@@ -189,7 +193,7 @@ export class PuePageComponent {
       this.saveError = this.hasInvalidCosPhi
         ? 'Le cos φ doit être compris entre 0 (exclu) et 1.'
         : this.summary.complete
-        ? 'Le total du site (TGBT A + B) ne peut pas être inférieur à la puissance IT.'
+        ? 'La puissance IT déduite (TGBT − climatisation − charges tertiaires) doit être supérieure à zéro.'
         : `Relevé incomplet : ${this.summary.missing.join(', ')}.`;
       return;
     }

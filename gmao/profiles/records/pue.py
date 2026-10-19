@@ -1,4 +1,6 @@
-"""Calcul du PUE à partir du relevé journalier de DC Pigeon (puissances en kW)."""
+"""Calcul du PUE à partir du relevé journalier de DC Pigeon (puissances en kW).
+
+IT déduit = TGBT A + B − climatisation − charges tertiaires ; PUE = (TGBT A + B) ÷ IT déduit."""
 
 import math
 from dataclasses import dataclass
@@ -20,12 +22,20 @@ PUE_PLACES = Decimal("0.001")
 GAP_PLACES = Decimal("0.1")
 
 
+REQUIRED_ROLES = ("total", "cooling", "tertiary")
+
+
 @dataclass(frozen=True)
 class PueLine:
     code: str
     label: str
     kind: str  # "ac" (triphasé) ou "dc"
     role: str  # it | pdf | cooling | tertiary | total
+
+    @property
+    def required(self):
+        """Le PUE se déduit du total site et des charges hors IT ; UPS, redresseurs et PDF ne servent qu'au contrôle."""
+        return self.role in REQUIRED_ROLES
 
 
 def _lines():
@@ -71,7 +81,20 @@ def _kw_from_amps(line, amps, volts, cos_phi=None):
     return SQRT3 * volts * amps * (cos_phi if cos_phi is not None else COS_PHI) / 1000
 
 
+def _is_empty(raw):
+    return raw is None or (isinstance(raw, dict) and all(
+        raw.get(field) is None or (isinstance(raw.get(field), str) and not raw.get(field).strip())
+        for field in ("kwLus", "a", "v", "cosPhi")
+    ))
+
+
+def _empty_result():
+    return {"kwLus": None, "a": None, "v": None, "cosPhi": None, "kw": None, "origine": "", "ecart": None}
+
+
 def _compute_line(line, raw):
+    if not line.required and _is_empty(raw):
+        return _empty_result()
     if not isinstance(raw, dict):
         raise ValidationError(f"{line.label} : relevé manquant.")
     kw_read = _number(raw.get("kwLus"), line.label, "les kW lus")
@@ -121,7 +144,10 @@ def _compute_lines(mesures):
 
 
 def _sum_kw(computed, role):
-    return sum((Decimal(str(computed[line.code]["kw"])) for line in PUE_LINES if line.role == role), Decimal(0))
+    return sum(
+        (Decimal(str(computed[line.code]["kw"])) for line in PUE_LINES if line.role == role and computed[line.code]["kw"] is not None),
+        Decimal(0),
+    )
 
 
 def _calculate_pue_values(values, record=None, now=None):
@@ -144,12 +170,16 @@ def _calculate_pue_values(values, record=None, now=None):
         for field in ("date_releve", "heure_releve"):
             values.pop(field, None)
 
-    it_kw = _sum_kw(computed, "it")
+    # L'IT se déduit du total site : TGBT A + B, moins la climatisation et les charges tertiaires.
     total_kw = _sum_kw(computed, "total")
-    if it_kw <= 0 or total_kw <= 0:
-        raise ValidationError("La puissance IT et la puissance totale doivent être supérieures à zéro.")
-    if total_kw < it_kw:
-        raise ValidationError("La puissance totale (TGBT A + B) ne peut pas être inférieure à la puissance IT.")
+    non_it_kw = _sum_kw(computed, "cooling") + _sum_kw(computed, "tertiary")
+    it_kw = total_kw - non_it_kw
+    if total_kw <= 0:
+        raise ValidationError("La puissance totale (TGBT A + B) doit être supérieure à zéro.")
+    if it_kw <= 0:
+        raise ValidationError(
+            "La puissance IT déduite (TGBT A + B − climatisation − charges tertiaires) doit être supérieure à zéro."
+        )
     values["mesures"] = computed
     values["it_kw"] = it_kw.quantize(KW_PLACES)
     values["total_kw"] = total_kw.quantize(KW_PLACES)

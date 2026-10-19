@@ -1,4 +1,6 @@
 /** Relevé journalier du PUE de DC Pigeon : équipements du schéma unifilaire et conversions en kW.
+ *  IT déduit = TGBT A + B − climatisation − charges tertiaires ; PUE = (TGBT A + B) ÷ IT déduit.
+ *  UPS, redresseurs et PDF sont facultatifs : ils servent à contrôler l'IT déduit.
  *  Miroir de `gmao/profiles/records/pue.py` : le serveur reste la référence, ce fichier sert à l'aperçu en direct. */
 
 export const PUE_SITE = 'Pigeon';
@@ -22,25 +24,28 @@ const pdfLines = (kind: 'ac' | 'dc', count: number): PueLine[] =>
     role: 'pdf' as const,
   })));
 
-export const PUE_SECTIONS: PueSection[] = [
+/** Mesures principales : elles suffisent à calculer l'IT déduit et le PUE. */
+export const PUE_MAIN_SECTION: PueSection = { title: 'Mesures principales', lines: [
+  { code: 'tgbt_a', label: 'TGBT A (MDB A)', kind: 'ac', role: 'total' },
+  { code: 'tgbt_b', label: 'TGBT B (MDB B)', kind: 'ac', role: 'total' },
+  { code: 'clim_a', label: 'TDBT Climatisation A', kind: 'ac', role: 'cooling' },
+  { code: 'clim_b', label: 'TDBT Climatisation B', kind: 'ac', role: 'cooling' },
+  { code: 'tertiaire', label: 'Charges tertiaires', kind: 'ac', role: 'tertiary' },
+] };
+
+/** Détails facultatifs, pour contrôler l'IT déduit. */
+export const PUE_DETAIL_SECTIONS: PueSection[] = [
   { title: 'IT — sorties des UPS et des redresseurs', lines: [
     { code: 'ups_a', label: 'UPS A', kind: 'ac', role: 'it' },
     { code: 'ups_b', label: 'UPS B', kind: 'ac', role: 'it' },
     { code: 'redresseurs_a', label: 'Redresseurs A', kind: 'dc', role: 'it' },
     { code: 'redresseurs_b', label: 'Redresseurs B', kind: 'dc', role: 'it' },
   ] },
-  { title: 'IT — détail des PDF AC (contrôle)', lines: pdfLines('ac', 2) },
-  { title: 'IT — détail des PDF DC (contrôle)', lines: pdfLines('dc', 4) },
-  { title: 'Hors IT — climatisation et tertiaire', lines: [
-    { code: 'clim_a', label: 'TDBT Climatisation A', kind: 'ac', role: 'cooling' },
-    { code: 'clim_b', label: 'TDBT Climatisation B', kind: 'ac', role: 'cooling' },
-    { code: 'tertiaire', label: 'Charges tertiaires', kind: 'ac', role: 'tertiary' },
-  ] },
-  { title: 'Total du site', lines: [
-    { code: 'tgbt_a', label: 'TGBT A (MDB A)', kind: 'ac', role: 'total' },
-    { code: 'tgbt_b', label: 'TGBT B (MDB B)', kind: 'ac', role: 'total' },
-  ] },
+  { title: 'IT — détail des PDF AC', lines: pdfLines('ac', 2) },
+  { title: 'IT — détail des PDF DC', lines: pdfLines('dc', 4) },
 ];
+
+export const PUE_SECTIONS: PueSection[] = [PUE_MAIN_SECTION, ...PUE_DETAIL_SECTIONS];
 
 export const PUE_LINES: PueLine[] = PUE_SECTIONS.flatMap((section) => section.lines);
 
@@ -92,16 +97,47 @@ export function computeLine(line: PueLine, input: PueInput | undefined): PueLine
   return { kw: null, origine: '', ecart: null };
 }
 
-export interface PueSummary { complete: boolean; missing: string[]; itKw: number; totalKw: number; pue: number | null; }
+export const PUE_REQUIRED_ROLES: PueRole[] = ['total', 'cooling', 'tertiary'];
+
+export interface PueSummary {
+  complete: boolean;
+  missing: string[];
+  /** TGBT A + B. */
+  totalKw: number;
+  /** Climatisation + charges tertiaires. */
+  nonItKw: number;
+  /** IT déduit : total − hors IT. */
+  itKw: number;
+  pue: number | null;
+  /** IT lu sur les UPS et les redresseurs, seulement si les quatre sont renseignés. */
+  itReadKw: number | null;
+  /** Écart de l'IT lu par rapport à l'IT déduit, en %. */
+  itGap: number | null;
+}
 
 export function summarize(inputs: PueInputs): PueSummary {
   const results = Object.fromEntries(PUE_LINES.map((line) => [line.code, computeLine(line, inputs[line.code])]));
-  const missing = PUE_LINES.filter((line) => results[line.code].kw === null).map((line) => line.label);
+  const required = PUE_LINES.filter((line) => PUE_REQUIRED_ROLES.includes(line.role));
+  const missing = required.filter((line) => results[line.code].kw === null).map((line) => line.label);
   const sum = (role: PueRole) => PUE_LINES.filter((line) => line.role === role)
     .reduce((total, line) => total + (results[line.code].kw ?? 0), 0);
-  const itKw = sum('it');
   const totalKw = sum('total');
-  return { complete: missing.length === 0, missing, itKw, totalKw, pue: itKw > 0 && totalKw >= itKw ? totalKw / itKw : null };
+  const nonItKw = sum('cooling') + sum('tertiary');
+  const itKw = totalKw - nonItKw;
+  const itLines = PUE_LINES.filter((line) => line.role === 'it');
+  const itRead = itLines.every((line) => results[line.code].kw !== null)
+    ? itLines.reduce((total, line) => total + (results[line.code].kw ?? 0), 0)
+    : null;
+  return {
+    complete: missing.length === 0,
+    missing,
+    totalKw,
+    nonItKw,
+    itKw,
+    pue: itKw > 0 && totalKw > 0 ? totalKw / itKw : null,
+    itReadKw: itRead,
+    itGap: itRead !== null && itKw > 0 ? Math.round(((itRead - itKw) / itKw) * 1000) / 10 : null,
+  };
 }
 
 /** Heure de Kinshasa (UTC+1, sans heure d'été), quel que soit le fuseau de l'ordinateur. */

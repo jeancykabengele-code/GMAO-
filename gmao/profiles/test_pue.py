@@ -23,7 +23,7 @@ def at(hour, minute=0, day=12):
 
 
 def full_reading(**overrides):
-    """Un relevé complet : tout en kW lus, TGBT A + B = 100 kW pour 80 kW d'IT (PUE 1,25)."""
+    """Un relevé complet : tout en kW lus, TGBT A + B = 100 kW, dont 20 kW hors IT, soit 80 kW d'IT déduits (PUE 1,25)."""
     kw = {
         "ups_a": 30, "ups_b": 20, "redresseurs_a": 15, "redresseurs_b": 15,
         "clim_a": 8, "clim_b": 8, "tertiaire": 4, "tgbt_a": 52, "tgbt_b": 48,
@@ -79,11 +79,22 @@ class PueLineConversionTests(SimpleTestCase):
         with self.assertRaisesMessage(ValidationError, "Redresseurs A : la tension (V) est obligatoire"):
             _compute_lines(full_reading() | {"redresseurs_a": {"a": 1000}})
 
-    def test_every_equipment_must_be_read(self):
+    def test_main_lines_must_be_read(self):
+        for code, label in (("tgbt_b", "TGBT B"), ("clim_a", "TDBT Climatisation A"), ("tertiaire", "Charges tertiaires")):
+            with self.subTest(code=code):
+                reading = full_reading()
+                del reading[code]
+                with self.assertRaisesMessage(ValidationError, label):
+                    _compute_lines(reading)
+
+    def test_detail_lines_are_optional(self):
         reading = full_reading()
         del reading["pdf_dc_b4"]
-        with self.assertRaisesMessage(ValidationError, "PDF DC B4"):
-            _compute_lines(reading)
+        reading["ups_a"] = {"kwLus": ""}
+        computed = _compute_lines(reading)
+        self.assertIsNone(computed["pdf_dc_b4"]["kw"])
+        self.assertIsNone(computed["ups_a"]["kw"])
+        self.assertEqual(computed["tgbt_a"]["kw"], 52.0)
 
     def test_unknown_equipment_and_negative_values_are_rejected(self):
         with self.assertRaises(ValidationError):
@@ -108,10 +119,23 @@ class PueDailyReadingTests(TestCase):
         self.assertEqual(str(values["date_releve"]), "2026-10-12")
         self.assertEqual(str(values["heure_releve"]), "11:30:00")
 
-    def test_pdf_cooling_and_tertiary_lines_do_not_change_the_pue(self):
+    def test_it_is_deduced_from_the_total_minus_cooling_and_tertiary(self):
+        values = _calculate_pue_values(self.values(clim_a=10, tertiaire=6), now=at(11))
+        # 100 − (10 + 8) − 6 = 76 kW d'IT
+        self.assertEqual(values["it_kw"], Decimal("76.000"))
+        self.assertEqual(values["pue"], Decimal("1.316"))
+
+    def test_ups_rectifier_and_pdf_lines_do_not_change_the_pue(self):
         base = _calculate_pue_values(self.values(), now=at(11))
-        changed = _calculate_pue_values(self.values(pdf_dc_a1=40, clim_a=99), now=at(11))
+        changed = _calculate_pue_values(self.values(pdf_dc_a1=40, ups_a=99, redresseurs_b=1), now=at(11))
         self.assertEqual(base["pue"], changed["pue"])
+        self.assertEqual(base["it_kw"], changed["it_kw"])
+
+    def test_a_reading_without_the_detail_lines_is_accepted(self):
+        mesures = {code: {"kwLus": kw} for code, kw in
+                   {"tgbt_a": 52, "tgbt_b": 48, "clim_a": 8, "clim_b": 8, "tertiaire": 4}.items()}
+        values = _calculate_pue_values({"site": "Pigeon", "mesures": mesures}, now=at(11))
+        self.assertEqual(values["pue"], Decimal("1.250"))
 
     def test_a_reading_is_accepted_at_any_hour_of_the_day(self):
         for hour, minute in ((0, 5), (9, 59), (13, 0), (23, 59)):
@@ -135,8 +159,9 @@ class PueDailyReadingTests(TestCase):
         with self.assertRaisesMessage(ValidationError, "uniquement pour le site Pigeon"):
             _calculate_pue_values({"site": "Goma", "mesures": full_reading()}, now=at(11))
 
-    def test_total_below_it_is_rejected(self):
-        with self.assertRaisesMessage(ValidationError, "inférieure à la puissance IT"):
+    def test_deduced_it_must_be_positive(self):
+        # TGBT = 20 kW pour 20 kW de climatisation et de tertiaire : plus rien pour l'IT
+        with self.assertRaisesMessage(ValidationError, "IT déduite"):
             _calculate_pue_values(self.values(tgbt_a=10, tgbt_b=10), now=at(11))
 
     def test_correction_keeps_the_original_date(self):
@@ -145,7 +170,7 @@ class PueDailyReadingTests(TestCase):
         update = {"site": "Pigeon", "mesures": full_reading(tgbt_a=62), "date_releve": "2030-01-01"}
         values = _calculate_pue_values(update, record)
         self.assertNotIn("date_releve", values)
-        self.assertEqual(values["pue"], Decimal("1.375"))
+        self.assertEqual(values["pue"], Decimal("1.222"))
 
     def test_history_snapshot_lists_the_retained_kw_of_each_line(self):
         values = _calculate_pue_values(self.values(), now=at(11))
@@ -175,7 +200,7 @@ class PueCorrectionPermissionTests(TestCase):
         response = self.put("chef_site", "Pigeon", tgbt_a=62)
         self.assertEqual(response.status_code, 200, response.content)
         self.record.refresh_from_db()
-        self.assertEqual(self.record.pue, Decimal("1.375"))
+        self.assertEqual(self.record.pue, Decimal("1.222"))
         self.assertEqual(str(self.record.date_releve), "2026-10-12")
 
     def test_chef_site_of_another_site_cannot_correct_it(self):
