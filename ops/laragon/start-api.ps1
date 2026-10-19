@@ -32,6 +32,10 @@ while (-not (Test-NetConnection -ComputerName $dbHost -Port $dbPort -Information
     Start-Sleep -Seconds 10
 }
 
+# Windows PowerShell 5.1 transforme chaque ligne qu'un programme natif écrit sur stderr (avertissements Django,
+# journal de waitress) en erreur fatale quand la préférence vaut 'Stop' : c'est ce qui faisait échouer la tâche
+# planifiée. Les échecs réels restent détectés par $LASTEXITCODE.
+$ErrorActionPreference = 'Continue'
 Set-Location $api
 foreach ($command in @('migrate --noinput', 'verify_business_schema', 'purge_login_buckets')) {
     & $Python manage.py $command.Split(' ')
