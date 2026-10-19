@@ -3,7 +3,7 @@
     <div class="page-toolbar">
       <div class="page-heading">
         <h1>Documentations</h1>
-        <p>Téléchargement sécurisé des données opérationnelles au format Excel XLSX.</p>
+        <p>Téléchargement sécurisé des données opérationnelles au format Excel (XLSX) ou PDF.</p>
       </div>
     </div>
 
@@ -15,14 +15,16 @@
           <div class="report-copy">
             <h2>{{ report.title }}</h2>
           </div>
-          <button type="button" class="export-excel-button" (click)="exportReport(report)">
-            <i class="solaris-icon solaris-excel"></i>
-            Télécharger le fichier Excel
-          </button>
-          <button type="button" class="export-excel-button" (click)="exportReportPdf(report)">
-            <i class="solaris-icon solaris-download"></i>
-            Télécharger le fichier PDF
-          </button>
+          <div class="report-actions">
+            <button type="button" class="export-excel-button" (click)="exportReport(report)">
+              <i class="solaris-icon solaris-excel"></i>
+              Excel
+            </button>
+            <button type="button" class="export-excel-button" (click)="exportReportPdf(report)">
+              <i class="solaris-icon solaris-download"></i>
+              PDF
+            </button>
+          </div>
         </article>
       }
     </div>

@@ -46,6 +46,16 @@
   font-size: 1.1rem;
 }
 
+.report-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.report-actions .export-excel-button {
+  min-width: 104px;
+  white-space: nowrap;
+}
+
 .report-copy h2 {
   margin: 0;
   font-size: 1rem;
@@ -66,5 +76,6 @@
   .documentation-page { padding: 18px; }
   .content-card { padding: 20px; }
   .report-card { grid-template-columns: auto 1fr; }
-  .report-card .export-excel-button { grid-column: 1 / -1; width: 100%; }
+  .report-card .report-actions { grid-column: 1 / -1; }
+  .report-card .export-excel-button { flex: 1; }
 }

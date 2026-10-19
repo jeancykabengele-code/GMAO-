@@ -15,6 +15,8 @@ export interface ExcelTableExport<T> {
   rows: T[];
   /** Nom de la feuille (31 caractères au plus) ; à défaut, le titre. */
   sheetName?: string;
+  /** PDF seulement : nombre de colonnes de tête répétées sur chaque page quand le tableau est trop large (1 par défaut). */
+  pdfRepeatColumns?: number;
 }
 
 /** Une feuille d'un classeur : même description qu'un tableau, sans nom de fichier. */

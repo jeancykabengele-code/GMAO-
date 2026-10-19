@@ -19,7 +19,9 @@ const WIN_ANSI_EXTRAS = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”�
 
 /**
  * Export PDF des tableaux, avec la même description que l'export Excel (`ExcelTableExport`) :
- * une page de titre orange par section, un tableau paginé à en-tête répété, un pied de page numéroté.
+ * toujours du A4 (portrait pour un tableau étroit, paysage sinon), un bandeau de titre orange par section,
+ * un tableau paginé à en-tête répété, un pied de page numéroté. Un tableau trop large pour la page continue
+ * sur les pages suivantes en répétant ses premières colonnes (date, heure…).
  * `exportWorkbook` met plusieurs sections (une par feuille Excel) dans un seul fichier.
  */
 @Injectable({ providedIn: 'root' })
@@ -36,12 +38,12 @@ export class PdfExportService {
   /** Construit le document sans le télécharger (utilisé par l'export et par les tests). */
   async render(sheets: Array<ExcelSheetExport<any>>): Promise<jsPDF> {
     const [{ jsPDF: JsPdf }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
-    const formats = sheets.map((sheet) => (sheet.columns.length > 18 ? 'a3' : 'a4'));
-    const doc = new JsPdf({ orientation: 'landscape', unit: 'mm', format: formats[0] ?? 'a4' });
+    const orientations = sheets.map((sheet) => this.orientation(sheet));
+    const doc = new JsPdf({ orientation: orientations[0] ?? 'landscape', unit: 'mm', format: 'a4' });
     doc.setProperties({ title: sheets[0]?.title ?? 'GMAO ORDC', creator: 'GMAO ORDC' });
 
     sheets.forEach((sheet, index) => {
-      if (index > 0) doc.addPage(formats[index], 'landscape');
+      if (index > 0) doc.addPage('a4', orientations[index]);
       const width = doc.internal.pageSize.getWidth();
       this.drawTitle(doc, sheet, width);
       const columns = sheet.columns;
@@ -53,6 +55,8 @@ export class PdfExportService {
         body: body.length ? body : [[{ content: 'Aucune donnée ne correspond aux filtres actifs.', colSpan: Math.max(columns.length, 1), styles: { halign: 'center', textColor: MUTED, fontStyle: 'italic' } }]],
         theme: 'grid',
         showHead: 'everyPage',
+        horizontalPageBreak: true,
+        horizontalPageBreakRepeat: Array.from({ length: Math.min(sheet.pdfRepeatColumns ?? 1, Math.max(columns.length - 1, 0)) }, (_, column) => column),
         styles: { font: 'helvetica', fontSize: this.fontSize(columns.length), cellPadding: 1.6, lineColor: [210, 210, 210], lineWidth: 0.1, valign: 'middle' },
         headStyles: { fillColor: ANTHRACITE, textColor: 255, halign: 'center', fontStyle: 'bold' },
         alternateRowStyles: { fillColor: STRIPE },
@@ -93,11 +97,15 @@ export class PdfExportService {
     }
   }
 
+  /** Portrait quand le tableau est étroit, paysage sinon. */
+  private orientation(sheet: ExcelSheetExport<any>): 'portrait' | 'landscape' {
+    return sheet.columns.length <= 6 ? 'portrait' : 'landscape';
+  }
+
   private fontSize(columnCount: number): number {
-    if (columnCount <= 8) return 9;
-    if (columnCount <= 12) return 8;
-    if (columnCount <= 18) return 6.5;
-    return 6;
+    if (columnCount <= 6) return 9;
+    if (columnCount <= 10) return 8;
+    return 7;
   }
 
   /** Les nombres sont alignés à droite ; le type est lu sur la première ligne renseignée. */

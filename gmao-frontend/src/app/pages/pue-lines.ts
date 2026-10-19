@@ -253,6 +253,7 @@ export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<PueRow>>
     {
       title: `Détails du PUE — ${PUE_SITE}`,
       sheetName: 'Détails',
+      pdfRepeatColumns: 2,
       rows,
       columns: [
         ...common,
