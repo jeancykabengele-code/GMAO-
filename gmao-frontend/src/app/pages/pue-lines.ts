@@ -34,7 +34,7 @@ export const PUE_SECTIONS: PueSection[] = [
   { title: 'Hors IT — climatisation et tertiaire', lines: [
     { code: 'clim_a', label: 'TDBT Climatisation A', kind: 'ac', role: 'cooling' },
     { code: 'clim_b', label: 'TDBT Climatisation B', kind: 'ac', role: 'cooling' },
-    { code: 'tertiaire', label: 'ATS Charges tertiaires', kind: 'ac', role: 'tertiary' },
+    { code: 'tertiaire', label: 'Charges tertiaires', kind: 'ac', role: 'tertiary' },
   ] },
   { title: 'Total du site', lines: [
     { code: 'tgbt_a', label: 'TGBT A (MDB A)', kind: 'ac', role: 'total' },

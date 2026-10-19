@@ -40,7 +40,7 @@ def _lines():
     lines += [
         PueLine("clim_a", "TDBT Climatisation A", "ac", "cooling"),
         PueLine("clim_b", "TDBT Climatisation B", "ac", "cooling"),
-        PueLine("tertiaire", "ATS Charges tertiaires", "ac", "tertiary"),
+        PueLine("tertiaire", "Charges tertiaires", "ac", "tertiary"),
         PueLine("tgbt_a", "TGBT A", "ac", "total"),
         PueLine("tgbt_b", "TGBT B", "ac", "total"),
     ]
