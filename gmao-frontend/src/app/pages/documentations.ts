@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService, ExcelSheetExport, ExcelTableColumn } from '../shared/excel-export.service';
+import { PdfExportService } from '../shared/pdf-export.service';
 import { PueRow, pueExportSheets } from './pue-lines';
 
 type ReportRow = Record<string, unknown>;
@@ -22,6 +23,8 @@ interface ExcelReport {
   styleUrls: ['./documentations-page.scss'],
 })
 export class DocumentationsComponent {
+  private readonly pdfExporter = new PdfExportService();
+
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
@@ -94,6 +97,20 @@ export class DocumentationsComponent {
       return;
     }
     void this.excelExporter.exportTable({
+      title: report.title,
+      fileName: report.fileName,
+      rows: report.rows(),
+      columns: report.columns,
+    });
+  }
+
+  exportReportPdf(report: ExcelReport): void {
+    if (!this.canExportExcel) return;
+    if (report.sheets) {
+      void this.pdfExporter.exportWorkbook(report.fileName, report.sheets());
+      return;
+    }
+    void this.pdfExporter.exportTable({
       title: report.title,
       fileName: report.fileName,
       rows: report.rows(),

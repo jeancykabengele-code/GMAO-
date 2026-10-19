@@ -5,7 +5,7 @@
       <div class="view-actions">
         <button type="button" class="view-button" [class.inactive]="!tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()"><i class="solaris-icon solaris-equipment"></i> Registre des &eacute;quipements</button>
         @if (canEnterData) { <button type="button" class="primary-button" (click)="openSheet()"><i class="solaris-icon solaris-add"></i> Renseigner un &eacute;quipement</button> }
-        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
+        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> <button type="button" class="export-excel-button" (click)="exportPdf()"><i class="solaris-icon solaris-download"></i> Exporter en PDF</button> }
       </div>
     </div>
 

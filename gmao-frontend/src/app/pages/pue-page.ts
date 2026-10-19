@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 import {
   PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_LINES, PUE_MAIN_SECTIONS, PUE_PDF_GROUPS, PUE_SCENARIOS, PUE_SITE, PUE_TABLE_LINES, PUE_THRESHOLD,
@@ -39,6 +40,8 @@ export class PuePageComponent {
   get canDelete(): boolean { return this.dataStore.canModifyExisting; }
   get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
+
+  private readonly pdfExporter = new PdfExportService();
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
@@ -221,6 +224,12 @@ export class PuePageComponent {
   exportExcel(): void {
     if (!this.canExportExcel) return;
     void this.excelExporter.exportWorkbook('suivi-pue', pueExportSheets(this.filteredRows));
+  }
+
+  /** Même classeur que l'Excel : une section « PUE » et une section « Détails » dans un seul PDF. */
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    void this.pdfExporter.exportWorkbook('suivi-pue', pueExportSheets(this.filteredRows));
   }
 
   toggleTable(): void { this.tableOpen = !this.tableOpen; }

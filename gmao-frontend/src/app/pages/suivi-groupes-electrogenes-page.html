@@ -8,7 +8,7 @@
       <div class="view-actions">
       <button type="button" class="view-button" [class.inactive]="!tableVisible" [attr.aria-pressed]="tableVisible" (click)="toggleTable()"><i class="solaris-icon solaris-gauge"></i> Suivi des compteurs</button>
       @if (canEnterData) { <button type="button" class="primary-button" (click)="openEntrySheet()"><i class="solaris-icon solaris-add"></i> Renseigner un compteur</button> }
-      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
+      @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> <button type="button" class="export-excel-button" (click)="exportPdf()"><i class="solaris-icon solaris-download"></i> Exporter en PDF</button> }
     </div>
     </div>
 

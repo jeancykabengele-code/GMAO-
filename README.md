@@ -23,7 +23,7 @@ flowchart LR
 
 | Couche | Technologies |
 |---|---|
-| Interface | Angular 22, TypeScript 6, RxJS, Bootstrap 5, icônes Solaris, export XLSX (write-excel-file) |
+| Interface | Angular 22, TypeScript 6, RxJS, Bootstrap 5, icônes Solaris, export XLSX (write-excel-file) et PDF (jsPDF + autotable) |
 | API | Python, Django 6, authentification locale (jetons signés), waitress |
 | Données | MySQL 8.4 (SQLite en développement) |
 | Exploitation | Laragon (Nginx, MySQL), PowerShell, tâches planifiées Windows |

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type ProblemStatus = 'Open' | 'Ongoing' | 'Closed';
@@ -40,6 +41,8 @@ export class ProblemesDatacenterPageComponent {
   readonly statuses: ProblemStatus[] = ['Open', 'Ongoing', 'Closed'];
   readonly priorities: ProblemPriority[] = ['P1', 'P2', 'P3'];
   get allowedStatuses(): ProblemStatus[] { return this.dataStore.isChefSite ? ['Open'] : this.statuses; }
+
+  private readonly pdfExporter = new PdfExportService();
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
@@ -118,7 +121,17 @@ export class ProblemesDatacenterPageComponent {
 
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    this.excelExporter.exportTable({
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
+    exporter.exportTable({
       title: 'Problèmes Data Center',
       fileName: 'problemes-data-center',
       rows: this.filteredProblemRows,

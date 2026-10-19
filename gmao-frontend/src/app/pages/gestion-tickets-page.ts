@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type TicketView = 'tickets' | 'sites';
@@ -47,6 +48,8 @@ export class GestionTicketsPageComponent {
   get canEnterData(): boolean { return this.dataStore.canEnterData; }
   get canExportExcel(): boolean { return this.dataStore.canExportData; }
   readonly natures: TicketNature[] = ['PM', 'WO', 'Incident', 'Curative', 'Visit'];
+
+  private readonly pdfExporter = new PdfExportService();
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
@@ -142,8 +145,18 @@ export class GestionTicketsPageComponent {
 
   exportExcel(): void {
     if (!this.canExportExcel || !this.activeView) return;
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel || !this.activeView) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau (par site ou file de tickets) pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
     if (this.activeView === 'sites') {
-      this.excelExporter.exportTable({
+      exporter.exportTable({
         title: 'Répartition des tickets par site',
         fileName: 'tickets-par-site',
         rows: this.siteSummaryRows,
@@ -159,7 +172,7 @@ export class GestionTicketsPageComponent {
       });
       return;
     }
-    this.excelExporter.exportTable({
+    exporter.exportTable({
       title: 'File de tickets',
       fileName: 'gestion-des-tickets',
       rows: this.filteredTicketRows,

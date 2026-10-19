@@ -6,6 +6,7 @@ import { GmaoApiService } from '../data/gmao-api.service';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { GroupRhStatus, RhReading, groupRhStatus, rhMissingMessage } from '../shared/rh-readings';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 function roundToDecimals(value: number | null, decimals: number): number {
@@ -46,6 +47,8 @@ interface MonthlyFuelSummary {
 export class FuelGePageComponent {
   readonly rowsPerPage = 20;
   private offGridOverride: Set<string> | null = null;
+
+  private readonly pdfExporter = new PdfExportService();
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
@@ -231,7 +234,17 @@ export class FuelGePageComponent {
 
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    this.excelExporter.exportTable({
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
+    exporter.exportTable({
       title: 'Journal mensuel Fuel-GE',
       fileName: 'journal-fuel-ge',
       rows: this.filteredRows,

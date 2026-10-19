@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 
 interface FuelDeliveryRow { id?: string; periode: string; rang: number; dateRavitaillement?: string | null; site: string; fournisseur: string; bonLivraison: string; typeCarburant: string; quantiteRecue: number; stockAvant: number | null; stockApres: number | null; numeroCiterne?: string; receptionnePar: string; commentaires?: string; createdAt?: string; created_at?: string; differenceStock?: boolean; }
 
@@ -11,6 +12,7 @@ export class RavitaillementFuelPageComponent {
   readonly rowsPerPage = 20;
   readonly dataStore: GmaoDataStore;
   readonly excelExporter: ExcelExportService;
+  private readonly pdfExporter = new PdfExportService();
   formOpen = false; tableOpen = true; saving = false; deleting = false; deleteConfirmationOpen = false; errorMessage = ''; currentPage = 1; selectedSite = ''; fromMonth = ''; toMonth = '';
   readonly ranks = [1, 2, 3, 4, 5];
   entry: ReturnType<RavitaillementFuelPageComponent['createEmptyEntry']>;
@@ -29,7 +31,9 @@ export class RavitaillementFuelPageComponent {
   previousPage(): void { if (this.currentPage > 1) this.currentPage--; }
   nextPage(): void { if (this.currentPage < this.pageCount) this.currentPage++; }
   resetFilters(): void { this.selectedSite = ''; this.fromMonth = ''; this.toMonth = ''; this.currentPage = 1; }
-  exportExcel(): void { if (!this.canExportExcel) return; this.excelExporter.exportTable({ title: 'Ravitaillement Fuel', fileName: 'ravitaillement-fuel', rows: this.filteredRows, columns: [{ header: 'Mois', value: r => r.periode }, { header: 'N° du ravitaillement', value: r => r.rang }, { header: 'Site', value: r => r.site }, { header: 'Fournisseur', value: r => r.fournisseur }, { header: 'N° bon de livraison', value: r => r.bonLivraison }, { header: 'Type de carburant', value: r => r.typeCarburant }, { header: 'Quantité reçue (L)', value: r => r.quantiteRecue }, { header: 'Stock avant (L)', value: r => r.stockAvant }, { header: 'Stock après (L)', value: r => r.stockApres }, { header: 'Réceptionné par', value: r => r.receptionnePar }, { header: 'Commentaires', value: r => r.commentaires ?? '' }, { header: 'Date d’enregistrement', value: r => r.createdAt ?? '' }] }); }
+  exportExcel(): void { if (!this.canExportExcel) return; this.exportTable(this.excelExporter); }
+  exportPdf(): void { if (!this.canExportExcel) return; this.exportTable(this.pdfExporter); }
+  private exportTable(exporter: TableExporter): void { exporter.exportTable({ title: 'Ravitaillement Fuel', fileName: 'ravitaillement-fuel', rows: this.filteredRows, columns: [{ header: 'Mois', value: r => r.periode }, { header: 'N° du ravitaillement', value: r => r.rang }, { header: 'Site', value: r => r.site }, { header: 'Fournisseur', value: r => r.fournisseur }, { header: 'N° bon de livraison', value: r => r.bonLivraison }, { header: 'Type de carburant', value: r => r.typeCarburant }, { header: 'Quantité reçue (L)', value: r => r.quantiteRecue }, { header: 'Stock avant (L)', value: r => r.stockAvant }, { header: 'Stock après (L)', value: r => r.stockApres }, { header: 'Réceptionné par', value: r => r.receptionnePar }, { header: 'Commentaires', value: r => r.commentaires ?? '' }, { header: 'Date d’enregistrement', value: r => r.createdAt ?? '' }] }); }
   openForm(): void { if (!this.canEnterData) return; this.errorMessage = ''; this.entry = this.createEmptyEntry(); this.formOpen = true; }
   openEdit(row: FuelDeliveryRow): void { if (!this.canModify) return; this.errorMessage = ''; this.editingRow = row; this.entry = { periode: row.periode, rang: row.rang, site: row.site, fournisseur: row.fournisseur, bonLivraison: row.bonLivraison, typeCarburant: row.typeCarburant, quantiteRecue: row.quantiteRecue, stockAvant: row.stockAvant, stockApres: row.stockApres, numeroCiterne: row.numeroCiterne ?? '', receptionnePar: row.receptionnePar, commentaires: row.commentaires ?? '' }; this.formOpen = true; }
   closeForm(): void { if (!this.saving && !this.deleting) this.formOpen = false; }

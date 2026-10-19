@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type EquipmentFamily = 'Energie' | 'Climatisation' | 'IT' | 'Securite' | 'Anti-incendie' | 'Plomberie/hydraulique' | 'Batiment' | 'Telecoms';
@@ -40,6 +41,8 @@ export class EquipementsPageComponent {
   readonly families: EquipmentFamily[] = ['Energie', 'Climatisation', 'IT', 'Securite', 'Anti-incendie', 'Plomberie/hydraulique', 'Batiment', 'Telecoms'];
   readonly criticalities: EquipmentCriticality[] = ['Faible', 'Moyenne', 'Elevee', 'Critique'];
   readonly states: EquipmentState[] = ['En service', 'Hors service', 'En panne', 'En maintenance'];
+
+  private readonly pdfExporter = new PdfExportService();
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
@@ -106,7 +109,17 @@ export class EquipementsPageComponent {
 
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    this.excelExporter.exportTable({
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
+    exporter.exportTable({
       title: 'Registre des équipements',
       fileName: 'registre-equipements',
       rows: this.filteredRows,

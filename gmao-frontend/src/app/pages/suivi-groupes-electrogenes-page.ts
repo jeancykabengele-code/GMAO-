@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type PmState = 'PmDepassee' | 'PmUrgente' | 'ASurveiller' | 'Normal';
@@ -54,6 +55,8 @@ interface GeneratorRow {
 })
 export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy {
   readonly pageSize = 20;
+
+  private readonly pdfExporter = new PdfExportService();
 
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
@@ -177,7 +180,17 @@ export class SuiviGroupesElectrogenesPageComponent implements OnInit, OnDestroy 
 
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    this.excelExporter.exportTable({
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
+    exporter.exportTable({
       title: 'Suivi des groupes électrogènes',
       fileName: 'suivi-groupes-electrogenes',
       rows: this.filteredRows,

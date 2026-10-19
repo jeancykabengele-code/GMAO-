@@ -1,6 +1,7 @@
 import readXlsxFile from 'read-excel-file/browser';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService } from '../shared/pdf-export.service';
 import { DocumentationsComponent } from './documentations';
 import { PuePageComponent } from './pue-page';
 import { PueRow } from './pue-lines';
@@ -63,5 +64,34 @@ describe('PUE Excel export (real workbook)', () => {
 
     expect(files[0].name).toBe('suivi-pue.xlsx');
     expect(Object.keys(await readWorkbook(files[0].blob))).toEqual(['PUE', 'Détails']);
+  });
+
+  it('the PUE page and the Documentations page download one PDF with a PUE section and a Details section', async () => {
+    const pdfFiles: Array<{ name: string; blob: Blob }> = [];
+    const pdfService = new PdfExportService();
+    (pdfService as unknown as { download: (blob: Blob, name: string) => void }).download = (blob, name) => pdfFiles.push({ name, blob });
+
+    const page = new PuePageComponent(storeWithReading(), new ExcelExportService());
+    (page as unknown as { pdfExporter: PdfExportService }).pdfExporter = pdfService;
+    page.exportPdf();
+
+    const documentations = new DocumentationsComponent(storeWithReading(), new ExcelExportService());
+    (documentations as unknown as { pdfExporter: PdfExportService }).pdfExporter = pdfService;
+    documentations.exportReportPdf(documentations.reports.find((entry) => entry.fileName === 'suivi-pue')!);
+
+    await vi.waitFor(() => expect(pdfFiles).toHaveLength(2));
+    for (const file of pdfFiles) {
+      expect(file.name).toBe('suivi-pue.pdf');
+      expect(file.blob.type).toBe('application/pdf');
+      const content = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.readAsText(file.blob, 'latin1');
+      });
+      expect(content.startsWith('%PDF-')).toBe(true);
+      expect(content).toContain('Suivi du PUE');
+      expect(content).toContain('tails du PUE');
+      expect(content).toContain('Hors IT');
+    }
   });
 });

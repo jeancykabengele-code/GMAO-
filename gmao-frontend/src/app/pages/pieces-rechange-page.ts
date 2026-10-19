@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type SparePartStatus = 'Recue' | 'Utilisee' | 'Retournee';
@@ -28,6 +29,8 @@ interface SparePartOperation {
   styleUrls: ['./pieces-rechange-page.scss'],
 })
 export class PiecesRechangePageComponent {
+  private readonly pdfExporter = new PdfExportService();
+
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
@@ -108,7 +111,17 @@ export class PiecesRechangePageComponent {
 
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    this.excelExporter.exportTable({
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
+    exporter.exportTable({
       title: 'Journal des pièces de rechange',
       fileName: 'pieces-de-rechange',
       rows: this.filteredRows,

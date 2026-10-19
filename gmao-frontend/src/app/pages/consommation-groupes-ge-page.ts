@@ -3,6 +3,7 @@ import { ChangeDetectorRef, Component, Optional } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { RhReading, groupRhStatus, rhMissingMessage } from '../shared/rh-readings';
 
 interface ConsumptionRow { id?: string; site: string; periode: string; groupeCode: string; consommationLitres: number; heuresGe: number; litresHeure: number | null; commentaires?: string; }
@@ -24,6 +25,8 @@ export class ConsommationGroupesGePageComponent {
   editingRow: ConsumptionRow | null = null;
   deleting = false;
   deleteConfirmationOpen = false;
+
+  private readonly pdfExporter = new PdfExportService();
 
   constructor(
     readonly dataStore: GmaoDataStore,
@@ -63,7 +66,17 @@ export class ConsommationGroupesGePageComponent {
   litresHour(): number | null { const hours = this.hours(); const consumption = this.entry.consommationLitres ?? 0; return hours === null || (hours === 0 && consumption > 0) ? null : hours === 0 ? 0 : consumption / hours; }
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    this.excelExporter.exportTable({
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
+    exporter.exportTable({
       title: 'Consommation par GE', fileName: 'consommation-par-ge', rows: this.filteredRows,
       columns: [
         { header: 'Site', value: (row) => row.site }, { header: 'Mois', value: (row) => row.periode },

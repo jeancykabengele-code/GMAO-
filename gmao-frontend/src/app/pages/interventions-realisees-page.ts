@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ORANGE_RDC_SITES } from '../data/sites';
 import { GmaoDataStore } from '../data/gmao-data-store';
 import { ExcelExportService } from '../shared/excel-export.service';
+import { PdfExportService, TableExporter } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 
 type InterventionType = 'PM' | 'Corrective' | 'Cleanning' | 'Controle' | 'Autre';
@@ -30,6 +31,8 @@ interface InterventionRow {
   styleUrls: ['./interventions-realisees-page.scss'],
 })
 export class InterventionsRealiseesPageComponent {
+  private readonly pdfExporter = new PdfExportService();
+
   constructor(
     private readonly dataStore: GmaoDataStore = new GmaoDataStore(),
     private readonly excelExporter: ExcelExportService = new ExcelExportService(),
@@ -106,7 +109,17 @@ export class InterventionsRealiseesPageComponent {
 
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    this.excelExporter.exportTable({
+    this.exportTable(this.excelExporter);
+  }
+
+  exportPdf(): void {
+    if (!this.canExportExcel) return;
+    this.exportTable(this.pdfExporter);
+  }
+
+  /** Même tableau pour l'export Excel et pour l'export PDF. */
+  private exportTable(exporter: TableExporter): void {
+    exporter.exportTable({
       title: 'Journal des interventions réalisées',
       fileName: 'interventions-realisees',
       rows: this.filteredRows,

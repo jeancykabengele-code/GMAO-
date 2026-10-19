@@ -16,7 +16,7 @@
             Nouveau relevé
           </button>
         }
-        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
+        @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> <button type="button" class="export-excel-button" (click)="exportPdf()"><i class="solaris-icon solaris-download"></i> Exporter en PDF</button> }
       </div>
     </div>
 
