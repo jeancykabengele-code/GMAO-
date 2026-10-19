@@ -160,12 +160,14 @@ class PueDailyReadingTests(TestCase):
         self.assertEqual(at(0, 30).day, 11)
         self.assertEqual(str(values["date_releve"]), "2026-10-12")
 
-    def test_one_reading_per_day(self):
-        values = _calculate_pue_values(self.values(), now=at(11))
-        business_models.PueRecord.objects.create(created_by=uuid4(), **values)
-        with self.assertRaisesMessage(ValidationError, "existe déjà"):
-            _calculate_pue_values(self.values(), now=at(12))
-        self.assertEqual(_calculate_pue_values(self.values(), now=at(11, 0, day=13))["pue"], Decimal("1.250"))
+    def test_several_readings_can_be_recorded_the_same_day(self):
+        first = _calculate_pue_values(self.values(), now=at(11))
+        business_models.PueRecord.objects.create(created_by=uuid4(), **first)
+        second = _calculate_pue_values(self.values(tgbt_a=62), now=at(15, 30))
+        business_models.PueRecord.objects.create(created_by=uuid4(), **second)
+        rows = business_models.PueRecord.objects.filter(site="Pigeon", date_releve=first["date_releve"])
+        self.assertEqual(rows.count(), 2)
+        self.assertEqual(str(second["heure_releve"]), "15:30:00")
 
     def test_only_pigeon_is_supported(self):
         with self.assertRaisesMessage(ValidationError, "uniquement pour le site Pigeon"):

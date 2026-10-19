@@ -71,7 +71,7 @@ export class PuePageComponent {
   get pueRows(): PueRow[] {
     return (this.dataStore.pueRows as PueRow[])
       .filter((row) => row.site === PUE_SITE)
-      .sort((a, b) => b.dateReleve.localeCompare(a.dateReleve));
+      .sort((a, b) => b.dateReleve.localeCompare(a.dateReleve) || (b.heureReleve ?? '').localeCompare(a.heureReleve ?? ''));
   }
 
   get filteredRows(): PueRow[] {
@@ -84,15 +84,18 @@ export class PuePageComponent {
     if (!this.dateFrom || !this.dateTo || this.dateFrom > this.dateTo) {
       return this.filteredRows.map((row) => ({ date: row.dateReleve, row }));
     }
-    const byDate = new Map(this.filteredRows.map((row) => [row.dateReleve, row]));
+    const byDate = new Map<string, PueRow[]>();
+    for (const row of this.filteredRows) byDate.set(row.dateReleve, [...(byDate.get(row.dateReleve) ?? []), row]);
     const today = kinshasaNow().date;
     const last = this.dateTo < today ? this.dateTo : today;
     const days: CalendarDay[] = [];
     const start = Date.parse(`${this.dateFrom}T00:00:00Z`);
     const end = Date.parse(`${last}T00:00:00Z`);
-    for (let time = end; time >= start && days.length < MAX_CALENDAR_DAYS; time -= DAY_MS) {
+    for (let time = end, count = 0; time >= start && count < MAX_CALENDAR_DAYS; time -= DAY_MS, count++) {
       const date = new Date(time).toISOString().slice(0, 10);
-      days.push({ date, row: byDate.get(date) ?? null });
+      const rows = byDate.get(date);
+      if (rows) days.push(...rows.map((row) => ({ date, row })));
+      else days.push({ date, row: null });
     }
     return days;
   }
@@ -108,15 +111,18 @@ export class PuePageComponent {
 
   // Résultats de la période choisie.
   get periodPue(): number { return periodPue(this.filteredRows); }
-  get retainedDays(): number { return this.filteredRows.length; }
-  get periodDays(): number { return this.calendarRows.length; }
+  /** Jours distincts ayant au moins un relevé. */
+  get retainedDays(): number { return new Set(this.filteredRows.map((row) => row.dateReleve)).size; }
+  get periodDays(): number { return new Set(this.calendarRows.map((day) => day.date)).size; }
   get hasFullPeriod(): boolean { return !!this.dateFrom && !!this.dateTo && this.dateFrom <= this.dateTo; }
   get averageIt(): number { return this.average((row) => Number(row.itKw)); }
   get averageTotal(): number { return this.average((row) => Number(row.totalKw)); }
 
   // Aujourd'hui (heure de Kinshasa).
   get todayKey(): string { return kinshasaNow().date; }
-  get todayRow(): PueRow | null { return this.pueRows.find((row) => row.dateReleve === this.todayKey) ?? null; }
+  /** Relevés du jour, le plus récent en premier. */
+  get todayRows(): PueRow[] { return this.pueRows.filter((row) => row.dateReleve === this.todayKey); }
+  get todayRow(): PueRow | null { return this.todayRows[0] ?? null; }
 
   // Relevé en cours de saisie.
   get summary(): PueSummary { return summarize(this.inputs); }

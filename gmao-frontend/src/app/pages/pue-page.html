@@ -3,7 +3,7 @@
     <div class="page-toolbar">
       <div class="page-heading">
         <h1>Suivi du PUE — DC {{ site }}</h1>
-        <p>Un relevé complet par jour. Toutes les puissances sont en kW.</p>
+        <p>Un relevé complet à chaque saisie, autant de fois que nécessaire dans la journée. Toutes les puissances sont en kW.</p>
       </div>
       <div class="view-actions">
         <button type="button" class="view-button" [class.active]="tableOpen" [attr.aria-pressed]="tableOpen" (click)="toggleTable()">
@@ -11,9 +11,9 @@
           Tableau PUE
         </button>
         @if (canEnterData) {
-          <button type="button" class="primary-button" (click)="openSheet()" [disabled]="!!todayRow">
+          <button type="button" class="primary-button" (click)="openSheet()">
             <i class="solaris-icon solaris-add"></i>
-            Renseigner le relevé du jour
+            Nouveau relevé
           </button>
         }
         @if (canExportExcel) { <button type="button" class="export-excel-button" (click)="exportExcel()"><i class="solaris-icon solaris-excel"></i> Exporter en Excel</button> }
@@ -22,9 +22,9 @@
 
     <p class="today-banner" [class.done]="todayRow" [class.open]="!todayRow">
       @if (todayRow) {
-        Relevé du jour enregistré à {{ todayRow.heureReleve.slice(0, 5) }} — PUE {{ todayRow.pue | number:'1.0-3':'fr' }}.
+        {{ todayRows.length }} relevé{{ todayRows.length > 1 ? 's' : '' }} aujourd’hui — dernier à {{ todayRow.heureReleve.slice(0, 5) }}, PUE {{ todayRow.pue | number:'1.0-3':'fr' }}.
       } @else {
-        Le relevé du jour n’est pas encore renseigné.
+        Aucun relevé enregistré aujourd’hui.
       }
     </p>
 
@@ -56,7 +56,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (day of visibleDays; track day.date) {
+            @for (day of visibleDays; track day.row?.id ?? day.date + $index) {
               <tr [class.missing-row]="!day.row" [attr.data-record-id]="day.row?.id || null" [class.notification-target-row]="notificationFocus?.isTarget(day.row?.id)">
                 <td>{{ formatDate(day.date) }}</td>
                 <td>{{ day.row ? day.row.heureReleve.slice(0, 5) : '' }}</td>

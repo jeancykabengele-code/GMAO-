@@ -176,7 +176,7 @@ class FuelMonthlySummary(BusinessRecord):
 
 
 class PueRecord(BusinessRecord):
-    """Relevé journalier du PUE : une ligne par site et par jour, avec la puissance de chaque équipement."""
+    """Relevé du PUE : une ligne par saisie (plusieurs possibles par jour), avec la puissance de chaque équipement."""
     date_releve = models.DateField()
     heure_releve = models.TimeField()
     mesures = models.JSONField(default=dict)
@@ -186,7 +186,6 @@ class PueRecord(BusinessRecord):
 
     class Meta:
         db_table = "gmao_pue"
-        unique_together = ("site", "date_releve")
 
 
 class DatacenterProblem(BusinessRecord):

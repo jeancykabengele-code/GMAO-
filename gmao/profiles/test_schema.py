@@ -37,7 +37,6 @@ class BusinessSchemaContractTests(SimpleTestCase):
             business_models.GeneratorMonthlyReading: (("site", "periode", "groupe_code"),),
             business_models.FuelRecord: (("site", "periode"),),
             business_models.GeneratorFuelConsumption: (("site", "periode", "groupe_code"),),
-            business_models.PueRecord: (("site", "date_releve"),),
             business_models.Notification: (("recipient_id", "dedupe_key"),),
         }
         for model, unique_together in expected.items():

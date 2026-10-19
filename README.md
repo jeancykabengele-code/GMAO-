@@ -43,7 +43,7 @@ flowchart LR
 | Consommation par GE | Litres par groupe et par mois | Chef de site, rôles globaux |
 | Ravitaillement Fuel | Livraisons (1er à 5e du mois) | Chef de site, rôles globaux |
 | Fuel-GE | Journal mensuel du site, **calculé** | kWh SNEL et stock initial du premier mois |
-| PUE | Relevé journalier de DC Pigeon, en kW | Chef de site de Pigeon |
+| PUE | Relevés de DC Pigeon, en kW (plusieurs par jour possibles) | Chef de site de Pigeon |
 | Problèmes Data Center | Constats, priorité, échéance, prochaine étape | Chef de site, rôles globaux |
 | Pièces de rechange | Mouvements liés à un ticket et un équipement | Chef de site, rôles globaux |
 | Documentations | 9 registres complets en XLSX | Lecture, rôles globaux |
@@ -120,23 +120,28 @@ Une même étape n'est notifiée qu'une fois par groupe, destinataire et cycle d
 
 ```mermaid
 flowchart LR
-    UPS[UPS A + B] --> IT[IT total, kW]
-    RED[Redresseurs A + B] --> IT
     TGBT[TGBT A + B] --> TOT[Total site, kW]
-    IT --> PUE["PUE du jour = Total / IT"]
-    TOT --> PUE
-    PDF["PDF AC et DC<br/>(contrôle)"] -.->|somme ≈ sortie| IT
+    CLIM[Climatisation A + B] --> HORS[Hors IT, kW]
+    TERT[Charges tertiaires] --> HORS
+    TOT --> IT["IT déduit = Total − Hors IT"]
+    HORS --> IT
+    TOT --> PUE["PUE = Total / IT déduit"]
+    IT --> PUE
+    DET["AVR, UPS, redresseurs, PDF<br/>(facultatifs)"] -.->|contrôle de l'écart| IT
 ```
 
 | Règle | Détail |
 |---|---|
-| Périmètre | Site Pigeon uniquement ; 21 équipements du schéma unifilaire, tous obligatoires |
-| Relevé | Un par jour, daté par le serveur (heure de Kinshasa), à toute heure |
+| Périmètre | Site Pigeon uniquement |
+| Mesures principales (obligatoires) | TGBT A et B, TDBT Climatisation A et B, Charges tertiaires |
+| Détails (facultatifs) | AVR A et B, UPS A et B, Redresseurs A et B, PDF AC (2 par voie) et DC (4 par voie) : ils ne changent pas le PUE, ils servent à contrôler les mesures |
+| Relevé | Autant que nécessaire par jour, daté par le serveur (heure de Kinshasa) |
 | Saisie d'une ligne | kW lus, ou ampères et volts ; les kW lus sont prioritaires et l'écart est affiché |
 | DC | `kW = V × A / 1000` |
-| AC triphasé | `kW = √3 × V × A × cos φ / 1000` (400 V et cos φ = 0,9 par défaut) |
-| Contrôles | IT et total strictement positifs ; total ≥ IT |
-| PUE de la période | `somme des kW totaux / somme des kW IT` des jours retenus (jamais la moyenne des PUE du jour) |
+| AC triphasé | `kW = √3 × V × A × cos φ / 1000` (400 V par défaut ; cos φ lu sur l'équipement, 0,9 à défaut, compris entre 0 exclu et 1) |
+| IT déduit | `TGBT A + B − climatisation − charges tertiaires`, strictement positif |
+| Contrôles affichés | IT lu (UPS + redresseurs) ↔ IT déduit ; TGBT ↔ AVR de la même voie ; somme des PDF ↔ sortie UPS ou redresseurs |
+| PUE de la période | `somme des kW totaux / somme des kW IT` (jamais la moyenne des PUE du jour) |
 | Droits | Création : Chef de site de Pigeon ; correction : rôles globaux et Chef de site de Pigeon ; suppression : rôles globaux |
 
 ### Sites

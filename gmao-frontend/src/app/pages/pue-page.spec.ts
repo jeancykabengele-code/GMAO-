@@ -139,6 +139,23 @@ describe('PuePageComponent', () => {
     expect(component.pageCount).toBe(2);
   });
 
+  it('lists every reading of a day, latest first, and keeps a single missing line for empty days', () => {
+    const store = new GmaoDataStore();
+    store.pueRows = [
+      { ...row('2026-01-26', 100, 150), heureReleve: '09:00:00', id: 'a' },
+      { ...row('2026-01-26', 100, 160), heureReleve: '15:30:00', id: 'b' },
+      { ...row('2026-01-28', 100, 170), id: 'c' },
+    ];
+    const component = new PuePageComponent(store);
+    expect(component.pueRows.map((entry) => entry.id)).toEqual(['c', 'b', 'a']);
+
+    component.dateFrom = '2026-01-26';
+    component.dateTo = '2026-01-28';
+    expect(component.calendarRows.map((day) => day.row?.id ?? null)).toEqual(['c', null, 'b', 'a']);
+    expect(component.periodDays).toBe(3);
+    expect(component.retainedDays).toBe(2);
+  });
+
   it('updates and deletes a reading after confirmation', async () => {
     const store = new GmaoDataStore();
     store.pueRows = [row('2026-01-26', 100, 150)];

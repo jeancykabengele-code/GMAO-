@@ -154,8 +154,6 @@ def _sum_kw(computed, role):
 
 def _calculate_pue_values(values, record=None, now=None):
     """Complète `values` : date et heure du relevé (à la création), kW retenus, IT, total et PUE."""
-    from ..models import PueRecord
-
     site = values.get("site", getattr(record, "site", None))
     if site != PUE_SITE:
         raise ValidationError(f"Le PUE se renseigne uniquement pour le site {PUE_SITE}.")
@@ -164,8 +162,6 @@ def _calculate_pue_values(values, record=None, now=None):
 
     if record is None:
         local_now = (now or datetime.now(timezone.utc)).astimezone(SITE_TIMEZONE)
-        if PueRecord.objects.filter(site=site, date_releve=local_now.date()).exists():
-            raise ValidationError(f"Le relevé du {local_now.strftime('%d/%m/%Y')} existe déjà pour ce site.")
         values["date_releve"] = local_now.date()
         values["heure_releve"] = local_now.time().replace(second=0, microsecond=0)
     else:
