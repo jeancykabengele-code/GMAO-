@@ -148,12 +148,13 @@ tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.table-wrapper th:nth-child(1) { width: 16%; }
-.table-wrapper th:nth-child(2) { width: 12%; }
-.table-wrapper th:nth-child(3) { width: 17%; }
-.table-wrapper th:nth-child(4) { width: 19%; }
-.table-wrapper th:nth-child(5) { width: 12%; }
-.table-wrapper th:nth-child(6) { width: 14%; }
+.table-wrapper th:nth-child(1) { width: 13%; }
+.table-wrapper th:nth-child(2) { width: 9%; }
+.table-wrapper th:nth-child(3) { width: 13%; }
+.table-wrapper th:nth-child(4) { width: 15%; }
+.table-wrapper th:nth-child(5) { width: 17%; }
+.table-wrapper th:nth-child(6) { width: 10%; }
+.table-wrapper th:nth-child(7) { width: 12%; }
 th {
   color: #fff;
   background: var(--anthracite);

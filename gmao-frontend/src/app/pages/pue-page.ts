@@ -157,6 +157,7 @@ export class PuePageComponent {
         { header: 'Date', value: (row) => row.dateReleve },
         { header: 'Heure', value: (row) => row.heureReleve?.slice(0, 5) },
         { header: 'IT (kW)', value: (row) => row.itKw },
+        { header: 'Hors IT (kW)', value: (row) => this.nonItKw(row) },
         { header: 'Total site (kW)', value: (row) => row.totalKw },
         { header: 'PUE', value: (row) => row.pue },
         { header: 'État', value: (row) => this.getState(row.pue) },
@@ -249,6 +250,11 @@ export class PuePageComponent {
       this.deleting = false;
       this.cdr?.markForCheck();
     }
+  }
+
+  /** Hors IT = total site − IT déduit (climatisation + charges tertiaires). */
+  nonItKw(row: PueRow): number {
+    return Math.round((Number(row.totalKw) - Number(row.itKw)) * 1000) / 1000;
   }
 
   getState(pue: number): string {

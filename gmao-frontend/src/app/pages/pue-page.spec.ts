@@ -176,6 +176,12 @@ describe('PuePageComponent', () => {
     expect(component.deleteConfirmationOpen).toBe(false);
   });
 
+  it('derives the non-IT load of a day as total minus IT', () => {
+    const component = new PuePageComponent();
+    expect(component.nonItKw(row('2026-01-26', 80, 100))).toBe(20);
+    expect(component.nonItKw(row('2026-01-27', 82.4, 150.25))).toBe(67.85);
+  });
+
   it('evaluates the 1.8 threshold', () => {
     const component = new PuePageComponent();
     expect(component.getState(1.75)).toBe('≤ 1,8');

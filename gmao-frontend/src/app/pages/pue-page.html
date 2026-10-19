@@ -48,6 +48,7 @@
               <th scope="col">Date</th>
               <th scope="col">Heure</th>
               <th scope="col">IT (kW)</th>
+              <th scope="col">Hors IT (kW)</th>
               <th scope="col">Total site (kW)</th>
               <th scope="col">PUE</th>
               <th scope="col">&Eacute;tat</th>
@@ -60,6 +61,7 @@
                 <td>{{ formatDate(day.date) }}</td>
                 <td>{{ day.row ? day.row.heureReleve.slice(0, 5) : '' }}</td>
                 <td>{{ day.row ? (day.row.itKw | number:'1.0-1':'fr') : '' }}</td>
+                <td>{{ day.row ? (nonItKw(day.row) | number:'1.0-1':'fr') : '' }}</td>
                 <td>{{ day.row ? (day.row.totalKw | number:'1.0-1':'fr') : '' }}</td>
                 <td>{{ day.row ? (day.row.pue | number:'1.0-3':'fr') : '' }}</td>
                 <td>
@@ -76,7 +78,7 @@
                 }
               </tr>
             } @empty {
-              <tr class="empty-row"><td [attr.colspan]="canModify ? 7 : 6" class="empty-message">Aucun relevé PUE pour cette période.</td></tr>
+              <tr class="empty-row"><td [attr.colspan]="canModify ? 8 : 7" class="empty-message">Aucun relevé PUE pour cette période.</td></tr>
             }
           </tbody>
         </table>
