@@ -5,6 +5,8 @@
  *  AVR et PDF sont facultatifs et identiques dans les deux scénarios : ils servent à contrôler les mesures.
  *  Miroir de `gmao/profiles/records/pue.py` : le serveur reste la référence, ce fichier sert à l'aperçu en direct. */
 
+import type { ExcelSheetExport } from '../shared/excel-export.service';
+
 export const PUE_SITE = 'Pigeon';
 export const PUE_THRESHOLD = 1.8;
 export const COS_PHI = 0.9;
@@ -212,4 +214,53 @@ export function inputsFromRow(row: PueRow): PueInputs {
 
 export function lineLabel(code: string): string {
   return PUE_LINES.find((line) => line.code === code)?.label ?? code;
+}
+
+/** Hors IT d'un relevé = total site − IT. */
+export const nonItKw = (row: Pick<PueRow, 'itKw' | 'totalKw'>): number =>
+  Math.round((Number(row.totalKw) - Number(row.itKw)) * 1000) / 1000;
+
+/** kW retenus d'un équipement dans un relevé ; null si la ligne n'a pas été renseignée (ou n'existait pas encore). */
+export function lineKw(row: PueRow, code: string): number | null {
+  const value = row.mesures?.[code]?.kw;
+  return typeof value === 'number' ? value : null;
+}
+
+export const pueState = (pue: number): string => (pue <= PUE_THRESHOLD ? '≤ 1,8' : '> 1,8');
+
+/** Classeur d'export du PUE : une feuille « PUE » (synthèse) et une feuille « Détails ». Utilisé par la page PUE et par Documentations. */
+export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<PueRow>> {
+  const pdfLines = PUE_DETAIL_SECTIONS.slice(1).flatMap((section) => section.lines);
+  const common = [
+    { header: 'Date', value: (row: PueRow) => row.dateReleve },
+    { header: 'Heure', value: (row: PueRow) => row.heureReleve?.slice(0, 5) },
+    { header: 'Scénario', value: (row: PueRow) => row.scenario || '' },
+  ];
+  return [
+    {
+      title: `Suivi du PUE — ${PUE_SITE}`,
+      sheetName: 'PUE',
+      rows,
+      columns: [
+        ...common,
+        { header: 'IT (kW)', value: (row) => row.itKw },
+        { header: 'Hors IT (kW)', value: (row) => nonItKw(row) },
+        { header: 'Total site (kW)', value: (row) => row.totalKw },
+        { header: 'PUE', value: (row) => row.pue },
+        { header: 'État', value: (row) => pueState(row.pue) },
+      ],
+    },
+    {
+      title: `Détails du PUE — ${PUE_SITE}`,
+      sheetName: 'Détails',
+      rows,
+      columns: [
+        ...common,
+        ...[...PUE_TABLE_LINES, ...pdfLines].map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => lineKw(row, line.code) ?? '' })),
+        { header: 'IT (kW)', value: (row) => row.itKw },
+        { header: 'Hors IT (kW)', value: (row) => nonItKw(row) },
+        { header: 'Total site (kW)', value: (row) => row.totalKw },
+      ],
+    },
+  ];
 }

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { GmaoDataStore } from '../data/gmao-data-store';
-import { ExcelExportService, ExcelTableColumn } from '../shared/excel-export.service';
+import { ExcelExportService, ExcelSheetExport, ExcelTableColumn } from '../shared/excel-export.service';
+import { PueRow, pueExportSheets } from './pue-lines';
 
 type ReportRow = Record<string, unknown>;
 
@@ -10,6 +11,8 @@ interface ExcelReport {
   fileName: string;
   rows: () => ReportRow[];
   columns: ExcelTableColumn<ReportRow>[];
+  /** Classeur à plusieurs feuilles, à la place du tableau simple (ex. PUE : feuilles « PUE » et « Détails »). */
+  sheets?: () => Array<ExcelSheetExport<any>>;
 }
 
 @Component({
@@ -66,10 +69,10 @@ export class DocumentationsComponent {
         this.column('Consommé (L)', 'sortie'), this.column('Stock final (L)', 'stockFinal'), this.column('Heures GE', 'heuresGe'),
         this.column('L/h', 'litresHeure'), this.column('SNEL kWh', 'snelKwh'), this.column('Disponibilité Grid (%)', 'disponibiliteGrid'),
       ]),
-      this.report('Suivi du PUE', 'Relevés journaliers de puissance (kW) et valeurs PUE.', 'suivi-pue', () => this.dataStore.pueRows, [
-        this.column('Site', 'site'), this.column('Date', 'dateReleve'), this.column('Heure', 'heureReleve'),
-        this.column('IT (kW)', 'itKw'), this.column('Total site (kW)', 'totalKw'), this.column('PUE', 'pue'),
-      ]),
+      {
+        ...this.report('Suivi du PUE', 'Relevés de puissance (kW) et valeurs PUE : feuilles « PUE » et « Détails ».', 'suivi-pue', () => this.dataStore.pueRows, []),
+        sheets: () => pueExportSheets(this.dataStore.pueRows as PueRow[]),
+      },
       this.report('Problèmes Data Center', 'Journal des incidents et actions de résolution.', 'problemes-data-center', () => this.dataStore.problemRows, [
         this.column('Site', 'site'), this.column('Date', 'date'), this.column('Équipement', 'equipement'),
         this.column('Constat', 'constat'), this.column('Statut', 'statut'), this.column('Priorité', 'priorite'),
@@ -86,6 +89,10 @@ export class DocumentationsComponent {
 
   exportReport(report: ExcelReport): void {
     if (!this.canExportExcel) return;
+    if (report.sheets) {
+      void this.excelExporter.exportWorkbook(report.fileName, report.sheets());
+      return;
+    }
     void this.excelExporter.exportTable({
       title: report.title,
       fileName: report.fileName,

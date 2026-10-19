@@ -8,7 +8,7 @@ import { NotificationRecordFocusService } from '../shared/notification-record-fo
 import {
   PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_LINES, PUE_MAIN_SECTIONS, PUE_PDF_GROUPS, PUE_SCENARIOS, PUE_SITE, PUE_TABLE_LINES, PUE_THRESHOLD,
   PueInputs, PueLine, PueLineResult, PueRow, PueScenario, PueSummary,
-  computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, summarize, visibleCodes,
+  computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, pueExportSheets, summarize, visibleCodes,
 } from './pue-lines';
 
 /** Synthèse d'une journée ayant plusieurs relevés : moyennes en kW et PUE du jour (Σ total ÷ Σ IT). */
@@ -220,39 +220,7 @@ export class PuePageComponent {
   /** Un classeur de deux feuilles, quel que soit l'onglet affiché : « PUE » (synthèse) et « Détails ». */
   exportExcel(): void {
     if (!this.canExportExcel) return;
-    const pdfLines = PUE_DETAIL_SECTIONS.slice(1).flatMap((section) => section.lines);
-    const common = [
-      { header: 'Date', value: (row: PueRow) => row.dateReleve },
-      { header: 'Heure', value: (row: PueRow) => row.heureReleve?.slice(0, 5) },
-      { header: 'Scénario', value: (row: PueRow) => row.scenario || '' },
-    ];
-    void this.excelExporter.exportWorkbook('suivi-pue', [
-      {
-        title: `Suivi du PUE — ${PUE_SITE}`,
-        sheetName: 'PUE',
-        rows: this.filteredRows,
-        columns: [
-          ...common,
-          { header: 'IT (kW)', value: (row: PueRow) => row.itKw },
-          { header: 'Hors IT (kW)', value: (row: PueRow) => this.nonItKw(row) },
-          { header: 'Total site (kW)', value: (row: PueRow) => row.totalKw },
-          { header: 'PUE', value: (row: PueRow) => row.pue },
-          { header: 'État', value: (row: PueRow) => this.getState(row.pue) },
-        ],
-      },
-      {
-        title: `Détails du PUE — ${PUE_SITE}`,
-        sheetName: 'Détails',
-        rows: this.filteredRows,
-        columns: [
-          ...common,
-          ...[...PUE_TABLE_LINES, ...pdfLines].map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => this.lineKw(row, line.code) ?? '' })),
-          { header: 'IT (kW)', value: (row: PueRow) => row.itKw },
-          { header: 'Hors IT (kW)', value: (row: PueRow) => this.nonItKw(row) },
-          { header: 'Total site (kW)', value: (row: PueRow) => row.totalKw },
-        ],
-      },
-    ]);
+    void this.excelExporter.exportWorkbook('suivi-pue', pueExportSheets(this.filteredRows));
   }
 
   toggleTable(): void { this.tableOpen = !this.tableOpen; }
