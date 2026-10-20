@@ -7,8 +7,8 @@ import { ExcelExportService } from '../shared/excel-export.service';
 import { PdfExportService } from '../shared/pdf-export.service';
 import { NotificationRecordFocusService } from '../shared/notification-record-focus.service';
 import {
-  PUE_CHECKS, PUE_DETAIL_SECTIONS, PUE_LINES, PUE_MAIN_SECTIONS, PUE_PDF_GROUPS, PUE_SCENARIOS, PUE_SITE, PUE_TABLE_LINES, PUE_THRESHOLD,
-  PueInputs, PueLine, PueLineResult, PueRow, PueScenario, PueSummary,
+  PUE_DETAIL_SECTIONS, PUE_LINES, PUE_MAIN_SECTIONS, PUE_SCENARIOS, PUE_SITE, PUE_THRESHOLD,
+  Fiche, PueInputs, PueLine, PueLineResult, PueRow, PueScenario, PueSummary, buildFiche, controlChecks, ficheScenarioLabel,
   computeLine, emptyInputs, inputsFromRow, isCosPhiInvalid, kinshasaNow, lineLabel, periodPue, pueExportSheets, summarize, visibleCodes,
 } from './pue-lines';
 
@@ -132,36 +132,40 @@ export class PuePageComponent {
   }
 
   get pageCount(): number {
-    const total = this.view === 'details' ? this.filteredRows.length : this.calendarRows.length;
-    return Math.max(1, Math.ceil(total / this.rowsPerPage));
+    return Math.max(1, Math.ceil(this.calendarRows.length / this.rowsPerPage));
   }
 
   setView(view: 'synthese' | 'details'): void {
     this.view = view;
     this.currentPage = 1;
+    this.selectedDetailKey = '';
   }
 
-  // Tableau des détails : un relevé par ligne, sans les jours manquants ni les synthèses.
-  /** AVR, UPS et redresseurs : une colonne chacun ; les PDF sont additionnés par voie. */
-  readonly detailColumns = PUE_TABLE_LINES;
-  readonly pdfGroups = PUE_PDF_GROUPS;
+  // Onglet « Détails » : la fiche du relevé choisi, copie fidèle de la feuille de saisie.
+  selectedDetailKey = '';
+  readonly scenarioLabel = ficheScenarioLabel;
 
-  get visibleDetailRows(): PueRow[] {
-    const start = (this.currentPage - 1) * this.rowsPerPage;
-    return this.filteredRows.slice(start, start + this.rowsPerPage);
+  detailKey(row: PueRow): string { return row.id ?? `${row.dateReleve}T${row.heureReleve}`; }
+
+  /** Relevés de la période filtrée, du plus récent au plus ancien. */
+  get detailOptions(): Array<{ key: string; label: string }> {
+    return this.filteredRows.map((row) => ({
+      key: this.detailKey(row),
+      label: `${this.formatDate(row.dateReleve)} ${row.heureReleve?.slice(0, 5)} — ${row.scenario || 'sans scénario'} — PUE ${Number(row.pue).toLocaleString('fr-FR', { maximumFractionDigits: 3 })}`,
+    }));
   }
 
-  /** kW retenus d'un équipement dans un relevé ; null si la ligne n'a pas été renseignée (ou n'existait pas encore). */
-  lineKw(row: PueRow, code: string): number | null {
-    const value = row.mesures?.[code]?.kw;
-    return typeof value === 'number' ? value : null;
+  /** Fiche du relevé sélectionné (le plus récent par défaut). */
+  get detailFiche(): Fiche | null {
+    const rows = this.filteredRows;
+    const row = rows.find((entry) => this.detailKey(entry) === this.selectedDetailKey) ?? rows[0];
+    return row ? buildFiche(row) : null;
   }
 
-  /** Somme des PDF d'une voie, seulement si tous sont renseignés. */
-  pdfSum(row: PueRow, codes: string[]): number | null {
-    const values = codes.map((code) => this.lineKw(row, code));
-    return values.every((value) => value !== null) ? Math.round(values.reduce((sum: number, value) => sum + (value ?? 0), 0) * 1000) / 1000 : null;
-  }
+  get activeDetailKey(): string { return this.detailFiche ? this.detailKey(this.detailFiche.row) : ''; }
+
+  selectDetail(key: string): void { this.selectedDetailKey = key; }
+
 
   get visibleDays(): CalendarDay[] {
     const start = (this.currentPage - 1) * this.rowsPerPage;
@@ -193,19 +197,7 @@ export class PuePageComponent {
   result(line: PueLine): PueLineResult { return computeLine(line, this.inputs[line.code]); }
 
   get checks(): Array<{ label: string; partsLabel: string; output: number | null; parts: number | null; gap: number | null }> {
-    const pdfChecks = PUE_CHECKS.map((check) => {
-      const output = this.result(this.lineByCode(check.output)).kw;
-      const partValues = check.parts.map((code) => this.result(this.lineByCode(code)).kw);
-      const parts = partValues.some((value) => value === null) ? null : partValues.reduce((sum: number, value) => sum + (value ?? 0), 0);
-      const gap = output !== null && parts !== null && output > 0 ? Math.round(((parts - output) / output) * 1000) / 10 : null;
-      return { label: check.label, partsLabel: check.partsLabel, output, parts, gap };
-    });
-    // Les AVR alimentent les TGBT : leur somme doit rester proche du total du site (l'écart correspond aux pertes).
-    const avr = ['avr_a', 'avr_b'].map((code) => this.result(this.lineByCode(code)).kw);
-    const avrParts = avr.some((value) => value === null) ? null : avr.reduce((sum: number, value) => sum + (value ?? 0), 0);
-    const total = this.summary.totalKw > 0 ? this.summary.totalKw : null;
-    const avrGap = total !== null && avrParts !== null ? Math.round(((avrParts - total) / total) * 1000) / 10 : null;
-    return [{ label: 'Total site', partsLabel: 'AVR A + B', output: total, parts: avrParts, gap: avrGap }, ...pdfChecks];
+    return controlChecks((code) => this.result(this.lineByCode(code)).kw, this.summary.totalKw);
   }
 
   /** Écart en % : au-delà de 10 %, la saisie mérite d'être revérifiée. */

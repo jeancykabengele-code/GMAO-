@@ -5,7 +5,7 @@
  *  AVR et PDF sont facultatifs et identiques dans les deux scénarios : ils servent à contrôler les mesures.
  *  Miroir de `gmao/profiles/records/pue.py` : le serveur reste la référence, ce fichier sert à l'aperçu en direct. */
 
-import type { ExcelSheetExport } from '../shared/excel-export.service';
+import type { ExcelSheetExport, ExportRowKind } from '../shared/excel-export.service';
 
 export const PUE_SITE = 'Pigeon';
 export const PUE_THRESHOLD = 1.8;
@@ -52,6 +52,9 @@ const NON_IT_SECTION: PueSection = { title: 'Hors IT — climatisation et charge
   { code: 'clim_b', label: 'TDBT Climatisation B', kind: 'ac', role: 'cooling' },
   { code: 'tertiaire', label: 'Charges tertiaires', kind: 'ac', role: 'tertiary' },
 ] };
+
+/** Toutes les sections de mesures principales, pour afficher un relevé d'avant les scénarios. */
+export const PUE_ALL_MAIN_SECTIONS: PueSection[] = [TOTAL_SECTION, IT_SECTION, NON_IT_SECTION];
 
 /** Mesures à saisir selon le scénario. */
 export const PUE_MAIN_SECTIONS: Record<PueScenario, PueSection[]> = {
@@ -228,9 +231,169 @@ export function lineKw(row: PueRow, code: string): number | null {
 
 export const pueState = (pue: number): string => (pue <= PUE_THRESHOLD ? '≤ 1,8' : '> 1,8');
 
-/** Classeur d'export du PUE : une feuille « PUE » (synthèse) et une feuille « Détails ». Utilisé par la page PUE et par Documentations. */
-export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<PueRow>> {
-  const pdfLines = PUE_DETAIL_SECTIONS.slice(1).flatMap((section) => section.lines);
+// ---------------------------------------------------------------------------------------------------------------------
+// Fiche d'un relevé : copie fidèle de la feuille de saisie (mêmes sections, mêmes colonnes, mêmes résultats et contrôles).
+// Sert à l'onglet « Détails » de la page PUE et à la feuille / section « Détails » des exports Excel et PDF.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export interface FicheLine {
+  label: string;
+  kind: 'ac' | 'dc';
+  kwLus: number | null;
+  a: number | null;
+  v: number | null;
+  cosPhi: number | null;
+  kw: number | null;
+  origine: string;
+  ecart: number | null;
+}
+export interface FicheSection { title: string; lines: FicheLine[]; }
+export interface FicheCheck { label: string; partsLabel: string; output: number | null; parts: number | null; gap: number | null; }
+
+export interface Fiche {
+  row: PueRow;
+  date: string;
+  heure: string;
+  scenario: PueScenario | '';
+  mainSections: FicheSection[];
+  detailSections: FicheSection[];
+  totalKw: number;
+  nonItKw: number;
+  itKw: number;
+  pue: number;
+  /** Ce qui a été déduit et non mesuré : le hors IT (S1) ou le total site (S2). */
+  deduced: 'nonIt' | 'total' | null;
+  checks: FicheCheck[];
+}
+
+const round1 = (value: number): number => Math.round(value * 10) / 10;
+
+/** Contrôles de la feuille : somme des AVR ↔ total du site, somme des PDF ↔ sortie des UPS et des redresseurs. */
+export function controlChecks(kwOf: (code: string) => number | null, totalKw: number): FicheCheck[] {
+  const sumOf = (codes: string[]): number | null => {
+    const values = codes.map(kwOf);
+    return values.some((value) => value === null) ? null : values.reduce((sum: number, value) => sum + (value ?? 0), 0);
+  };
+  const gapOf = (parts: number | null, output: number | null): number | null =>
+    output !== null && parts !== null && output > 0 ? round1(((parts - output) / output) * 100) : null;
+
+  // Les AVR alimentent les TGBT : leur somme doit rester proche du total du site (l'écart correspond aux pertes).
+  const total = totalKw > 0 ? totalKw : null;
+  const avrParts = sumOf(['avr_a', 'avr_b']);
+  const checks: FicheCheck[] = [{ label: 'Total site', partsLabel: 'AVR A + B', output: total, parts: avrParts, gap: gapOf(avrParts, total) }];
+  for (const check of PUE_CHECKS) {
+    const output = kwOf(check.output);
+    const parts = sumOf(check.parts);
+    checks.push({ label: check.label, partsLabel: check.partsLabel, output, parts, gap: gapOf(parts, output) });
+  }
+  return checks;
+}
+
+const FICHE_SCENARIO_LABELS: Record<PueScenario, string> = {
+  S1: 'Scénario S1 — TGBT et IT mesurés, hors IT déduit',
+  S2: 'Scénario S2 — IT et hors IT mesurés, total déduit',
+};
+
+export function ficheScenarioLabel(scenario: PueScenario | ''): string {
+  return scenario ? FICHE_SCENARIO_LABELS[scenario] : 'Relevé antérieur aux scénarios';
+}
+
+export function buildFiche(row: PueRow): Fiche {
+  const scenario: PueScenario | '' = row.scenario === 'S1' || row.scenario === 'S2' ? row.scenario : '';
+  const toLine = (line: PueLine): FicheLine => {
+    const saved = row.mesures?.[line.code];
+    return {
+      label: line.label,
+      kind: line.kind,
+      kwLus: toNumber(saved?.kwLus),
+      a: toNumber(saved?.a),
+      v: toNumber(saved?.v),
+      cosPhi: toNumber(saved?.cosPhi),
+      kw: typeof saved?.kw === 'number' ? saved.kw : null,
+      origine: saved?.origine ?? '',
+      ecart: typeof saved?.ecart === 'number' ? saved.ecart : null,
+    };
+  };
+  // Un relevé d'avant les scénarios n'a pas de feuille de référence : on n'affiche que les lignes qui ont été saisies.
+  const sections = (definitions: PueSection[]): FicheSection[] => definitions
+    .map((section) => ({ title: section.title, lines: section.lines.map(toLine).filter((line) => scenario || line.kw !== null) }))
+    .filter((section) => section.lines.length);
+  const kwOf = (code: string): number | null => {
+    const kw = row.mesures?.[code]?.kw;
+    return typeof kw === 'number' ? kw : null;
+  };
+  return {
+    row,
+    date: row.dateReleve,
+    heure: row.heureReleve?.slice(0, 5) ?? '',
+    scenario,
+    mainSections: sections(scenario ? PUE_MAIN_SECTIONS[scenario] : PUE_ALL_MAIN_SECTIONS),
+    detailSections: sections(PUE_DETAIL_SECTIONS),
+    totalKw: Number(row.totalKw),
+    nonItKw: nonItKw(row),
+    itKw: Number(row.itKw),
+    pue: Number(row.pue),
+    deduced: scenario === 'S1' ? 'nonIt' : scenario === 'S2' ? 'total' : null,
+    checks: controlChecks(kwOf, Number(row.totalKw)),
+  };
+}
+
+// ---- Mise à plat d'une fiche en lignes de tableau, pour les exports Excel et PDF ----
+
+export interface FicheExportRow { kind: ExportRowKind; cells: Array<string | number | null>; }
+
+export const FICHE_COLUMNS = ['Équipement', 'kW lus', 'A', 'V', 'cos φ', 'kW retenus', 'Origine', 'Écart'];
+
+const frNumber = (value: number, digits = 1): string =>
+  new Intl.NumberFormat('fr-FR', { maximumFractionDigits: digits }).format(value);
+const frDate = (iso: string): string => iso.split('-').reverse().join('/');
+
+export function ficheExportRows(fiches: Fiche[]): FicheExportRow[] {
+  const blank = (count: number) => Array.from({ length: count }, () => null);
+  const rows: FicheExportRow[] = [];
+  const text = (kind: ExportRowKind, label: string) => rows.push({ kind, cells: [label, ...blank(FICHE_COLUMNS.length - 1)] });
+  const sectionRows = (sections: FicheSection[]) => {
+    for (const section of sections) {
+      text('section', section.title);
+      for (const line of section.lines) {
+        rows.push({ kind: 'line', cells: [
+          line.label, line.kwLus, line.a, line.v, line.kind === 'ac' ? line.cosPhi : '—',
+          line.kw, line.origine || '—', line.ecart !== null ? `${frNumber(line.ecart)} %` : '—',
+        ] });
+      }
+    }
+  };
+
+  fiches.forEach((fiche, index) => {
+    if (index > 0) text('spacer', '');
+    text('title', `Relevé du ${frDate(fiche.date)} à ${fiche.heure} — ${ficheScenarioLabel(fiche.scenario)}`);
+
+    text('step', '1 — Mesures principales');
+    sectionRows(fiche.mainSections);
+
+    text('step', '2 — Résultat du jour');
+    const result = (label: string, value: number, digits: number, status: string) =>
+      rows.push({ kind: 'result', cells: [label, '', '', '', '', Math.round(value * 10 ** digits) / 10 ** digits, status, ''] });
+    result('Total site (kW)', fiche.totalKw, 1, fiche.deduced === 'total' ? 'déduit' : 'mesuré');
+    result('Hors IT (kW)', fiche.nonItKw, 1, fiche.deduced === 'nonIt' ? 'déduit' : 'mesuré');
+    result('IT (kW)', fiche.itKw, 1, 'mesuré');
+    result('PUE du jour', fiche.pue, 3, `seuil ${frNumber(PUE_THRESHOLD)}`);
+
+    text('step', '3 — Détails et contrôles');
+    sectionRows(fiche.detailSections);
+    text('section', 'Contrôles');
+    for (const check of fiche.checks) {
+      const detail = check.gap === null || check.parts === null || check.output === null
+        ? '—'
+        : `${frNumber(check.parts)} kW pour ${frNumber(check.output)} kW`;
+      rows.push({ kind: 'check', cells: [`${check.partsLabel} ↔ ${check.label} : ${detail}`, ...blank(6), check.gap !== null ? `${frNumber(check.gap)} %` : '—'] });
+    }
+  });
+  return rows;
+}
+
+/** Classeur d'export du PUE : une feuille « PUE » (synthèse) et une feuille « Détails » (une fiche par relevé). Utilisé par la page PUE et par Documentations. */
+export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<any>> {
   const common = [
     { header: 'Date', value: (row: PueRow) => row.dateReleve },
     { header: 'Heure', value: (row: PueRow) => row.heureReleve?.slice(0, 5) },
@@ -243,25 +406,20 @@ export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<PueRow>>
       rows,
       columns: [
         ...common,
-        { header: 'IT (kW)', value: (row) => row.itKw },
-        { header: 'Hors IT (kW)', value: (row) => nonItKw(row) },
-        { header: 'Total site (kW)', value: (row) => row.totalKw },
-        { header: 'PUE', value: (row) => row.pue },
-        { header: 'État', value: (row) => pueState(row.pue) },
+        { header: 'IT (kW)', value: (row: PueRow) => row.itKw },
+        { header: 'Hors IT (kW)', value: (row: PueRow) => nonItKw(row) },
+        { header: 'Total site (kW)', value: (row: PueRow) => row.totalKw },
+        { header: 'PUE', value: (row: PueRow) => row.pue },
+        { header: 'État', value: (row: PueRow) => pueState(row.pue) },
       ],
     },
     {
-      title: `Détails du PUE — ${PUE_SITE}`,
+      title: `Détails du PUE — ${PUE_SITE} (fiches de relevé)`,
       sheetName: 'Détails',
-      pdfRepeatColumns: 2,
-      rows,
-      columns: [
-        ...common,
-        ...[...PUE_TABLE_LINES, ...pdfLines].map((line) => ({ header: `${line.label} (kW)`, value: (row: PueRow) => lineKw(row, line.code) ?? '' })),
-        { header: 'IT (kW)', value: (row) => row.itKw },
-        { header: 'Hors IT (kW)', value: (row) => nonItKw(row) },
-        { header: 'Total site (kW)', value: (row) => row.totalKw },
-      ],
+      pdfOrientation: 'portrait',
+      rows: ficheExportRows(rows.map(buildFiche)),
+      columns: FICHE_COLUMNS.map((header, index) => ({ header, value: (row: FicheExportRow) => row.cells[index] })),
+      rowKind: (row: FicheExportRow) => row.kind,
     },
   ];
 }

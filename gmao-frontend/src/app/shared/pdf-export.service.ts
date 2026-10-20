@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import type { jsPDF } from 'jspdf';
-import type { ExcelSheetExport, ExcelTableExport } from './excel-export.service';
+import type { ExcelSheetExport, ExcelTableExport, ExportRowKind } from './excel-export.service';
 import type { ExcelExportService } from './excel-export.service';
 import { downloadBlob } from './file-download.util';
 
@@ -47,7 +47,7 @@ export class PdfExportService {
       const width = doc.internal.pageSize.getWidth();
       this.drawTitle(doc, sheet, width);
       const columns = sheet.columns;
-      const body = sheet.rows.map((row) => columns.map((column) => this.text(this.format(column.value(row)))));
+      const body = sheet.rows.map((row) => this.bodyRow(sheet, row));
       autoTable(doc, {
         startY: 30,
         margin: { top: 14, left: 10, right: 10, bottom: 14 },
@@ -66,6 +66,33 @@ export class PdfExportService {
 
     this.drawFooters(doc);
     return doc;
+  }
+
+  /** Une ligne du tableau : ligne de données, ou bandeau pleine largeur (titre, étape, section) quand `rowKind` le demande. */
+  private bodyRow(sheet: ExcelSheetExport<any>, row: unknown) {
+    const columns = sheet.columns;
+    const kind: ExportRowKind | undefined = sheet.rowKind?.(row);
+    const span = Math.max(columns.length, 1);
+    if (kind === 'title') {
+      return [{ content: this.text(this.format(columns[0].value(row))), colSpan: span, styles: { fillColor: ORANGE, textColor: 255, fontStyle: 'bold' as const, fontSize: 10, halign: 'left' as const } }];
+    }
+    if (kind === 'step') {
+      return [{ content: this.text(this.format(columns[0].value(row))), colSpan: span, styles: { fillColor: ANTHRACITE, textColor: 255, fontStyle: 'bold' as const, halign: 'left' as const } }];
+    }
+    if (kind === 'section') {
+      return [{ content: this.text(this.format(columns[0].value(row))), colSpan: span, styles: { fillColor: [237, 237, 238] as [number, number, number], textColor: 0, fontStyle: 'bold' as const, halign: 'left' as const } }];
+    }
+    if (kind === 'spacer') {
+      return [{ content: '', colSpan: span, styles: { fillColor: [255, 255, 255] as [number, number, number], lineWidth: 0, cellPadding: 1.2, minCellHeight: 2 } }];
+    }
+    const cells = columns.map((column) => this.text(this.format(column.value(row))));
+    if (kind === 'result' || kind === 'check') {
+      const styles = kind === 'result'
+        ? { fillColor: [255, 243, 230] as [number, number, number], fontStyle: 'bold' as const }
+        : { fillColor: [255, 255, 255] as [number, number, number] };
+      return cells.map((content) => ({ content, styles }));
+    }
+    return cells;
   }
 
   private drawTitle(doc: jsPDF, sheet: ExcelSheetExport<any>, width: number): void {
@@ -97,9 +124,9 @@ export class PdfExportService {
     }
   }
 
-  /** Portrait quand le tableau est étroit, paysage sinon. */
+  /** Portrait quand le tableau est étroit, paysage sinon (sauf demande explicite de la feuille). */
   private orientation(sheet: ExcelSheetExport<any>): 'portrait' | 'landscape' {
-    return sheet.columns.length <= 6 ? 'portrait' : 'landscape';
+    return sheet.pdfOrientation ?? (sheet.columns.length <= 6 ? 'portrait' : 'landscape');
   }
 
   private fontSize(columnCount: number): number {
@@ -111,7 +138,9 @@ export class PdfExportService {
   /** Les nombres sont alignés à droite ; le type est lu sur la première ligne renseignée. */
   private alignment(sheet: ExcelSheetExport<any>, columnIndex: number): 'left' | 'right' {
     const column = sheet.columns[columnIndex];
-    const sample = sheet.rows.slice(0, 50).map((row) => column.value(row)).find((value) => value !== null && value !== undefined && value !== '');
+    const sample = sheet.rows.slice(0, 50)
+      .filter((row) => !['title', 'step', 'section', 'spacer'].includes(sheet.rowKind?.(row) ?? ''))
+      .map((row) => column.value(row)).find((value) => value !== null && value !== undefined && value !== '');
     return typeof sample === 'number' ? 'right' : 'left';
   }
 

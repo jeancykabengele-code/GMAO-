@@ -8,6 +8,9 @@ export interface ExcelTableColumn<T> {
   width?: number;
 }
 
+/** Type d'une ligne quand le tableau mêle des lignes de données, des titres et des résultats (fiche de relevé). */
+export type ExportRowKind = 'title' | 'step' | 'section' | 'line' | 'result' | 'check' | 'spacer';
+
 export interface ExcelTableExport<T> {
   title: string;
   fileName: string;
@@ -15,6 +18,10 @@ export interface ExcelTableExport<T> {
   rows: T[];
   /** Nom de la feuille (31 caractères au plus) ; à défaut, le titre. */
   sheetName?: string;
+  /** Met en forme certaines lignes (titre, étape, section, résultat, contrôle, espace) ; les titres occupent toute la largeur. */
+  rowKind?: (row: T) => ExportRowKind | undefined;
+  /** PDF seulement : force l'orientation A4 (sinon portrait pour un tableau étroit, paysage sinon). */
+  pdfOrientation?: 'portrait' | 'landscape';
   /** PDF seulement : nombre de colonnes de tête répétées sur chaque page quand le tableau est trop large (1 par défaut). */
   pdfRepeatColumns?: number;
 }
@@ -43,7 +50,7 @@ export class ExcelExportService {
     this.download(blob, `${this.safeFileName(fileName)}.xlsx`);
   }
 
-  private buildSheet<T>({ title, columns, rows, sheetName }: ExcelSheetExport<T>) {
+  private buildSheet<T>({ title, columns, rows, sheetName, rowKind }: ExcelSheetExport<T>) {
     const columnCount = Math.max(columns.length, 1);
     const sheetData: SheetData = [
       this.spanningRow({
@@ -80,9 +87,22 @@ export class ExcelExportService {
       })),
     ];
 
+    const isBanner = (kind: ExportRowKind | undefined) => kind === 'title' || kind === 'step' || kind === 'section';
     if (rows.length) {
       rows.forEach((row, rowIndex) => {
-        sheetData.push(columns.map((column) => this.dataCell(column.value(row), rowIndex)));
+        const kind = rowKind?.(row);
+        if (isBanner(kind)) {
+          sheetData.push(this.spanningRow({
+            value: String(this.normalizeValue(columns[0].value(row)) ?? ''),
+            columnSpan: columnCount,
+            ...this.bannerStyle(kind),
+            alignVertical: 'center',
+          }, columnCount));
+        } else if (kind === 'spacer') {
+          sheetData.push(Array.from({ length: columnCount }, () => null));
+        } else {
+          sheetData.push(columns.map((column) => this.dataCell(column.value(row), rowIndex, kind)));
+        }
       });
     } else {
       sheetData.push(this.spanningRow({
@@ -97,7 +117,7 @@ export class ExcelExportService {
     const columnWidths = columns.map((column) => {
       const contentWidth = Math.max(
         column.header.length,
-        ...rows.slice(0, 200).map((row) => String(column.value(row) ?? '').length),
+        ...rows.slice(0, 200).filter((row) => !isBanner(rowKind?.(row))).map((row) => String(column.value(row) ?? '').length),
       );
       return { width: column.width ?? Math.min(Math.max(contentWidth + 2, 12), 40) };
     });
@@ -112,7 +132,13 @@ export class ExcelExportService {
     };
   }
 
-  private dataCell(value: unknown, rowIndex: number): CellObject {
+  private bannerStyle(kind: ExportRowKind | undefined): Partial<CellObject> {
+    if (kind === 'title') return { backgroundColor: '#ff7900', textColor: '#ffffff', fontWeight: 'bold', fontSize: 12, height: 24, align: 'left' };
+    if (kind === 'step') return { backgroundColor: '#292929', textColor: '#ffffff', fontWeight: 'bold', align: 'left' };
+    return { backgroundColor: '#ededee', fontWeight: 'bold', align: 'left' };
+  }
+
+  private dataCell(value: unknown, rowIndex: number, kind?: ExportRowKind): CellObject {
     const normalizedValue = this.normalizeValue(value);
     const cell: CellObject = {
       value: normalizedValue ?? undefined,
@@ -123,7 +149,12 @@ export class ExcelExportService {
     };
     if (normalizedValue instanceof Date) cell.format = 'yyyy-mm-dd';
     if (typeof normalizedValue === 'number') cell.format = '#,##0.###';
-    if (rowIndex % 2 === 1) cell.backgroundColor = '#f7f7f7';
+    if (kind === 'result') {
+      cell.fontWeight = 'bold';
+      cell.backgroundColor = '#fff3e6';
+    } else if (!kind && rowIndex % 2 === 1) {
+      cell.backgroundColor = '#f7f7f7';
+    }
     return cell;
   }
 

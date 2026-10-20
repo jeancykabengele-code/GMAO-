@@ -192,28 +192,31 @@ describe('PuePageComponent', () => {
     expect(summary).toMatchObject({ count: 2, itKw: 55, totalKw: 85, nonItKw: 30 });
   });
 
-  it('shows the optional details of each reading, with dashes for lines that were not read', () => {
+  it('the Details tab shows the fiche of the chosen reading, the latest one by default', () => {
     const store = new GmaoDataStore();
-    const kw = (value: number) => ({ kw: value });
     store.pueRows = [
-      { ...row('2026-01-26', 80, 100), id: 'full', mesures: {
-        avr_a: kw(55), ups_a: kw(30), ups_b: kw(20), redresseurs_a: kw(15), redresseurs_b: kw(20),
-        pdf_ac_a1: kw(10), pdf_ac_a2: kw(18),
-      } },
-      { ...row('2026-01-25', 80, 100), id: 'main-only', mesures: { tgbt_a: kw(52) } },
+      { ...row('2026-01-25', 80, 100), id: 'old', scenario: 'S1' },
+      { ...row('2026-01-26', 80, 104), id: 'new', scenario: 'S2' },
     ];
     const component = new PuePageComponent(store);
-    const [full, mainOnly] = component.pueRows;
+    component.setView('details');
 
-    expect(component.lineKw(full, 'avr_a')).toBe(55);
-    expect(component.lineKw(full, 'avr_b')).toBeNull();
-    expect(component.pdfSum(full, ['pdf_ac_a1', 'pdf_ac_a2'])).toBe(28);
-    expect(component.pdfSum(full, ['pdf_ac_b1', 'pdf_ac_b2'])).toBeNull();
+    expect(component.detailOptions.map((option) => option.key)).toEqual(['new', 'old']);
+    expect(component.detailFiche?.row.id).toBe('new');
+    expect(component.activeDetailKey).toBe('new');
+    component.selectDetail('old');
+    expect(component.detailFiche).toMatchObject({ scenario: 'S1', deduced: 'nonIt' });
 
-    expect(component.lineKw(mainOnly, 'ups_a')).toBeNull();
+    // changer d'onglet ou de filtre ne garde pas un relevé qui n'est plus dans la liste
+    component.setView('synthese');
+    component.setView('details');
+    expect(component.detailFiche?.row.id).toBe('new');
+    component.dateFrom = '2026-01-26';
+    component.selectDetail('old');
+    expect(component.detailFiche?.row.id).toBe('new');
   });
 
-  it('switches between the summary and the details tabs and paginates each one', () => {
+  it('switches between the summary and the details tabs and paginates the summary only', () => {
     const store = new GmaoDataStore();
     store.pueRows = Array.from({ length: 25 }, (_, index) => ({ ...row(`2026-02-${String(index + 1).padStart(2, '0')}`, 80, 100), id: `r${index}` }));
     const component = new PuePageComponent(store);
@@ -222,8 +225,9 @@ describe('PuePageComponent', () => {
     component.setView('details');
     expect(component.view).toBe('details');
     expect(component.currentPage).toBe(1);
+    expect(component.detailOptions).toHaveLength(25);
+    component.setView('synthese');
     expect(component.pageCount).toBe(2);
-    expect(component.visibleDetailRows).toHaveLength(20);
   });
 
   it('updates and deletes a reading after confirmation', async () => {
@@ -280,14 +284,12 @@ describe('PuePageComponent', () => {
     const [fileName, sheets] = exporter.exportWorkbook.mock.calls[0];
     expect(fileName).toBe('suivi-pue');
     expect(sheets.map((sheet: { sheetName: string }) => sheet.sheetName)).toEqual(['PUE', 'Détails']);
-    const [pue, details] = sheets as Array<{ columns: Array<{ header: string; value: (row: PueRow) => unknown }>; rows: PueRow[] }>;
+    const [pue, details] = sheets as Array<{ columns: Array<{ header: string }>; rows: Array<{ kind: string; cells: unknown[] }> }>;
     expect(pue.columns.map((column) => column.header)).toEqual(['Date', 'Heure', 'Scénario', 'IT (kW)', 'Hors IT (kW)', 'Total site (kW)', 'PUE', 'État']);
-    const value = (header: string) => details.columns.find((column) => column.header === header)!.value(details.rows[0]);
-    expect(value('Hors IT (kW)')).toBe(20);
-    expect(value('AVR A (kW)')).toBe(54);
-    expect(value('PDF AC A1 (kW)')).toBe(14);
-    expect(value('AVR B (kW)')).toBe('');
-    expect(value('Scénario')).toBe('S1');
+    // « Détails » : la fiche de saisie du relevé (mêmes colonnes que la feuille)
+    expect(details.columns.map((column) => column.header)).toEqual(['Équipement', 'kW lus', 'A', 'V', 'cos φ', 'kW retenus', 'Origine', 'Écart']);
+    expect(details.rows.filter((entry) => entry.kind === 'title')).toHaveLength(1);
+    expect(details.rows.find((entry) => entry.cells[0] === 'AVR A')?.cells[5]).toBe(54);
   });
 
   it('derives the non-IT load of a day as total minus IT', () => {

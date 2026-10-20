@@ -4,7 +4,7 @@ import { ExcelExportService } from '../shared/excel-export.service';
 import { PdfExportService } from '../shared/pdf-export.service';
 import { DocumentationsComponent } from './documentations';
 import { PuePageComponent } from './pue-page';
-import { PueRow } from './pue-lines';
+import { FICHE_COLUMNS, PueRow } from './pue-lines';
 
 /** Export réel (vrai classeur, relu avec un lecteur XLSX) : seul le téléchargement est remplacé. */
 function realExporter(): { service: ExcelExportService; files: Array<{ name: string; blob: Blob }> } {
@@ -46,13 +46,17 @@ describe('PUE Excel export (real workbook)', () => {
     expect(book['PUE'][3]).toEqual(['Date', 'Heure', 'Scénario', 'IT (kW)', 'Hors IT (kW)', 'Total site (kW)', 'PUE', 'État']);
     expect(book['PUE'][4].slice(1)).toEqual(['11:00', 'S1', 80, 20, 100, 1.25, '≤ 1,8']);
 
-    const header = book['Détails'][3] as string[];
-    expect(header.slice(0, 5)).toEqual(['Date', 'Heure', 'Scénario', 'AVR A (kW)', 'AVR B (kW)']);
-    expect(header).toContain('PDF DC B4 (kW)');
-    const detail = book['Détails'][4];
-    expect(detail[header.indexOf('AVR A (kW)')]).toBe(54);
-    expect(detail[header.indexOf('UPS A (kW)')]).toBe(30);
-    expect(detail[header.indexOf('PDF AC A1 (kW)')]).toBe(14);
+    // la feuille « Détails » reproduit la fiche de saisie : mêmes colonnes, une fiche par relevé
+    const details = book['Détails'];
+    expect(details[3]).toEqual(FICHE_COLUMNS);
+    expect(String(details[4][0])).toBe('Relevé du 19/10/2026 à 11:00 — Scénario S1 — TGBT et IT mesurés, hors IT déduit');
+    const lineOf = (label: string) => details.find((entry) => entry[0] === label)!;
+    expect(lineOf('AVR A')[5]).toBe(54);
+    expect(lineOf('UPS A')[5]).toBe(30);
+    expect(lineOf('PDF AC A1')[5]).toBe(14);
+    expect(lineOf('Total site (kW)').slice(5, 7)).toEqual([100, 'mesuré']);
+    expect(lineOf('Hors IT (kW)').slice(5, 7)).toEqual([20, 'déduit']);
+    expect(lineOf('PUE du jour')[5]).toBe(1.25);
   });
 
   it('the Documentations page downloads the same two-sheet workbook for the PUE register', async () => {
