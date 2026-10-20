@@ -96,6 +96,10 @@ describe('PUE Excel export (real workbook)', () => {
       expect(content).toContain('Suivi du PUE');
       expect(content).toContain('tails du PUE');
       expect(content).toContain('Hors IT');
+      // toutes les pages sont en A4 portrait (595 x 842 pt)
+      const boxes = [...content.matchAll(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/g)].map((match) => [Math.round(Number(match[1])), Math.round(Number(match[2]))]);
+      expect(boxes.length).toBeGreaterThan(1);
+      for (const box of boxes) expect(box).toEqual([595, 842]);
     }
   });
 });

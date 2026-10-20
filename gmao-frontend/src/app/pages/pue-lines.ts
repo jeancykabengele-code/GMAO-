@@ -403,6 +403,7 @@ export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<any>> {
     {
       title: `Suivi du PUE — ${PUE_SITE}`,
       sheetName: 'PUE',
+      pdfOrientation: 'portrait',
       rows,
       columns: [
         ...common,

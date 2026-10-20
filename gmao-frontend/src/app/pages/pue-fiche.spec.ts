@@ -88,6 +88,7 @@ describe('PUE fiche (copy of the entry sheet)', () => {
   it('puts one fiche per reading in the Details sheet, separated by a blank line', () => {
     const [pue, details] = pueExportSheets([s2Reading(), s2Reading({ id: 'r1', heureReleve: '09:00:00' })]);
     expect(pue.sheetName).toBe('PUE');
+    expect(pue.pdfOrientation).toBe('portrait');
     expect(details.sheetName).toBe('Détails');
     expect(details.pdfOrientation).toBe('portrait');
     expect(details.columns.map((column: { header: string }) => column.header)).toEqual(FICHE_COLUMNS);
