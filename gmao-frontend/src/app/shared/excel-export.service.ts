@@ -20,8 +20,6 @@ export interface ExcelTableExport<T> {
   sheetName?: string;
   /** Met en forme certaines lignes (titre, étape, section, résultat, contrôle, espace) ; les titres occupent toute la largeur. */
   rowKind?: (row: T) => ExportRowKind | undefined;
-  /** PDF seulement : force l'orientation A4 (sinon portrait pour un tableau étroit, paysage sinon). */
-  pdfOrientation?: 'portrait' | 'landscape';
   /** PDF seulement : nombre de colonnes de tête répétées sur chaque page quand le tableau est trop large (1 par défaut). */
   pdfRepeatColumns?: number;
 }

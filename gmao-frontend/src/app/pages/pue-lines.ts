@@ -403,7 +403,6 @@ export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<any>> {
     {
       title: `Suivi du PUE — ${PUE_SITE}`,
       sheetName: 'PUE',
-      pdfOrientation: 'portrait',
       rows,
       columns: [
         ...common,
@@ -417,7 +416,6 @@ export function pueExportSheets(rows: PueRow[]): Array<ExcelSheetExport<any>> {
     {
       title: `Détails du PUE — ${PUE_SITE} (fiches de relevé)`,
       sheetName: 'Détails',
-      pdfOrientation: 'portrait',
       rows: ficheExportRows(rows.map(buildFiche)),
       columns: FICHE_COLUMNS.map((header, index) => ({ header, value: (row: FicheExportRow) => row.cells[index] })),
       rowKind: (row: FicheExportRow) => row.kind,

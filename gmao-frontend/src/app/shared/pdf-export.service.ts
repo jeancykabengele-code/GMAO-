@@ -19,7 +19,7 @@ const WIN_ANSI_EXTRAS = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”�
 
 /**
  * Export PDF des tableaux, avec la même description que l'export Excel (`ExcelTableExport`) :
- * toujours du A4 (portrait pour un tableau étroit, paysage sinon), un bandeau de titre orange par section,
+ * toujours du A4 portrait, un bandeau de titre orange par section,
  * un tableau paginé à en-tête répété, un pied de page numéroté. Un tableau trop large pour la page continue
  * sur les pages suivantes en répétant ses premières colonnes (date, heure…).
  * `exportWorkbook` met plusieurs sections (une par feuille Excel) dans un seul fichier.
@@ -38,12 +38,11 @@ export class PdfExportService {
   /** Construit le document sans le télécharger (utilisé par l'export et par les tests). */
   async render(sheets: Array<ExcelSheetExport<any>>): Promise<jsPDF> {
     const [{ jsPDF: JsPdf }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
-    const orientations = sheets.map((sheet) => this.orientation(sheet));
-    const doc = new JsPdf({ orientation: orientations[0] ?? 'landscape', unit: 'mm', format: 'a4' });
+    const doc = new JsPdf({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     doc.setProperties({ title: sheets[0]?.title ?? 'GMAO ORDC', creator: 'GMAO ORDC' });
 
     sheets.forEach((sheet, index) => {
-      if (index > 0) doc.addPage('a4', orientations[index]);
+      if (index > 0) doc.addPage('a4', 'portrait');
       const width = doc.internal.pageSize.getWidth();
       this.drawTitle(doc, sheet, width);
       const columns = sheet.columns;
@@ -122,11 +121,6 @@ export class PdfExportService {
       doc.text('GMAO ORDC', 10, height - 6);
       doc.text(`Page ${page} / ${pages}`, width - 10, height - 6, { align: 'right' });
     }
-  }
-
-  /** Portrait quand le tableau est étroit, paysage sinon (sauf demande explicite de la feuille). */
-  private orientation(sheet: ExcelSheetExport<any>): 'portrait' | 'landscape' {
-    return sheet.pdfOrientation ?? (sheet.columns.length <= 6 ? 'portrait' : 'landscape');
   }
 
   private fontSize(columnCount: number): number {

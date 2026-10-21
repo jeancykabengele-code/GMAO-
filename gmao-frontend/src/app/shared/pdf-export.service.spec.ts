@@ -29,16 +29,16 @@ describe('PdfExportService', () => {
     expect((pdf.match(/Puissance/g) ?? []).length).toBe(doc.getNumberOfPages());
   });
 
-  it('uses A4 only: portrait for a narrow table, landscape for a wider one', async () => {
+  it('is always A4 portrait, narrow table or wide', async () => {
     const wide = Array.from({ length: 9 }, (_, index) => ({ header: `Col ${index}`, value: () => index }));
     const service = new PdfExportService();
     const narrow = await service.render([{ title: 'Étroit', columns, rows: rows.slice(0, 3) }]);
     const large = await service.render([{ title: 'Large', columns: wide, rows: [{}] }]);
     expect([narrow.internal.pageSize.getWidth(), narrow.internal.pageSize.getHeight()].map(Math.round)).toEqual([210, 297]);
-    expect([large.internal.pageSize.getWidth(), large.internal.pageSize.getHeight()].map(Math.round)).toEqual([297, 210]);
+    expect([large.internal.pageSize.getWidth(), large.internal.pageSize.getHeight()].map(Math.round)).toEqual([210, 297]);
   });
 
-  it('puts every sheet of a workbook in the same document, each with its own orientation', async () => {
+  it('puts every sheet of a workbook in the same A4 portrait document', async () => {
     const wide = Array.from({ length: 9 }, (_, index) => ({ header: `Col ${index}`, value: () => index }));
     const doc = await new PdfExportService().render([
       { title: 'PUE', sheetName: 'PUE', columns, rows: rows.slice(0, 3) },
@@ -48,7 +48,7 @@ describe('PdfExportService', () => {
     expect(doc.getNumberOfPages()).toBe(2);
     expect(pdf).toContain('(PUE)');
     expect(pdf).toContain('(D\u00e9tails)');
-    expect(doc.getPageInfo(1).pageContext.mediaBox.topRightX).toBeLessThan(doc.getPageInfo(2).pageContext.mediaBox.topRightX);
+    expect(doc.getPageInfo(1).pageContext.mediaBox.topRightX).toBe(doc.getPageInfo(2).pageContext.mediaBox.topRightX);
   });
 
   it('continues a table that is too wide on the next pages and repeats its first columns', async () => {
@@ -56,7 +56,7 @@ describe('PdfExportService', () => {
     const doc = await new PdfExportService().render([{ title: 'Très large', columns: veryWide, rows: [{}], pdfRepeatColumns: 2 }]);
     const pdf = doc.output();
     expect(doc.getNumberOfPages()).toBeGreaterThan(2);
-    expect(doc.internal.pageSize.getWidth()).toBeCloseTo(297, 0);
+    expect(doc.internal.pageSize.getWidth()).toBeCloseTo(210, 0);
     // les deux premières colonnes réapparaissent sur chaque page
     expect((pdf.match(/Colonne num.ro 0/g) ?? []).length).toBe(doc.getNumberOfPages());
     expect((pdf.match(/Colonne num.ro 1\)/g) ?? []).length).toBe(doc.getNumberOfPages());
