@@ -214,9 +214,12 @@ Planifier l'API au démarrage de Windows (à exécuter dans PowerShell administr
 $action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
   -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\GMAO\GMAO-Web\ops\laragon\start-api.ps1"'
 $trigger = New-ScheduledTaskTrigger -AtStartup
-$settings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero)
+$settings = New-ScheduledTaskSettingsSet -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) `
+  -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 Register-ScheduledTask -TaskName 'GMAO API' -Action $action -Trigger $trigger -Settings $settings -User 'SYSTEM' -RunLevel Highest
 ```
+
+`-AllowStartIfOnBatteries` et `-DontStopIfGoingOnBatteries` sont indispensables sur un portable : par défaut Windows ne lance pas la tâche sur batterie et l'arrête au débranchement. Le déclencheur « au démarrage » ne se déclenche pas non plus après une mise en veille ou avec le démarrage rapide de Windows (arrêt = hibernation) : désactiver le démarrage rapide (`powercfg /h off`) ou relancer la tâche à la main (`Start-ScheduledTask 'GMAO API'`).
 
 Laragon (MySQL et Nginx) démarre à l'ouverture de session de Windows. Sur un serveur sans session ouverte en permanence, il faut soit une ouverture de session automatique, soit enregistrer `mysqld.exe` et `nginx.exe` comme services ou tâches planifiées au démarrage. Cette partie dépend de la version de Laragon et de la politique du serveur : à valider lors de l'installation.
 
